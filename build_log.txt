@@ -1,0 +1,5 @@
+
+> mocha-app@0.0.0 build
+> tsc -b && vite build
+
+src/worker/index.ts(44,23): error TS2347: Untyped function calls may not accept type arguments.
