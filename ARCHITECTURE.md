@@ -49,7 +49,7 @@ Resumo: **Slug (header) → validação no D1 → Store no contexto → `store.i
 
 - **Middleware:**  
   - `storeMiddleware` em `/api/*`: valida o tenant (D1) e injeta `store`.  
-  - Rotas de pedidos usam ainda o **authMiddleware** (Mocha) para garantir usuário logado.
+  - **verifyAuth** (`src/worker/middlewares/verifyAuth.ts`) em `/api/admin/*`: valida JWT no header `Authorization: Bearer <token>`, verifica se o usuário é membro ativo da loja em **store_members** e injeta `c.set('user', user)` (id, role). Bloqueia requisições não autorizadas (401/403).
 
 - **Respostas padronizadas:**
   - Sucesso: `c.json({ success: true, data: ... })`
@@ -74,6 +74,7 @@ Resumo: **Slug (header) → validação no D1 → Store no contexto → `store.i
 
 - **Supabase (PostgreSQL):**  
   - **products**, **orders**, **order_items**: todas com **`store_id`**.  
+  - **store_members**: id, user_id (FK auth.users), store_id, role (admin/editor). Vincula usuários do Supabase Auth às lojas para acesso ao painel admin. Ver `docs/supabase-store-members.sql`.  
   - Nenhuma query de negócio é feita sem filtrar por `store_id` (evita vazamento entre lojas).
 
 ---
@@ -89,6 +90,8 @@ src/
 │   │   └── supabase.ts      # Cliente Supabase
 │   ├── middleware/
 │   │   └── store.ts         # Tenant: slug → D1 → store
+│   ├── middlewares/
+│   │   └── verifyAuth.ts    # Proteção admin: JWT + store_members, c.set('user')
 │   ├── routes/              # Rotas por domínio
 │   │   ├── products.ts
 │   │   ├── orders.ts
@@ -99,15 +102,22 @@ src/
 │
 ├── react-app/
 │   ├── components/
+│   │   ├── auth/            # AdminGuard (rotas protegidas)
 │   │   ├── common/          # Botões, inputs, etc.
 │   │   ├── layout/          # Navbar, Footer
 │   │   ├── home/            # Seções da home
 │   │   ├── checkout/        # Carrinho, modais de pagamento
-│   │   └── admin/           # StatusBadge, OrderDetailsModal
-│   ├── contexts/            # CartContext (carrinho)
+│   │   └── admin/           # StatusBadge, OrderDetailsModal, AdminNav
+│   ├── contexts/            # CartContext, AuthContext (UserContext)
 │   ├── hooks/               # useProducts, useOrders, useCheckout
 │   ├── lib/
-│   │   └── api.ts           # apiFetch (x-store-slug + envelope success/data/error)
+│   │   ├── api.ts           # apiFetch, adminApiFetch (Bearer token)
+│   │   └── supabase.ts      # Cliente Supabase (sessões em localStorage)
+│   ├── pages/
+│   │   └── auth/
+│   │       └── Login.tsx    # Interface de login (dark, minimalista)
+│   ├── services/
+│   │   └── auth.service.ts  # Lógica: login, logout, getCurrentUser, getSession, getAccessToken
 │   └── types/
 │       └── index.ts         # Re-export do schema do Worker
 │
@@ -117,6 +127,28 @@ src/
 ---
 
 ## 4. Convenções
+
+### Autenticação do Painel Admin (SaaS)
+
+- **Separação:** `auth.service.ts` (lógica pura), `verifyAuth.ts` (segurança no Worker), `Login.tsx` (interface).
+- **Contexto:** `AuthContext` expõe `UserContext` (id, email) e `useAuth()` em toda a aplicação (tipagem estrita).
+- **Sessões:** Supabase Auth gerencia sessões em **localStorage** (padrão do cliente JS).
+- **Login:** Página `/login` (`pages/auth/Login.tsx`): email/senha, redireciona para `/admin/pedidos`.
+- **Proteção:** `AdminGuard` (`components/auth/AdminGuard.tsx`) envolve rotas `/admin/*`; sem sessão → redirecionamento suave para `/login`.
+- **API admin:** `adminApiFetch` envia `Authorization: Bearer <token>`; Worker usa **verifyAuth** (JWT + store_members).
+- **Env:** Worker: `SUPABASE_JWT_SECRET`. Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+
+### Isolamento Multi-tenant (Auth → Store)
+
+O acesso a dados por loja é garantido pela cadeia **Auth User → Store Member → Store ID**:
+
+1. **Auth User** — O usuário se autentica via Supabase Auth (email/senha). O frontend envia o **JWT** (access_token) no header `Authorization` em toda requisição ao `/api/admin/*`.
+
+2. **Store Member** — O middleware **verifyAuth** no Worker valida o JWT e obtém o `user_id` (claim `sub`). Em seguida consulta a tabela **store_members** no Supabase: só há linha se esse `user_id` estiver vinculado ao **store_id** da loja que está sendo acessada (o `store_id` vem do **storeMiddleware**, que já validou o `x-store-slug` no D1). Se não existir membro ativo para aquela loja, a requisição é bloqueada (403).
+
+3. **Store ID** — Todas as operações de dados (pedidos, produtos) usam o `store.id` já injetado no contexto. Assim, um usuário nunca acessa dados de outra loja: ele só é “membro” de lojas nas quais foi explicitamente cadastrado em **store_members**, e as queries filtram sempre por `store_id`.
+
+Resumo: **JWT (user_id) + store_members (user_id, store_id) + store (do slug)** garantem isolamento multi-tenant no painel admin.
 
 | Aspecto           | Padrão                          |
 |------------------|----------------------------------|

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { Variables } from "./types.js";
 import { storeMiddleware } from "./middleware/store.js";
+import { verifyAuth } from "./middlewares/verifyAuth.js";
 import products from "./routes/products.js";
 import orders from "./routes/orders.js";
 import webhooks from "./routes/webhooks.js";
@@ -16,6 +17,7 @@ const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // --- 1. MIDDLEWARES DE ISOLAMENTO ---
 app.use('/api/*', storeMiddleware);
+app.use('/api/admin/*', verifyAuth);
 
 // --- 2. ROTEADORES MODULARES (BUSINESS RULES) ---
 app.route('/api/products', products);

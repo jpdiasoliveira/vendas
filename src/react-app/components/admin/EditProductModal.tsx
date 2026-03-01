@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
-import { apiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/lib/api";
 import type { Product } from "@/react-app/types";
 
 interface EditProductModalProps {
@@ -55,7 +55,7 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
         stock: stock === "" ? null : (Number.isNaN(s as number) ? undefined : s),
       };
 
-      await apiFetch(`/api/admin/products/${product.id}`, {
+      await adminApiFetch(`/api/admin/products/${product.id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });

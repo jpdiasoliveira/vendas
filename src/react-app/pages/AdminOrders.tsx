@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { RefreshCw, Home, LayoutDashboard } from "lucide-react";
-import { apiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/lib/api";
 import type { Order } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { StatusBadge } from "@/react-app/components/admin/StatusBadge";
@@ -31,7 +31,7 @@ export default function AdminOrdersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<Order[]>("/api/admin/orders");
+      const data = await adminApiFetch<Order[]>("/api/admin/orders");
       setOrders(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao carregar pedidos");

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { RefreshCw, Home, Package, Pencil } from "lucide-react";
-import { apiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/lib/api";
 import type { Product } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { EditProductModal } from "@/react-app/components/admin/EditProductModal";
@@ -21,7 +21,7 @@ export default function AdminProductsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<Product[]>("/api/admin/products");
+      const data = await adminApiFetch<Product[]>("/api/admin/products");
       setProducts(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao carregar produtos");

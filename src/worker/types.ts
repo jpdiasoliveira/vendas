@@ -1,10 +1,19 @@
 import type { Store } from "./core/schema.js";
 
 /**
- * Centralização do contexto de variáveis injetadas em toda request do Hono.
- * Garante Typescript strict mode para os extractors de `c.get()`.
+ * Usuário autenticado no painel admin (validado via JWT + store_members).
+ * Injetado por verifyAuth em c.set('user', user).
+ */
+export type AuthUser = {
+  id: string;
+  role: string;
+};
+
+/**
+ * Variáveis injetadas no contexto Hono (tipagem estrita).
  */
 export type Variables = {
-  user: unknown;
+  /** Definido nas rotas /api/admin/* após verifyAuth; undefined nas demais. */
+  user: AuthUser | unknown;
   store: Store;
 };

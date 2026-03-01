@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Send } from "lucide-react";
-import { apiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/lib/api";
 import type { OrderDetail } from "@/react-app/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -50,7 +50,7 @@ export function OrderDetailsModal({
     }
     setLoading(true);
     setError(null);
-    apiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
+    adminApiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
       .then((data) => {
         setOrder(data);
         setSelectedStatus(data.paymentStatus ?? data.status ?? "pending");
@@ -66,7 +66,7 @@ export function OrderDetailsModal({
     setUpdating(true);
     setError(null);
     try {
-      await apiFetch(`/api/admin/orders/${orderId}/status`, {
+      await adminApiFetch(`/api/admin/orders/${orderId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: selectedStatus }),
       });

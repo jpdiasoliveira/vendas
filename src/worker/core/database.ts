@@ -304,3 +304,40 @@ export async function updateOrderPaymentStatus(
 
   if (error) throw new Error(error.message);
 }
+
+// ---- Store members (SaaS auth) ----
+
+export interface StoreMember {
+  id: string;
+  userId: string;
+  storeId: string;
+  role: string;
+}
+
+/**
+ * Verifica se o usuário é membro da loja (store_members).
+ * Usado pelo authMiddleware para autorizar acesso ao painel admin.
+ */
+export async function getStoreMember(
+  env: Env,
+  userId: string,
+  storeId: string
+): Promise<StoreMember | null> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("store_members")
+    .select("id, user_id, store_id, role")
+    .eq("user_id", userId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return {
+    id: row.id as string,
+    userId: row.user_id as string,
+    storeId: row.store_id as string,
+    role: row.role as string,
+  };
+}
