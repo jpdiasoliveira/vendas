@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { X, Copy, Check, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Copy, Check, Loader2, CheckCircle } from 'lucide-react';
 import { useCheckout } from '@/react-app/hooks/useCheckout';
+import { apiFetch } from '@/react-app/lib/api';
 
 interface PixPaymentModalProps {
     isOpen: boolean;
@@ -10,20 +11,60 @@ interface PixPaymentModalProps {
     qrCodeBase64: string;
 }
 
+const POLL_INTERVAL_MS = 5000;
+const POLL_MAX_ATTEMPTS = 24;
+
 export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCodeBase64 }: PixPaymentModalProps) {
     const [copied, setCopied] = useState(false);
+    const [paymentApproved, setPaymentApproved] = useState(false);
     const { checkPaymentStatus, isProcessing } = useCheckout();
+    const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         if (copied) {
-            const timeout = setTimeout(() => setCopied(false), 2000);
-            return () => clearTimeout(timeout);
+            const t = setTimeout(() => setCopied(false), 2000);
+            return () => clearTimeout(t);
         }
     }, [copied]);
+
+    useEffect(() => {
+        if (!isOpen || !orderId) return;
+        setPaymentApproved(false);
+
+        let attempts = 0;
+        const poll = async () => {
+            attempts += 1;
+            if (attempts > POLL_MAX_ATTEMPTS) {
+                if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                return;
+            }
+            try {
+                const order = await apiFetch<{ paymentStatus?: string }>(`/api/orders/${orderId}`);
+                if (order.paymentStatus === 'approved') {
+                    setPaymentApproved(true);
+                    if (pollIntervalRef.current) {
+                        clearInterval(pollIntervalRef.current);
+                        pollIntervalRef.current = null;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        };
+
+        pollIntervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
+        poll();
+
+        return () => {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        };
+    }, [isOpen, orderId]);
 
     if (!isOpen) return null;
 
     const handleCopy = async (text: string) => {
+        if (!text) return;
         try {
             await navigator.clipboard.writeText(text);
             setCopied(true);
@@ -35,15 +76,13 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
     const verifyStatus = async () => {
         try {
             const order = await checkPaymentStatus(orderId);
-            if (order.payment_status === 'approved') {
-                alert('Pagamento aprovado!');
-                onClose();
-                window.location.reload();
+            if (order.paymentStatus === 'approved') {
+                setPaymentApproved(true);
             } else {
                 alert('Pagamento ainda não foi processado. Tente novamente em alguns instantes.');
             }
-        } catch (error) {
-            // O erro já é lidado no console via useCheckout
+        } catch {
+            // erro já tratado no hook
         }
     };
 
@@ -60,53 +99,76 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
 
                 <div className="text-center">
                     <h2 className="text-3xl font-bold text-[#1B4332] font-playfair mb-4">Pague com Pix</h2>
-                    <p className="text-[#6D4C41] mb-6 font-inter">Escaneie o QR Code abaixo ou copie o código Pix</p>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 inline-block">
-                        <img
-                            src={`data:image/png;base64,${qrCodeBase64}`}
-                            alt="QR Code Pix"
-                            className="w-64 h-64 mx-auto"
-                        />
-                    </div>
-
-                    <div className="bg-[#1B4332]/5 p-4 rounded-2xl mb-6">
-                        <p className="text-sm text-[#6D4C41] font-inter mb-2">Código Pix Copia e Cola:</p>
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="text"
-                                value={qrCode}
-                                readOnly
-                                className="flex-1 bg-white/60 border border-[#1B4332]/20 rounded-xl px-4 py-2 text-sm text-[#1B4332] font-mono"
-                            />
+                    {paymentApproved ? (
+                        <div className="py-6">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-4">
+                                <CheckCircle className="h-10 w-10" />
+                            </div>
+                            <p className="text-xl font-bold text-[#1B4332] font-playfair mb-2">Pagamento aprovado!</p>
+                            <p className="text-[#6D4C41] font-inter mb-6">Obrigado pela sua compra.</p>
                             <button
-                                onClick={() => handleCopy(qrCode)}
-                                className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-4 py-2 rounded-xl font-bold hover:shadow-lg transition-all duration-300 flex items-center space-x-2"
+                                onClick={onClose}
+                                className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-6 py-3 rounded-full font-bold font-inter"
                             >
-                                {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-                                <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                                Fechar
                             </button>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <p className="text-[#6D4C41] mb-6 font-inter">Escaneie o QR Code abaixo ou use o Copia e Cola</p>
 
-                    <button
-                        onClick={verifyStatus}
-                        disabled={isProcessing}
-                        className="w-full bg-[#1B4332] text-white py-3 rounded-full font-bold hover:bg-[#2d5a4a] transition-all duration-300 font-inter mb-4 flex items-center justify-center space-x-2"
-                    >
-                        {isProcessing ? (
-                            <>
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                                <span>Verificando...</span>
-                            </>
-                        ) : (
-                            <span>Já paguei - Verificar Status</span>
-                        )}
-                    </button>
+                            {qrCodeBase64 && (
+                                <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 inline-block">
+                                    <img
+                                        src={`data:image/png;base64,${qrCodeBase64}`}
+                                        alt="QR Code Pix"
+                                        className="w-64 h-64 mx-auto"
+                                    />
+                                </div>
+                            )}
 
-                    <p className="text-xs text-[#6D4C41]/70 font-inter">
-                        Após o pagamento, a confirmação pode levar alguns instantes
-                    </p>
+                            {qrCode && (
+                                <div className="bg-[#1B4332]/5 p-4 rounded-2xl mb-6">
+                                    <p className="text-sm text-[#6D4C41] font-inter mb-2">Código Pix Copia e Cola:</p>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={qrCode}
+                                            readOnly
+                                            className="flex-1 bg-white/60 border border-[#1B4332]/20 rounded-xl px-4 py-2 text-sm text-[#1B4332] font-mono"
+                                        />
+                                        <button
+                                            onClick={() => handleCopy(qrCode)}
+                                            className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-4 py-2 rounded-xl font-bold hover:shadow-lg transition-all duration-300 flex items-center gap-2 shrink-0"
+                                        >
+                                            {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                                            <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={verifyStatus}
+                                disabled={isProcessing}
+                                className="w-full bg-[#1B4332] text-white py-3 rounded-full font-bold hover:bg-[#2d5a4a] transition-all duration-300 font-inter mb-4 flex items-center justify-center gap-2"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        <span>Verificando...</span>
+                                    </>
+                                ) : (
+                                    <span>Já paguei — Verificar status</span>
+                                )}
+                            </button>
+
+                            <p className="text-xs text-[#6D4C41]/70 font-inter">
+                                A confirmação é verificada automaticamente a cada 5s ou ao clicar em &quot;Já paguei&quot;.
+                            </p>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

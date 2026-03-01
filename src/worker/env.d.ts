@@ -6,4 +6,6 @@ interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   ASSETS: Fetcher;
+  /** Opcional: URL base pública para o webhook (ex: https://seu-dominio.com). Se definida, notification_url é enviada ao MP. */
+  NOTIFICATION_BASE_URL?: string;
 }

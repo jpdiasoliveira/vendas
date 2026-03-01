@@ -27,9 +27,13 @@ export default function CheckoutModal({ isOpen, onClose, orderId, total }: Check
 
             console.log('Payment response:', data);
 
-            if (selectedMethod === 'pix' && data.qr_code_base64) {
-                // Show Pix QR code in modal
-                setPixData(data);
+            const pixBase64 = data.qrCodeBase64 ?? data.qr_code_base64;
+            const pixCopyPaste = data.copyPaste ?? data.pixCode ?? data.qr_code;
+            if (selectedMethod === 'pix' && (pixBase64 || pixCopyPaste)) {
+                setPixData({
+                    qr_code: pixCopyPaste ?? '',
+                    qr_code_base64: pixBase64 ?? '',
+                });
                 setShowPixModal(true);
             } else if (selectedMethod === 'boleto' && data.ticket_url) {
                 // Open Boleto in new tab
