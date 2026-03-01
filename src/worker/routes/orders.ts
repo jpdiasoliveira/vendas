@@ -1,198 +1,170 @@
 import { Hono } from "hono";
 import { authMiddleware } from "@getmocha/users-service/backend";
-import { getSupabase } from "../core/supabase.js";
+import {
+  createOrder,
+  getOrderByIdAndStore,
+  getOrdersByUserAndStore,
+  getOrderItemsByOrderAndStore,
+  updateOrderPayment,
+} from "../core/database.js";
+import type { CartItemPayload } from "../core/schema.js";
 import { Variables } from "../types.js";
+import { createPaymentPIX } from "../services/mercadopago.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-// Garante que todas as rotas neste módulo precisam de usuário autenticado
 orders.use("*", authMiddleware);
 
 /**
- * Cria um novo pedido transacional com os itens do carrinho em uma tabela relacional.
- * Opera isolado pelas chaves estrangeiras `user_id` da conta autenticada e `store_id` do Tenant.
- * 
- * @param {Context} c - O Payload do Request recebendo um Array de produtos via JSON.
- * @returns {Response} Código 201 indicando Pedido Gerado (Created) junto com o UUID nativo do pedido. Erro 500 para colisão transacional.
+ * Cria pedido com itens do carrinho (store_id + user_id).
  */
 orders.post("/", async (c) => {
-    const user = c.get("user");
-    const store = c.get("store");
-    const body = await c.req.json();
+  const user = c.get("user") as { id: string };
+  const store = c.get("store");
+  const body = (await c.req.json()) as { items?: CartItemPayload[] };
 
-    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
-        return c.json({ error: "Items array is required", code: "EMPTY_CART_PAYLOAD" }, 400);
-    }
+  if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    return c.json({ success: false, error: "Items array is required" }, 400);
+  }
 
-    // Precalcula o total - O ideal em produção é refazer o fetch da source of truth da listagem de preços.
-    const total = body.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-    const supabase = getSupabase(c.env);
-
-    try {
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-                store_id: store.id,
-                user_id: user.id,
-                total: total,
-                payment_method: body.payment_method || null,
-                status: 'pending'
-            })
-            .select()
-            .single();
-
-        if (orderError) throw orderError;
-
-        const mappedItems = body.items.map((item: any) => ({
-            order_id: order.id,
-            store_id: store.id,
-            product_id: item.id,
-            product_name: item.name || 'Produto',
-            product_image: item.image_url || null,
-            quantity: item.quantity,
-            price: item.price
-        }));
-
-        const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(mappedItems);
-
-        if (itemsError) throw itemsError;
-
-        return c.json({ orderId: order.id, status: "pending", total }, 201);
-    } catch (error: any) {
-        console.error("Order Creation Logic Error:", error);
-        return c.json({ error: error.message || "Failed to create order", code: "DATABASE_INSERTION_FAILURE" }, 500);
-    }
+  try {
+    const { orderId, total } = await createOrder(c.env, {
+      storeId: store.id,
+      userId: user.id,
+      items: body.items,
+    });
+    return c.json(
+      { success: true, data: { orderId, status: "pending", total } },
+      201
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Falha ao criar pedido";
+    console.error("Order creation error:", err);
+    return c.json({ success: false, error: message }, 500);
+  }
 });
 
 /**
- * Rota para confirmar processamento da seleção de checkout de um usuário.
- * Simula a renderização de instâncias ou redirects para o Checkout Transparente.
- * 
- * @param {Context} c - Recebe por query parameter (param id) com o id exato gerado na fase superior (`/api/orders/`).
- * @returns {Response} Parâmetros da adquirente (ex: qr_code do PIX/Boleto Link).
+ * Registra método de pagamento. Para PIX, chama a API do Mercado Pago e retorna QR Code e Copia e Cola.
  */
 orders.post("/:id/payment", async (c) => {
-    const user = c.get("user");
-    const store = c.get("store");
-    const orderId = c.req.param("id");
-    const body = await c.req.json();
+  const user = c.get("user") as { id: string; email?: string; google_user_data?: { email?: string } };
+  const store = c.get("store");
+  const orderId = c.req.param("id");
+  const body = (await c.req.json()) as { payment_method?: string };
 
-    if (!body.payment_method) {
-        return c.json({ error: "Payment method required", code: "MISSING_PAYMENT_ID" }, 400);
-    }
+  if (!body.payment_method) {
+    return c.json({ success: false, error: "Payment method required" }, 400);
+  }
 
-    const supabase = getSupabase(c.env);
+  const order = await getOrderByIdAndStore(c.env, orderId, user.id, store.id);
+  if (!order) {
+    return c.json({ success: false, error: "Pedido não encontrado" }, 404);
+  }
 
-    const { data: order, error: findError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .eq('user_id', user.id)
-        .eq('store_id', store.id)
-        .single();
+  const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
+  const payerEmail = user.google_user_data?.email ?? user.email ?? "comprador@email.com";
 
-    if (findError || !order) return c.json({ error: "Pedido não encontrado", code: "ORDER_NOT_FOUND" }, 404);
+  if (body.payment_method === "pix" && token) {
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const baseUrl = (c.env as { NOTIFICATION_BASE_URL?: string }).NOTIFICATION_BASE_URL;
+      const notificationUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/webhooks/mercadopago` : undefined;
 
-    let qrCode = null;
-    let qrCodeBase64 = null;
-    let ticketUrl = null;
-    let initPoint = null;
+      const pix = await createPaymentPIX(token, {
+        orderId: Number(orderId),
+        total: order.total,
+        payerEmail,
+        idempotencyKey,
+        notificationUrl,
+      });
 
-    if (body.payment_method === 'pix') {
-        qrCode = "00020126440014br.gov.bcb.pix0122natfoods@example.com5204000053039865802BR5916NATFOODS ORG6009SAO PAULO62140510NATFOODSA16304EE89";
-        qrCodeBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    } else if (body.payment_method === 'boleto') {
-        ticketUrl = "https://www.mercadopago.com.br/sandbox/payments/123456789/ticket";
-    } else if (body.payment_method === 'credit_card') {
-        initPoint = "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=123-456";
-    }
+      await updateOrderPayment(c.env, orderId, store.id, "pix", {
+        paymentId: pix.paymentId,
+        paymentStatus: "pending",
+      });
 
-    const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-            payment_method: body.payment_method,
-            payment_status: 'pending',
-            updated_at: new Date().toISOString()
-        })
-        .match({ id: orderId, store_id: store.id });
-
-    if (updateError) {
-        return c.json({ error: "Incapaz de registrar o método de pagamento", code: "PAYMENT_METHOD_SYNC_FAILED" }, 500);
-    }
-
-    return c.json({
+      return c.json({
         success: true,
-        payment_method: body.payment_method,
-        status: "pending",
-        qr_code: qrCode,
-        qr_code_base64: qrCodeBase64,
-        ticket_url: ticketUrl,
-        init_point: initPoint
-    }, 200);
+        data: {
+          orderId: Number(orderId),
+          pixCode: pix.copyPaste,
+          qrCodeBase64: pix.qrCodeBase64,
+          copyPaste: pix.copyPaste,
+          payment_method: "pix",
+          status: pix.status,
+        },
+      }, 200);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Falha ao gerar PIX no Mercado Pago";
+      console.error("Mercado Pago PIX error:", err);
+      return c.json({ success: false, error: message }, 500);
+    }
+  }
+
+  try {
+    await updateOrderPayment(c.env, orderId, store.id, body.payment_method);
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Incapaz de registrar o método de pagamento";
+    return c.json({ success: false, error: message }, 500);
+  }
+
+  let ticketUrl: string | null = null;
+  let initPoint: string | null = null;
+  if (body.payment_method === "boleto") {
+    ticketUrl = "https://www.mercadopago.com.br/sandbox/payments/ticket";
+  } else if (body.payment_method === "credit_card") {
+    initPoint = "https://www.mercadopago.com.br/checkout/v1/redirect";
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      payment_method: body.payment_method,
+      status: "pending",
+      ticket_url: ticketUrl,
+      init_point: initPoint,
+    },
+  }, 200);
 });
 
 /**
- * Resgata histórico de pedidos completo de um Consumidor naquela loja específica.
- * @param {Context} c - Fetch Contextualizado via Middleware.
- * @returns {Response} Código 200 com a Array retroativa dos pedidos mais antigos para os mais recentes.
+ * Histórico de pedidos do usuário na loja.
  */
 orders.get("/", async (c) => {
-    const user = c.get("user");
-    const store = c.get("store");
-    const supabase = getSupabase(c.env);
+  const user = c.get("user") as { id: string };
+  const store = c.get("store");
 
-    const { data: results, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('store_id', store.id)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        return c.json({ error: error.message, code: "HISTORY_FETCH_ERROR" }, 500);
-    }
-
-    return c.json(results, 200);
+  try {
+    const data = await getOrdersByUserAndStore(c.env, user.id, store.id);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao buscar pedidos";
+    return c.json({ success: false, error: message }, 500);
+  }
 });
 
 /**
- * Obtém atributos cirúrgicos e o array de items cruzados com um recibo em específico de uma store.
- * Valida a hierarquia combinando as Primary Keys e Foreign Keys para evitar vazamentos de informações por UUIDs paralelos.
- * 
- * @param {Context} c - Path param `:id`.
- * @returns {Response} Retorna chaves compostas injetadas de um único pedido ({...order, items[]}).
+ * Detalhe de um pedido com itens.
  */
 orders.get("/:id", async (c) => {
-    const user = c.get("user");
-    const store = c.get("store");
-    const orderId = c.req.param("id");
-    const supabase = getSupabase(c.env);
+  const user = c.get("user") as { id: string };
+  const store = c.get("store");
+  const orderId = c.req.param("id");
 
-    const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .eq('user_id', user.id)
-        .eq('store_id', store.id)
-        .single();
+  const order = await getOrderByIdAndStore(c.env, orderId, user.id, store.id);
+  if (!order) {
+    return c.json({ success: false, error: "Pedido não encontrado" }, 404);
+  }
 
-    if (orderError || !order) {
-        return c.json({ error: "Order not found", code: "RECEIPT_NOT_FOUND" }, 404);
-    }
-
-    const { data: items, error: itemsError } = await supabase
-        .from('order_items')
-        .select('*')
-        .eq('order_id', orderId)
-        .eq('store_id', store.id);
-
-    if (itemsError) {
-        return c.json({ error: "Order Items lookup corrupted", code: "RECEIPT_ITEMS_CORRUPTED" }, 500);
-    }
-
-    return c.json({ ...order, items }, 200);
+  try {
+    const items = await getOrderItemsByOrderAndStore(c.env, orderId, store.id);
+    return c.json({ success: true, data: { ...order, items } }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao buscar itens do pedido";
+    return c.json({ success: false, error: message }, 500);
+  }
 });
 
 export default orders;

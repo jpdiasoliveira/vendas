@@ -124,7 +124,7 @@ export default function OrdersPage() {
                       </span>
                     </div>
                     <p className="text-[#6D4C41] text-sm font-inter">
-                      Realizado em {new Date(order.created_at).toLocaleDateString('pt-BR', {
+                      Realizado em {new Date(order.createdAt).toLocaleDateString('pt-BR', {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric',
@@ -148,22 +148,22 @@ export default function OrdersPage() {
                       <div className="flex items-center space-x-3 text-[#6D4C41]">
                         <CreditCard className="h-5 w-5" />
                         <span className="font-inter">
-                          {order.payment_method === 'pix' ? 'Pix' :
-                            order.payment_method === 'boleto' ? 'Boleto' :
-                              order.payment_method === 'credit_card' ? 'Cartão de Crédito' : 'Não definido'}
+                          {order.paymentMethod === 'pix' ? 'Pix' :
+                            order.paymentMethod === 'boleto' ? 'Boleto' :
+                              order.paymentMethod === 'credit_card' ? 'Cartão de Crédito' : 'Não definido'}
                         </span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold font-inter border ${order.payment_status === 'approved' ? 'bg-green-100 text-green-800 border-green-200' :
-                        order.payment_status === 'rejected' ? 'bg-red-100 text-red-800 border-red-200' :
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold font-inter border ${order.paymentStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-200' :
+                        order.paymentStatus === 'rejected' ? 'bg-red-100 text-red-800 border-red-200' :
                           'bg-yellow-100 text-yellow-800 border-yellow-200'
                         }`}>
-                        {order.payment_status === 'approved' ? 'Aprovado' :
-                          order.payment_status === 'rejected' ? 'Recusado' : 'Pendente'}
+                        {order.paymentStatus === 'approved' ? 'Aprovado' :
+                          order.paymentStatus === 'rejected' ? 'Recusado' : 'Pendente'}
                       </span>
                     </div>
 
                     {/* Botão de Pagar Agora se estiver pendente */}
-                    {order.status === 'pending' && (!order.payment_status || order.payment_status === 'pending') && (
+                    {order.status === 'pending' && (!order.paymentStatus || order.paymentStatus === 'pending') && (
                       <button
                         onClick={() => handlePayOrder(order.id, order.total)}
                         className="w-full mt-4 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 font-inter flex items-center justify-center space-x-2"

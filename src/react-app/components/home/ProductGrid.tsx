@@ -1,5 +1,5 @@
-import { ProductCard } from './ProductCard';
-import { Product } from '@/react-app/hooks/useProducts';
+import { ProductCard } from "./ProductCard";
+import type { Product } from "@/react-app/types";
 import { Loader2, Package } from 'lucide-react';
 import { useNavigate } from 'react-router';
 

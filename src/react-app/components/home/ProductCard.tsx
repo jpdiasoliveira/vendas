@@ -1,22 +1,27 @@
-import { useCart } from '@/react-app/contexts/CartContext';
-import { Product } from '@/react-app/hooks/useProducts';
+import { useCart } from "@/react-app/contexts/CartContext";
+import type { Product } from "@/react-app/types";
 
 interface ProductCardProps {
-    product: Product;
-    isFeatured?: boolean;
+  product: Product;
+  isFeatured?: boolean;
 }
 
-export function ProductCard({ product, isFeatured = false }: ProductCardProps) {
-    const { addItem } = useCart();
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300";
 
-    const handleAdd = () => {
-        addItem({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image_url || 'https://via.placeholder.com/300'
-        });
-    };
+export function ProductCard({ product, isFeatured = false }: ProductCardProps) {
+  const { addItem } = useCart();
+  const imageUrl = product.imageUrl ?? (product as { image_url?: string }).image_url ?? PLACEHOLDER_IMAGE;
+
+  const handleAdd = () => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: imageUrl,
+      priceWholesale: product.priceWholesale ?? undefined,
+      minQuantityWholesale: product.minQuantityWholesale ?? undefined,
+    });
+  };
 
     return (
         <div className={`group relative ${isFeatured ? 'md:-mt-4' : ''}`}>
@@ -32,7 +37,7 @@ export function ProductCard({ product, isFeatured = false }: ProductCardProps) {
                 <div className={`relative overflow-hidden bg-gradient-to-br from-[#FAF8F3] via-white to-[#FFD166]/${isFeatured ? '10' : '5'} p-8`}>
                     <div className={`absolute top-0 right-0 w-${isFeatured ? '40' : '32'} h-${isFeatured ? '40' : '32'} bg-[#FFD166]/${isFeatured ? '20' : '10'} rounded-full blur-${isFeatured ? '3xl' : '2xl'}`}></div>
                     <img
-                        src={product.image_url || 'https://via.placeholder.com/300'}
+                        src={imageUrl}
                         alt={product.name}
                         className="w-full h-80 object-contain group-hover:scale-110 transition-transform duration-700 relative z-10"
                     />

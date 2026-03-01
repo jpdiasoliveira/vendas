@@ -1,38 +1,21 @@
-export interface Store {
-    id: string;
-    slug: string;
-    display_name: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-}
+/**
+ * Tipos do frontend: espelho do schema do Worker (Source of Truth).
+ * Re-exporta de src/worker/core/schema para garantir consistência.
+ */
+export type {
+  Store,
+  Product,
+  Order,
+  OrderItem,
+  OrderDetail,
+  Category,
+  CartItemPayload,
+  ApiSuccess,
+  ApiError,
+  ApiResponse,
+} from "@/worker/core/schema";
 
-export interface Product {
-    id: string;
-    name: string;
-    description?: string;
-    price: number;
-    image_url?: string;
-    category?: string;
-    stock?: number;
-}
-
-export interface OrderItem {
-    id?: number;
-    order_id?: number;
-    product_id: string;
-    quantity: number;
-    price: number;
-    name?: string;
-    image?: string;
-}
-
-export interface Order {
-    id: number;
-    status: string;
-    total: number;
-    payment_method: string | null;
-    payment_status: string | null;
-    created_at: string;
-    items?: OrderItem[];
-}
+/** Pedido com itens (resposta de GET /api/orders/:id) */
+export type OrderWithItems = import("@/worker/core/schema").Order & {
+  items?: import("@/worker/core/schema").OrderItem[];
+};

@@ -1,31 +1,41 @@
-import { Store } from "@/react-app/types";
+import type { Store } from "../core/schema.js";
 
 /**
  * Middleware SaaS de isolamento dinâmico (Tenant Id).
- * Escuta os headers para validar a existência da loja no D1 (borda local) e repassa os atributos para a rota.
- * 
- * @param {any} c - O objeto de Contexto do Hono que provê o Header 'x-store-slug' gerado pelo frontend.
- * @param {any} next - O callback para prosseguir a execução se a loja for autorizada.
- * @returns {Promise<Response | void>} Injeta 'store' no contexto ou retorna JSON de erro padronizado (400/404).
+ * Valida o slug no D1 e injeta a loja (camelCase) no contexto.
  */
+function rowToStore(row: Record<string, unknown>): Store {
+  return {
+    id: row.id as string,
+    slug: row.slug as string,
+    displayName: row.display_name as string,
+    status: row.status as string,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
 export const storeMiddleware = async (c: any, next: any) => {
-    const storeSlug = c.req.header("x-store-slug");
+  if (c.req.path.startsWith("/api/webhooks")) {
+    return next();
+  }
 
-    if (!storeSlug) {
-        return c.json({ error: "Identificação da loja (x-store-slug) é obrigatória", code: "MISSING_TENANT_ID" }, 400);
-    }
+  const storeSlug = c.req.header("x-store-slug");
 
-    // Validação rápida de cache/metadados no SQLite/D1 via Cloudflare Edge
-    const store = await c.env.DB.prepare(
-        "SELECT * FROM stores WHERE slug = ? AND status = 'active'"
-    )
-        .bind(storeSlug)
-        .first() as Store;
+  if (!storeSlug) {
+    return c.json({ success: false, error: "Identificação da loja (x-store-slug) é obrigatória" }, 400);
+  }
 
-    if (!store) {
-        return c.json({ error: "Loja não encontrada ou inativa", code: "TENANT_NOT_FOUND" }, 404);
-    }
+  const row = await c.env.DB.prepare(
+    "SELECT * FROM stores WHERE slug = ? AND status = 'active'"
+  )
+    .bind(storeSlug)
+    .first() as Record<string, unknown> | null;
 
-    c.set("store", store);
-    await next();
+  if (!row) {
+    return c.json({ success: false, error: "Loja não encontrada ou inativa" }, 404);
+  }
+
+  c.set("store", rowToStore(row));
+  await next();
 };

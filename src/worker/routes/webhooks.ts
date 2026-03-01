@@ -1,19 +1,58 @@
 import { Hono } from "hono";
 import { Variables } from "../types.js";
+import { getPayment } from "../services/mercadopago.js";
+import { updateOrderPaymentStatus } from "../core/database.js";
 
 const webhooks = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 /**
- * Endpoint passivo que aguarda chamadas assíncronas do Mercado Pago (IPN).
- * Processa informações de faturamento e converte status (ex: pending para approved) sem middleware local do User Service,
- * sendo autenticado pelo payload webhook verificado da Adquirente.
- * 
- * @param {Context} c - Response Hook cru contendo o envelope de pagamento efetuado.
- * @returns {Response} Status 200 obrigatório imediato para confirmar à MP que a flag foi processada silenciosamente.
+ * Webhook do Mercado Pago (IPN).
+ * Recebe a notificação, busca o status do pagamento na API e, se aprovado, atualiza o pedido.
  */
 webhooks.post("/mercadopago", async (c) => {
-    // O pipeline da integração de checkout em si com a Database será injetada aqui na próxima Etapa.
-    return c.json({ success: true, code: "HOOK_RECEIVED_AND_QUEUED" }, 200);
+  try {
+    const body = (await c.req.json()) as { type?: string; data?: { id?: string } };
+    console.log("[Webhook MP] Received:", JSON.stringify({ type: body.type, dataId: body.data?.id }));
+
+    const paymentIdStr = body.data?.id;
+    if (!paymentIdStr) {
+      console.warn("[Webhook MP] Missing data.id");
+      return c.json({ success: true, data: { received: true } }, 200);
+    }
+
+    const paymentId = Number(paymentIdStr);
+    if (Number.isNaN(paymentId)) {
+      console.warn("[Webhook MP] Invalid data.id:", paymentIdStr);
+      return c.json({ success: true, data: { received: true } }, 200);
+    }
+
+    const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
+    if (!token) {
+      console.error("[Webhook MP] MERCADO_PAGO_ACCESS_TOKEN not set");
+      return c.json({ success: false, error: "Server config error" }, 500);
+    }
+
+    const payment = await getPayment(token, paymentId);
+    console.log("[Webhook MP] Payment status:", payment.id, payment.status, payment.external_reference);
+
+    const orderId = payment.external_reference;
+    if (!orderId) {
+      console.warn("[Webhook MP] No external_reference in payment:", paymentId);
+      return c.json({ success: true, data: { received: true } }, 200);
+    }
+
+    if (payment.status === "approved") {
+      await updateOrderPaymentStatus(c.env, orderId, "approved", { paymentId: payment.id });
+      console.log("[Webhook MP] Order updated to paid:", orderId);
+    } else {
+      console.log("[Webhook MP] Payment not approved, status:", payment.status);
+    }
+
+    return c.json({ success: true, data: { received: true } }, 200);
+  } catch (err: unknown) {
+    console.error("[Webhook MP] Error:", err);
+    return c.json({ success: false, error: err instanceof Error ? err.message : "Webhook error" }, 500);
+  }
 });
 
 export default webhooks;
