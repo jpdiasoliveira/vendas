@@ -5,6 +5,7 @@ import products from "./routes/products.js";
 import orders from "./routes/orders.js";
 import webhooks from "./routes/webhooks.js";
 import auth from "./routes/auth.js";
+import admin from "./routes/admin.js";
 
 /**
  * @file index.ts
@@ -20,9 +21,11 @@ app.use('/api/*', storeMiddleware);
 app.route('/api/products', products);
 app.route('/api/orders', orders);
 app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curtas ex: '/api/users/me'
-app.route('/api/webhooks', webhooks);
+app.route("/api/webhooks", webhooks);
+app.route("/api/admin", admin);
 
-// Exibe API Healthcheck global para validação de container ativo
-app.get("/api/health", (c) => c.json({ ok: true, timestamp: Date.now() }));
+app.get("/api/health", (c) =>
+  c.json({ success: true, data: { ok: true, timestamp: Date.now() } })
+);
 
 export default app;
