@@ -1,32 +1,58 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-interface CartItem {
+/** Dados mínimos para calcular preço por quantidade (varejo vs atacado) */
+export interface PricingInfo {
+  price: number;
+  priceWholesale?: number | null;
+  minQuantityWholesale?: number | null;
+}
+
+/**
+ * Retorna o preço unitário efetivo para a quantidade dada.
+ * Se quantity >= minQuantityWholesale e priceWholesale definido, usa atacado; senão varejo.
+ */
+export const calculateItemPrice = (
+  product: PricingInfo,
+  quantity: number
+): number => {
+  const minQty = product.minQuantityWholesale ?? Infinity;
+  const wholesale = product.priceWholesale ?? null;
+  if (quantity >= minQty && wholesale != null && wholesale < product.price) {
+    return wholesale;
+  }
+  return product.price;
+};
+
+export interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
   image: string;
+  priceWholesale?: number | null;
+  minQuantityWholesale?: number | null;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
+  addItem: (item: Omit<CartItem, "quantity">) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   total: number;
   itemCount: number;
+  calculateItemPrice: typeof calculateItemPrice;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'mocha-cart-items';
+const CART_STORAGE_KEY = "mocha-cart-items";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      return savedCart ? JSON.parse(savedCart) : [];
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
@@ -35,29 +61,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-    } catch (error) {
-      console.error('Failed to save cart to localStorage:', error);
+    } catch (err) {
+      console.error("Failed to save cart to localStorage:", err);
     }
   }, [items]);
 
-  const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
-    setItems(currentItems => {
-      const existingItem = currentItems.find(item => item.id === newItem.id);
-      
-      if (existingItem) {
-        return currentItems.map(item =>
-          item.id === newItem.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+  const addItem = (newItem: Omit<CartItem, "quantity">) => {
+    setItems((current) => {
+      const existing = current.find((i) => i.id === newItem.id);
+      if (existing) {
+        return current.map((i) =>
+          i.id === newItem.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      
-      return [...currentItems, { ...newItem, quantity: 1 }];
+      return [...current, { ...newItem, quantity: 1 }];
     });
   };
 
   const removeItem = (id: string) => {
-    setItems(currentItems => currentItems.filter(item => item.id !== id));
+    setItems((current) => current.filter((i) => i.id !== id));
   };
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -65,11 +87,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem(id);
       return;
     }
-    
-    setItems(currentItems =>
-      currentItems.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      )
+    setItems((current) =>
+      current.map((i) => (i.id === id ? { ...i, quantity } : i))
     );
   };
 
@@ -77,13 +96,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
     try {
       localStorage.removeItem(CART_STORAGE_KEY);
-    } catch (error) {
-      console.error('Failed to clear cart from localStorage:', error);
+    } catch (err) {
+      console.error("Failed to clear cart from localStorage:", err);
     }
   };
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const total = items.reduce((sum, item) => {
+    const unitPrice = calculateItemPrice(item, item.quantity);
+    return sum + unitPrice * item.quantity;
+  }, 0);
+
+  const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -95,6 +118,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         total,
         itemCount,
+        calculateItemPrice,
       }}
     >
       {children}
@@ -103,9 +127,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+  const ctx = useContext(CartContext);
+  if (ctx === undefined) {
+    throw new Error("useCart must be used within a CartProvider");
   }
-  return context;
+  return ctx;
 }
