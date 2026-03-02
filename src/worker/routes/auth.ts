@@ -8,8 +8,54 @@ import {
 } from "@getmocha/users-service/backend";
 import { getCookie, setCookie } from "hono/cookie";
 import { Variables } from "../types.js";
+import { rateLimitLogin } from "../middlewares/rateLimitLogin.js";
 
 const auth = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+/**
+ * POST /api/login — Login com email/senha (Supabase Auth).
+ * Rate limit: 20 tentativas por minuto por IP. 429 após exceder.
+ */
+auth.post("/login", rateLimitLogin, async (c) => {
+  let body: { email?: string; password?: string };
+  try {
+    body = (await c.req.json()) as { email?: string; password?: string };
+  } catch {
+    return c.json({ success: false, error: "Corpo JSON inválido" }, 400);
+  }
+  const email = typeof body.email === "string" ? body.email.trim() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  if (!email || !password) {
+    return c.json({ success: false, error: "E-mail e senha são obrigatórios" }, 400);
+  }
+
+  const anonKey = c.env.SUPABASE_ANON_KEY;
+  const supabaseUrl = c.env.SUPABASE_URL;
+  if (!anonKey || !supabaseUrl) {
+    return c.json(
+      { success: false, error: "Login não configurado no servidor" },
+      503
+    );
+  }
+
+  const res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = (await res.json()) as { access_token?: string; refresh_token?: string; user?: unknown; error_description?: string };
+  if (!res.ok) {
+    const msg = data.error_description ?? "Credenciais inválidas";
+    return c.json({ success: false, error: msg }, 401);
+  }
+
+  return c.json({ success: true, data: { access_token: data.access_token, refresh_token: data.refresh_token, user: data.user } }, 200);
+});
 
 auth.get("/oauth/google/redirect_url", async (c) => {
   const redirectUrl = await getOAuthRedirectUrl("google", {

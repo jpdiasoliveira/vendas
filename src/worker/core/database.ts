@@ -5,7 +5,7 @@
  */
 
 import { getSupabase } from "./supabase.js";
-import type { Product, Order, OrderItem, CartItemPayload, OrderDetail } from "./schema.js";
+import type { Product, Order, OrderItem, CartItemPayload, OrderDetail, Store } from "./schema.js";
 
 // ---- Mapeadores: Supabase (snake_case) -> Schema (camelCase) ----
 
@@ -57,6 +57,37 @@ function rowToOrderItem(row: Record<string, unknown>): OrderItem {
   };
 }
 
+function rowToStore(row: Record<string, unknown>): Store {
+  return {
+    id: row.id as string,
+    slug: row.slug as string,
+    displayName: row.display_name as string,
+    status: row.status as string,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+// ---- Store (Supabase: coluna status, não is_active) ----
+
+/**
+ * Busca loja por slug no Supabase. Apenas lojas com status = 'active'.
+ */
+export async function getStoreBySlug(env: Env, slug: string): Promise<Store | null> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  return rowToStore(row);
+}
+
 // ---- Produtos ----
 
 export async function getProductsByStore(env: Env, storeId: string): Promise<Product[]> {
@@ -71,11 +102,46 @@ export async function getProductsByStore(env: Env, storeId: string): Promise<Pro
   return (rows ?? []).map(rowToProduct);
 }
 
+export interface ProductCreatePayload {
+  name: string;
+  price: number;
+  description?: string | null;
+  imageUrl?: string | null;
+}
+
+/**
+ * Cria um produto na loja. Isolado por store_id (multi-tenant).
+ */
+export async function createProduct(
+  env: Env,
+  storeId: string,
+  data: ProductCreatePayload
+): Promise<Product> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("products")
+    .insert({
+      store_id: storeId,
+      name: data.name,
+      price: data.price,
+      description: data.description ?? null,
+      image_url: data.imageUrl ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToProduct(row);
+}
+
 export interface ProductUpdatePayload {
   price?: number;
   priceWholesale?: number | null;
   minQuantityWholesale?: number | null;
   stock?: number | null;
+  name?: string;
+  description?: string | null;
+  imageUrl?: string | null;
 }
 
 /**
@@ -93,12 +159,27 @@ export async function updateProduct(
   if (data.priceWholesale !== undefined) payload.price_wholesale = data.priceWholesale;
   if (data.minQuantityWholesale !== undefined) payload.min_quantity_wholesale = data.minQuantityWholesale;
   if (data.stock !== undefined) payload.stock = data.stock;
+  if (data.name !== undefined) payload.name = data.name;
+  if (data.description !== undefined) payload.description = data.description;
+  if (data.imageUrl !== undefined) payload.image_url = data.imageUrl;
 
   const { error } = await supabase
     .from("products")
     .update(payload)
     .match({ id: productId, store_id: storeId });
 
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Remove um produto. Isolado por store_id (multi-tenant).
+ */
+export async function deleteProduct(env: Env, productId: string, storeId: string): Promise<void> {
+  const supabase = getSupabase(env);
+  const { error } = await supabase
+    .from("products")
+    .delete()
+    .match({ id: productId, store_id: storeId });
   if (error) throw new Error(error.message);
 }
 
@@ -340,4 +421,41 @@ export async function getStoreMember(
     storeId: row.store_id as string,
     role: row.role as string,
   };
+}
+
+/** Registro da view view_audit_report (auditoria com email do usuário). */
+export interface AuditReportRow {
+  id: string;
+  store_id: string;
+  user_id: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+  user_email: string | null;
+}
+
+/**
+ * Lista logs de auditoria da loja (view view_audit_report). Ordenado por created_at DESC.
+ */
+export async function getAuditLogsByStore(env: Env, storeId: string): Promise<AuditReportRow[]> {
+  const supabase = getSupabase(env);
+  const { data: rows, error } = await supabase
+    .from("view_audit_report")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (rows ?? []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    store_id: row.store_id as string,
+    user_id: row.user_id as string,
+    action: row.action as string,
+    resource_type: row.resource_type as string,
+    resource_id: row.resource_id as string,
+    details: row.details as Record<string, unknown> | null,
+    created_at: row.created_at as string,
+    user_email: (row.user_email as string | null) ?? null,
+  }));
 }

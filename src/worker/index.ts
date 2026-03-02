@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { Variables } from "./types.js";
 import { storeMiddleware } from "./middleware/store.js";
 import { verifyAuth } from "./middlewares/verifyAuth.js";
@@ -14,6 +15,18 @@ import admin from "./routes/admin.js";
  * Responsável estritamente pela Orquestração Limpa e Injeção de Dependências.
  */
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+// --- 0. CORS (permite origem do frontend em dev) ---
+app.use(
+  "*",
+  cors({
+    origin: "http://localhost:5173",
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "x-store-slug"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 86400,
+  })
+);
 
 // --- 1. MIDDLEWARES DE ISOLAMENTO ---
 app.use('/api/*', storeMiddleware);

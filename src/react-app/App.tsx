@@ -5,6 +5,7 @@ import OrdersPage from "@/react-app/pages/Orders";
 import LoginPage from "@/react-app/pages/auth/Login";
 import AdminOrdersPage from "@/react-app/pages/AdminOrders";
 import AdminProductsPage from "@/react-app/pages/AdminProducts";
+import AuditLogsPage from "@/react-app/pages/admin/AuditLogs";
 import { CartProvider } from "@/react-app/contexts/CartContext";
 import { AuthProvider } from "@/react-app/contexts/AuthContext";
 import { AuthProvider as MochaAuthProvider } from "@getmocha/users-service/react";
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/admin" element={<AdminGuard />}>
               <Route path="pedidos" element={<AdminOrdersPage />} />
               <Route path="produtos" element={<AdminProductsPage />} />
+              <Route path="audit-logs" element={<AuditLogsPage />} />
             </Route>
             </Routes>
           </Router>

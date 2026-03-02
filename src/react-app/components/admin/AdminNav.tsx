@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, LogOut } from "lucide-react";
+import { Package, ShoppingBag, History, LogOut } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+import { adminApiFetch } from "@/react-app/lib/api";
 
-const links = [
+const baseLinks = [
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { to: "/admin/produtos", label: "Produtos", icon: Package },
 ];
@@ -11,6 +13,18 @@ export function AdminNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminApiFetch<{ id: string; role: string }>("/api/admin/me")
+      .then((data) => setRole(data.role))
+      .catch(() => setRole(null));
+  }, []);
+
+  const links = [
+    ...baseLinks,
+    ...(role === "admin" ? [{ to: "/admin/audit-logs", label: "Logs", icon: History }] : []),
+  ];
 
   const handleLogout = async () => {
     await signOut();

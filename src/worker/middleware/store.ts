@@ -1,22 +1,22 @@
-import type { Store } from "../core/schema.js";
+import { getStoreBySlug } from "../core/database.js";
 
 /**
  * Middleware SaaS de isolamento dinâmico (Tenant Id).
- * Valida o slug no D1 e injeta a loja (camelCase) no contexto.
+ * Valida o slug no Supabase (stores com status = 'active') e injeta a loja no contexto.
  */
-function rowToStore(row: Record<string, unknown>): Store {
-  return {
-    id: row.id as string,
-    slug: row.slug as string,
-    displayName: row.display_name as string,
-    status: row.status as string,
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
-  };
-}
+/** Rotas que não exigem loja (auth Mocha, webhooks, login admin). */
+const SKIP_STORE_PATHS = [
+  "/api/webhooks",
+  "/api/oauth",
+  "/api/sessions",
+  "/api/users",
+  "/api/logout",
+  "/api/login",
+];
 
 export const storeMiddleware = async (c: any, next: any) => {
-  if (c.req.path.startsWith("/api/webhooks")) {
+  const path = c.req.path;
+  if (SKIP_STORE_PATHS.some((p) => path.startsWith(p) || path === p)) {
     return next();
   }
 
@@ -26,16 +26,18 @@ export const storeMiddleware = async (c: any, next: any) => {
     return c.json({ success: false, error: "Identificação da loja (x-store-slug) é obrigatória" }, 400);
   }
 
-  const row = await c.env.DB.prepare(
-    "SELECT * FROM stores WHERE slug = ? AND status = 'active'"
-  )
-    .bind(storeSlug)
-    .first() as Record<string, unknown> | null;
+  let store;
+  try {
+    store = await getStoreBySlug(c.env, storeSlug);
+  } catch (err) {
+    console.error("storeMiddleware getStoreBySlug error:", err);
+    return c.json({ success: false, error: "Erro ao buscar loja" }, 500);
+  }
 
-  if (!row) {
+  if (!store || store.status !== "active") {
     return c.json({ success: false, error: "Loja não encontrada ou inativa" }, 404);
   }
 
-  c.set("store", rowToStore(row));
+  c.set("store", store);
   await next();
 };

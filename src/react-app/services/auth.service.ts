@@ -1,10 +1,12 @@
 /**
  * SaaS Auth Engine — Camada de lógica de autenticação (sem React).
  * Centraliza login, logout e estado do usuário; sessões gerenciadas pelo Supabase (localStorage).
+ * Login via POST /api/login para aplicar rate limiting no Worker.
  */
 
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/react-app/lib/supabase";
+import { apiFetch } from "@/react-app/lib/api";
 
 /** Usuário no contexto da aplicação (tipagem estrita para uso global). */
 export interface UserContext {
@@ -18,17 +20,35 @@ function sessionToUserContext(session: Session | null): UserContext | null {
   return { id: u.id, email: u.email ?? undefined };
 }
 
+/** Resposta de sucesso do POST /api/login (proxy Supabase Auth). */
+interface LoginApiData {
+  access_token: string;
+  refresh_token: string;
+  user?: { id: string; email?: string };
+}
+
 /**
- * Login com email e senha. Dispara atualização de sessão no Supabase (persistida em localStorage).
+ * Login com email e senha via POST /api/login (rate limit no Worker).
+ * Define a sessão no Supabase (localStorage) com os tokens retornados.
  */
 export async function login(email: string, password: string): Promise<{ user: UserContext }> {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim(),
-    password,
+  const data = await apiFetch<LoginApiData>("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim(), password }),
   });
-  if (error) throw error;
-  const user = sessionToUserContext(data.session);
-  if (!user) throw new Error("Sessão inválida");
+  if (!data.access_token) throw new Error("Resposta de login inválida");
+  await supabase.auth.setSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token ?? "",
+  });
+  const user: UserContext = {
+    id: data.user?.id ?? "",
+    email: data.user?.email,
+  };
+  if (!user.id) {
+    const session = await getSession();
+    return { user: sessionToUserContext(session)! };
+  }
   return { user };
 }
 

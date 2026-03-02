@@ -1,0 +1,39 @@
+import { z } from "zod";
+
+/**
+ * Schema de validação para produto (POST/PUT).
+ * Campos: id, title, price (number), description, image_url.
+ * Mensagens em português para erros 400.
+ */
+
+const msg = {
+  required: "Campo obrigatório",
+  pricePositive: "O preço deve ser um número positivo",
+  url: "URL da imagem inválida",
+} as const;
+
+export const productSchema = z.object({
+  id: z.string().uuid().optional(),
+  title: z.string().min(1, "Título é obrigatório"),
+  price: z.number({ required_error: "Preço é obrigatório" }).positive(msg.pricePositive),
+  description: z.string().optional(),
+  image_url: z.string().url(msg.url).optional().or(z.literal("")),
+});
+
+/** Body para criar produto (POST): title e price obrigatórios. */
+export const productCreateSchema = productSchema.omit({ id: true });
+
+/** Body para atualizar produto (PUT): todos os campos opcionais. Inclui campos extras do admin (priceWholesale, stock). */
+export const productUpdateSchema = productSchema
+  .partial()
+  .extend({
+    price: z.number().positive(msg.pricePositive).optional(),
+    image_url: z.string().url(msg.url).optional().or(z.literal("")).optional(),
+    priceWholesale: z.number().positive().nullable().optional(),
+    minQuantityWholesale: z.number().int().nonnegative().nullable().optional(),
+    stock: z.number().int().nonnegative().nullable().optional(),
+  });
+
+export type ProductSchema = z.infer<typeof productSchema>;
+export type ProductCreateInput = z.infer<typeof productCreateSchema>;
+export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
