@@ -31,6 +31,8 @@ export interface CartItem {
   image: string;
   priceWholesale?: number | null;
   minQuantityWholesale?: number | null;
+  /** Estoque disponível no momento em que o item foi adicionado (usado para bloquear finalizar se insuficiente). */
+  stock?: number | null;
 }
 
 interface CartContextType {

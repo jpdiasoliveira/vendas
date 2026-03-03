@@ -10,11 +10,13 @@ import { Lifestyle } from "@/react-app/components/home/Lifestyle";
 import { Benefits } from "@/react-app/components/home/Benefits";
 import { Newsletter } from "@/react-app/components/home/Newsletter";
 import { useProducts } from "@/react-app/hooks/useProducts";
+import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 
 export default function HomePage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const { products, loading, error } = useProducts();
+  const trendingProductIds = useTrendingProductIds();
 
   const scrollToProducts = () => {
     const el = document.getElementById("produtos");
@@ -33,7 +35,12 @@ export default function HomePage() {
       />
 
       <Hero onShopClick={scrollToProducts} />
-      <ProductGrid products={products} loading={loading} error={error} />
+      <ProductGrid
+        products={products}
+        loading={loading}
+        error={error}
+        trendingProductIds={trendingProductIds}
+      />
       <Story />
       <Lifestyle />
       <Benefits />

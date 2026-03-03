@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { getPayment } from "../services/mercadopago.js";
-import { updateOrderPaymentStatus } from "../core/database.js";
+import { updateOrderPaymentStatus, updateOrderStatus, getOrderById } from "../core/database.js";
 
 const webhooks = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -44,8 +44,20 @@ webhooks.post("/mercadopago", async (c) => {
     if (payment.status === "approved") {
       await updateOrderPaymentStatus(c.env, orderId, "approved", { paymentId: payment.id });
       console.log("[Webhook MP] Order updated to paid:", orderId);
+    } else if (
+      payment.status === "rejected" ||
+      payment.status === "cancelled" ||
+      payment.status === "refunded"
+    ) {
+      const order = await getOrderById(c.env, orderId);
+      if (order) {
+        await updateOrderStatus(c.env, orderId, order.storeId, "cancelled");
+        console.log("[Webhook MP] Order cancelled (status from MP):", payment.status, orderId);
+      } else {
+        console.warn("[Webhook MP] Order not found for cancel/refund:", orderId);
+      }
     } else {
-      console.log("[Webhook MP] Payment not approved, status:", payment.status);
+      console.log("[Webhook MP] Payment status (no action):", payment.status);
     }
 
     return c.json({ success: true, data: { received: true } }, 200);

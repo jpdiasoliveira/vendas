@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag, Tag } from "lucide-react";
 import { useAuth } from "@getmocha/users-service/react";
 import { useCart } from "@/react-app/contexts/CartContext";
+import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import LoginModal from "@/react-app/components/LoginModal";
 import CheckoutModal from "./CheckoutModal";
 import { useCheckout } from "@/react-app/hooks/useCheckout";
@@ -23,12 +24,32 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   const [deliveryAddress, setDeliveryAddress] = useState("");
 
   const { createOrder, isProcessing, error } = useCheckout();
+  const { settings } = useStoreSettings();
 
   if (!isOpen) return null;
+
+  const minimumOrderValue = settings?.minimumOrderValue ?? null;
+  const belowMinimum =
+    minimumOrderValue != null && minimumOrderValue > 0 && total < minimumOrderValue;
+  const hasInsufficientStock = items.some(
+    (item) => item.stock != null && item.quantity > item.stock
+  );
+  const hasRequiredFields =
+    customerPhone.trim() !== "" && deliveryAddress.trim() !== "";
+  const canFinalize = !hasInsufficientStock && hasRequiredFields && !belowMinimum;
 
   const handleCheckout = async () => {
     if (!user) {
       setShowLoginModal(true);
+      return;
+    }
+    if (!customerPhone.trim()) {
+      return;
+    }
+    if (!deliveryAddress.trim()) {
+      return;
+    }
+    if (hasInsufficientStock || belowMinimum) {
       return;
     }
 
@@ -209,28 +230,47 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                   aria-label="Nome do cliente"
                 />
                 <label className="block text-sm font-medium text-[#6D4C41]">
-                  Telefone
+                  Telefone <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="(00) 00000-0000"
+                  required
                   className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
                   aria-label="Telefone para contato"
+                  aria-required="true"
                 />
                 <label className="block text-sm font-medium text-[#6D4C41]">
-                  Endereço de entrega
+                  Endereço de entrega <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="Rua, número, bairro, cidade..."
+                  required
                   className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
                   aria-label="Endereço de entrega"
+                  aria-required="true"
                 />
               </div>
+              {belowMinimum && (
+                <p className="text-amber-700 text-sm font-inter">
+                  O valor mínimo para pedidos é R$ {minimumOrderValue!.toFixed(2).replace(".", ",")}.
+                </p>
+              )}
+              {hasInsufficientStock && (
+                <p className="text-red-600 text-sm font-inter">
+                  Estoque insuficiente em um ou mais itens. Ajuste as quantidades ou remova itens.
+                </p>
+              )}
+              {!hasRequiredFields && items.length > 0 && (
+                <p className="text-amber-700 text-sm font-inter">
+                  Preencha telefone e endereço de entrega para finalizar.
+                </p>
+              )}
               <div className="flex items-center justify-between text-lg font-inter">
                 <span className="text-[#6D4C41]">Subtotal:</span>
                 <span className="font-bold text-[#1B4332] text-2xl font-playfair">
@@ -239,7 +279,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
               </div>
               <button
                 onClick={handleCheckout}
-                disabled={isProcessing}
+                disabled={isProcessing || !canFinalize}
                 className="w-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] py-4 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-300 hover:scale-105 font-inter disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? "Processando..." : "Finalizar Compra"}

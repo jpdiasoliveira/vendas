@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Leaf, User, Package, LogOut, ShoppingCart } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
+import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAuth } from "@getmocha/users-service/react";
 import { useNavigate } from "react-router";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
@@ -17,8 +18,12 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { itemCount } = useCart();
+  const { settings } = useStoreSettings();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const displayName = settings?.displayName?.trim() || "Natfoods";
+  const logoUrl = settings?.logoUrl?.trim();
+  const primaryColor = settings?.primaryColor || "#1B4332";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -38,12 +43,22 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center space-x-2 group">
-            <div className="relative">
-              <Leaf className="h-8 w-8 text-[#1B4332] group-hover:rotate-12 transition-transform duration-300" />
-              <div className="absolute inset-0 bg-[#FFD166]/20 blur-xl rounded-full group-hover:bg-[#FFD166]/30 transition-all" />
+            <div className="relative flex-shrink-0">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="h-8 w-8 object-contain group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <>
+                  <Leaf className="h-8 w-8 text-[#1B4332] group-hover:rotate-12 transition-transform duration-300" style={{ color: primaryColor }} />
+                  <div className="absolute inset-0 bg-[#FFD166]/20 blur-xl rounded-full group-hover:bg-[#FFD166]/30 transition-all" />
+                </>
+              )}
             </div>
             <div className="cursor-pointer" onClick={scrollToTop}>
-              <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">Natfoods</h1>
+              <h1 className="text-2xl font-bold font-playfair" style={{ color: primaryColor }}>{displayName}</h1>
               <p className="text-xs text-[#6D4C41]/70">Chips da Amazônia</p>
             </div>
           </div>

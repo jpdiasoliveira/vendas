@@ -8,6 +8,7 @@ import orders from "./routes/orders.js";
 import webhooks from "./routes/webhooks.js";
 import auth from "./routes/auth.js";
 import admin from "./routes/admin.js";
+import store from "./routes/store.js";
 
 /**
  * @file index.ts
@@ -38,6 +39,7 @@ app.route('/api/orders', orders);
 app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curtas ex: '/api/users/me'
 app.route("/api/webhooks", webhooks);
 app.route("/api/admin", admin);
+app.route("/api/store", store);
 
 app.get("/api/health", (c) =>
   c.json({ success: true, data: { ok: true, timestamp: Date.now() } })

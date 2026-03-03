@@ -5,7 +5,7 @@
  */
 
 import { getSupabase } from "./supabase.js";
-import type { Product, Order, OrderItem, CartItemPayload, OrderDetail, Store } from "./schema.js";
+import type { Product, Order, OrderItem, CartItemPayload, OrderDetail, Store, StoreSettings } from "./schema.js";
 import type { AuditLogReport } from "../../shared/types.js";
 
 // ---- Mapeadores: Supabase (snake_case) -> Schema (camelCase) ----
@@ -100,6 +100,102 @@ export async function getStoreBySlug(env: Env, slug: string): Promise<Store | nu
   return rowToStore(row);
 }
 
+// ---- Store settings ----
+
+/**
+ * Retorna configurações da loja (store_settings + display_name de stores).
+ * Se não existir linha em store_settings, retorna display_name da store e demais campos null/0.
+ */
+export async function getStoreSettingsWithDisplayName(
+  env: Env,
+  storeId: string
+): Promise<StoreSettings> {
+  const supabase = getSupabase(env);
+  const { data: storeRow, error: storeError } = await supabase
+    .from("stores")
+    .select("display_name")
+    .eq("id", storeId)
+    .maybeSingle();
+  if (storeError) throw new Error(storeError.message);
+
+  const { data: settingsRow, error: settingsError } = await supabase
+    .from("store_settings")
+    .select("logo_url, primary_color, minimum_order_value")
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (settingsError) throw new Error(settingsError.message);
+
+  return {
+    displayName: (storeRow?.display_name as string) ?? "",
+    logoUrl: settingsRow?.logo_url ?? null,
+    primaryColor: settingsRow?.primary_color ?? null,
+    minimumOrderValue:
+      settingsRow?.minimum_order_value != null ? Number(settingsRow.minimum_order_value) : null,
+  };
+}
+
+/**
+ * Atualiza store_settings (logo_url, primary_color, minimum_order_value) e stores.display_name.
+ * Faz upsert em store_settings se não existir linha para o store_id.
+ */
+export async function updateStoreSettingsAndDisplayName(
+  env: Env,
+  storeId: string,
+  payload: {
+    displayName?: string | null;
+    logoUrl?: string | null;
+    primaryColor?: string | null;
+    minimumOrderValue?: number | null;
+  }
+): Promise<void> {
+  const supabase = getSupabase(env);
+  if (payload.displayName !== undefined) {
+    const { error: storeErr } = await supabase
+      .from("stores")
+      .update({
+        display_name: payload.displayName ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", storeId);
+    if (storeErr) throw new Error(storeErr.message);
+  }
+  if (
+    payload.logoUrl !== undefined ||
+    payload.primaryColor !== undefined ||
+    payload.minimumOrderValue !== undefined
+  ) {
+    const { data: existing } = await supabase
+      .from("store_settings")
+      .select("store_id")
+      .eq("store_id", storeId)
+      .maybeSingle();
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (payload.logoUrl !== undefined) updatePayload.logo_url = payload.logoUrl ?? null;
+    if (payload.primaryColor !== undefined) updatePayload.primary_color = payload.primaryColor ?? null;
+    if (payload.minimumOrderValue !== undefined)
+      updatePayload.minimum_order_value = payload.minimumOrderValue ?? null;
+
+    if (existing) {
+      const { error: updErr } = await supabase
+        .from("store_settings")
+        .update(updatePayload)
+        .eq("store_id", storeId);
+      if (updErr) throw new Error(updErr.message);
+    } else {
+      const { error: insErr } = await supabase.from("store_settings").insert({
+        store_id: storeId,
+        logo_url: payload.logoUrl ?? null,
+        primary_color: payload.primaryColor ?? null,
+        minimum_order_value: payload.minimumOrderValue ?? null,
+        updated_at: new Date().toISOString(),
+      });
+      if (insErr) throw new Error(insErr.message);
+    }
+  }
+}
+
 // ---- Produtos ----
 
 export async function getProductsByStore(env: Env, storeId: string): Promise<Product[]> {
@@ -129,6 +225,27 @@ export async function getProductById(
     .maybeSingle();
   if (error) throw new Error(error.message);
   return row ? rowToProduct(row) : null;
+}
+
+/**
+ * Retorna os product_id que aparecem na view view_top_sellers (top vendas, ex.: últimos 30 dias).
+ * Se a view estiver vazia ou não existir, retorna array vazio (fallback: não exibir selo).
+ */
+export async function getTrendingProductIds(env: Env, storeId: string): Promise<string[]> {
+  const supabase = getSupabase(env);
+  const { data: rows, error } = await supabase
+    .from("view_top_sellers")
+    .select("product_id")
+    .eq("store_id", storeId);
+  if (error) {
+    console.error("[getTrendingProductIds]", error.message);
+    return [];
+  }
+  if (!rows || rows.length === 0) return [];
+  const ids = rows
+    .map((r) => r.product_id as string)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+  return [...new Set(ids)];
 }
 
 export interface ProductCreatePayload {
@@ -230,7 +347,7 @@ export async function updateProduct(
 }
 
 /** Retorna o estoque atual do produto (null = produto não existe). Quando existe, stock null no banco é tratado como 0. */
-async function getProductStock(
+export async function getProductStock(
   env: Env,
   productId: string,
   storeId: string
@@ -245,6 +362,25 @@ async function getProductStock(
   if (error) return null;
   if (row == null) return null;
   return row.stock != null ? Number(row.stock) : 0;
+}
+
+/**
+ * Valida se há estoque suficiente para todos os itens do pedido.
+ * @throws Error com mensagem 'Estoque insuficiente para o item: [Nome]' se algum item estiver em falta.
+ */
+export async function validateOrderStock(
+  env: Env,
+  storeId: string,
+  items: CartItemPayload[]
+): Promise<void> {
+  for (const item of items) {
+    const available = await getProductStock(env, item.id, storeId);
+    const required = item.quantity;
+    const name = item.name?.trim() || "Produto";
+    if (available === null || available < required) {
+      throw new Error(`Estoque insuficiente para o item: ${name}`);
+    }
+  }
 }
 
 /**
@@ -275,12 +411,20 @@ export async function createOrder(
   const supabase = getSupabase(env);
   const total = params.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
+  const itemsJson = params.items.map((item) => ({
+    product_id: item.id,
+    name: item.name || "Produto",
+    quantity: item.quantity,
+    price: item.price,
+  }));
+
   const orderPayload: Record<string, unknown> = {
     store_id: params.storeId,
     user_id: params.userId,
     total,
     payment_method: null,
     status: "pending",
+    items: itemsJson,
   };
   if (params.customerName != null && String(params.customerName).trim() !== "")
     orderPayload.customer_name = String(params.customerName).trim();

@@ -6,6 +6,8 @@ import {
   getOrdersByUserAndStore,
   getOrderItemsByOrderAndStore,
   updateOrderPayment,
+  validateOrderStock,
+  getStoreSettingsWithDisplayName,
 } from "../core/database.js";
 import type { CartItemPayload } from "../core/schema.js";
 import { Variables } from "../types.js";
@@ -37,14 +39,43 @@ orders.post("/", async (c) => {
   const customerPhone = body.customerPhone ?? body.customer_phone ?? null;
   const deliveryAddress = body.deliveryAddress ?? body.delivery_address ?? null;
 
+  const phoneTrim = customerPhone != null ? String(customerPhone).trim() : "";
+  const addressTrim = deliveryAddress != null ? String(deliveryAddress).trim() : "";
+  if (!phoneTrim) {
+    return c.json({ success: false, error: "Telefone é obrigatório" }, 400);
+  }
+  if (!addressTrim) {
+    return c.json({ success: false, error: "Endereço de entrega é obrigatório" }, 400);
+  }
+
+  const orderTotal = body.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const storeSettings = await getStoreSettingsWithDisplayName(c.env, store.id);
+  const minimumOrderValue = storeSettings.minimumOrderValue;
+  if (minimumOrderValue != null && minimumOrderValue > 0 && orderTotal < minimumOrderValue) {
+    return c.json(
+      {
+        success: false,
+        error: `O valor mínimo para pedidos é R$ ${minimumOrderValue.toFixed(2).replace(".", ",")}.`,
+      },
+      400
+    );
+  }
+
+  try {
+    await validateOrderStock(c.env, store.id, body.items);
+  } catch (stockErr: unknown) {
+    const message = stockErr instanceof Error ? stockErr.message : "Estoque insuficiente";
+    return c.json({ success: false, error: message }, 400);
+  }
+
   try {
     const { orderId, total } = await createOrder(c.env, {
       storeId: store.id,
       userId: user.id,
       items: body.items,
       customerName: body.customerName ?? null,
-      customerPhone: customerPhone ?? null,
-      deliveryAddress: deliveryAddress ?? null,
+      customerPhone: phoneTrim || null,
+      deliveryAddress: addressTrim || null,
     });
     return c.json(
       { success: true, data: { orderId, status: "pending", total } },

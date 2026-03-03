@@ -12,6 +12,8 @@ import {
   updateProduct,
   deleteProduct,
   getAuditLogs,
+  getStoreSettingsWithDisplayName,
+  updateStoreSettingsAndDisplayName,
 } from "../core/database.js";
 import { getSupabase } from "../core/supabase.js";
 import { productCreateSchema, productUpdateSchema } from "../schemas/product.js";
@@ -27,10 +29,60 @@ function zodErrorToMessage(error: { issues: { message: string; path: (string | n
   return messages.length > 0 ? messages.join("; ") : "Dados inválidos.";
 }
 
+/** Apenas admin ou owner podem acessar configurações da loja. */
+function requireAdminOrOwner(c: { get: (k: string) => unknown }) {
+  const user = c.get("user") as AuthUser | undefined;
+  if (!user) return null;
+  const role = (user.role ?? "").toLowerCase();
+  if (role === "admin" || role === "owner") return user;
+  return null;
+}
+
 admin.get("/me", async (c) => {
   const user = c.get("user") as AuthUser | undefined;
   if (!user) return c.json({ success: false, error: "Não autorizado" }, 401);
   return c.json({ success: true, data: { id: user.id, role: user.role } }, 200);
+});
+
+admin.get("/settings", async (c) => {
+  if (!requireAdminOrOwner(c)) {
+    return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
+  }
+  const store = c.get("store");
+  try {
+    const data = await getStoreSettingsWithDisplayName(c.env, store.id);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao carregar configurações";
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
+admin.patch("/settings", async (c) => {
+  if (!requireAdminOrOwner(c)) {
+    return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
+  }
+  const store = c.get("store");
+  const body = (await c.req.json()) as {
+    displayName?: string | null;
+    logoUrl?: string | null;
+    primaryColor?: string | null;
+    minimumOrderValue?: number | null;
+  };
+  try {
+    await updateStoreSettingsAndDisplayName(c.env, store.id, {
+      displayName: body.displayName,
+      logoUrl: body.logoUrl,
+      primaryColor: body.primaryColor,
+      minimumOrderValue:
+        body.minimumOrderValue != null ? Number(body.minimumOrderValue) : body.minimumOrderValue,
+    });
+    const data = await getStoreSettingsWithDisplayName(c.env, store.id);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao salvar configurações";
+    return c.json({ success: false, error: message }, 500);
+  }
 });
 
 admin.get("/audit-logs", async (c) => {

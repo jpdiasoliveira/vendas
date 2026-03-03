@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { useNavigate } from "react-router";
 import { RefreshCw, Home, LayoutDashboard, Package, ChevronDown, ChevronRight, Search, X, Eye, FileDown } from "lucide-react";
 import { adminApiFetch } from "@/react-app/services/api";
@@ -107,22 +107,73 @@ export default function AdminOrdersPage() {
 
   const awaitingShipmentCount = activeOrders.filter(isAwaitingShipment).length;
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchOrders = async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await adminApiFetch<Order[]>("/api/admin/orders");
-      setOrders(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      if (!silent) setOrders(list);
+      return list;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar pedidos");
+      if (!silent) setError(err instanceof Error ? err.message : "Erro ao carregar pedidos");
+      return [];
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+    }
+  };
+
+  const previousActiveOrderIdsRef = useRef<Set<string>>(new Set());
+
+  const playNewOrderSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.2);
+    } catch {
+      // ignore if AudioContext not supported
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    let mounted = true;
+    fetchOrders().then((list) => {
+      if (mounted) {
+        const active = list.filter((o) => ACTIVE_STATUSES.includes(getOrderStatus(o)));
+        previousActiveOrderIdsRef.current = new Set(active.map((o) => o.id));
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "ativos") return;
+    const interval = setInterval(async () => {
+      const list = await fetchOrders(true);
+      const active = list.filter((o) => ACTIVE_STATUSES.includes(getOrderStatus(o)));
+      const currentIds = new Set(active.map((o) => o.id));
+      const prev = previousActiveOrderIdsRef.current;
+      const hasNew = currentIds.size > 0 && [...currentIds].some((id) => !prev.has(id));
+      if (hasNew && prev.size > 0) {
+        playNewOrderSound();
+      }
+      previousActiveOrderIdsRef.current = currentIds;
+      setOrders(list);
+    }, 45_000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   const openDetail = (id: string) => {
     setSelectedOrderId(id);

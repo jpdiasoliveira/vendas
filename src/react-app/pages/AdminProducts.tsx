@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { RefreshCw, Home, Package, Pencil, ImageOff, Search, Plus, AlertTriangle, QrCode, HelpCircle, Trash2 } from "lucide-react";
+import { RefreshCw, Home, Package, Pencil, ImageOff, Search, Plus, AlertTriangle, QrCode, HelpCircle, Trash2, Flame } from "lucide-react";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
@@ -10,6 +10,7 @@ import { ProductQRModal } from "@/react-app/components/admin/ProductQRModal";
 import { DeleteProductModal } from "@/react-app/components/admin/DeleteProductModal";
 
 import { formatCurrency } from "@/react-app/utils/format";
+import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 
 const DEFAULT_CATEGORIES = ["Salgados", "Doces", "Combos"];
 
@@ -35,6 +36,7 @@ export default function AdminProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const trendingProductIds = useTrendingProductIds();
 
   useEffect(() => {
     if (!toast) return;
@@ -281,7 +283,18 @@ export default function AdminProductsPage() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-slate-800 font-medium">{product.name}</td>
+                        <td className="py-3 px-4 text-slate-800 font-medium">
+                          <span className="inline-flex items-center gap-1.5">
+                            {trendingProductIds.includes(product.id) && (
+                              <Flame
+                                className="h-4 w-4 text-amber-500 shrink-0"
+                                aria-label="Top vendas"
+                                title="Top vendas"
+                              />
+                            )}
+                            {product.name}
+                          </span>
+                        </td>
                         <td className="py-3 px-4 text-right text-slate-800 font-medium">
                           {formatCurrency(product.price)}
                         </td>

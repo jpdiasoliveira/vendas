@@ -20,6 +20,7 @@ export function ProductCard({ product, isFeatured = false }: ProductCardProps) {
       image: imageUrl,
       priceWholesale: product.priceWholesale ?? undefined,
       minQuantityWholesale: product.minQuantityWholesale ?? undefined,
+      stock: product.stock ?? undefined,
     });
   };
 

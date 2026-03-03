@@ -13,6 +13,14 @@ export interface Store {
   updatedAt: string;
 }
 
+/** Dados de configuração da loja (store_settings + display_name de stores). */
+export interface StoreSettings {
+  displayName: string;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  minimumOrderValue?: number | null;
+}
+
 export interface Product {
   id: string;
   storeId: string;

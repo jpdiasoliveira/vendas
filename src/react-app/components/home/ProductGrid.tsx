@@ -4,12 +4,14 @@ import { Loader2, Package } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 interface ProductGridProps {
-    products: Product[];
-    loading: boolean;
-    error: string | null;
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  /** IDs dos produtos no top de vendas (view_top_sellers). Se vazio, nenhum badge MAIS VENDIDO. */
+  trendingProductIds?: string[];
 }
 
-export function ProductGrid({ products, loading, error }: ProductGridProps) {
+export function ProductGrid({ products, loading, error, trendingProductIds = [] }: ProductGridProps) {
     const navigate = useNavigate();
 
     if (loading) {
@@ -61,11 +63,11 @@ export function ProductGrid({ products, loading, error }: ProductGridProps) {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 relative z-10">
-                {products.map((product, index) => (
+                {products.map((product) => (
                     <ProductCard
                         key={product.id}
                         product={product}
-                        isFeatured={index === 1} // Segundo item em destaque (meramente ilustrativo para manter o design)
+                        isFeatured={trendingProductIds.includes(product.id)}
                     />
                 ))}
             </div>

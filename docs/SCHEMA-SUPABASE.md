@@ -1,145 +1,186 @@
-# Schema do banco (Supabase) — referência
+# Schema do banco (Supabase) — Fonte única da verdade
 
-Documento gerado a partir da listagem das tabelas/colunas do projeto. Padrão: **snake_case** em colunas.
-
----
-
-## audit_logs
-| coluna        | tipo                     | aceita_nulo |
-|---------------|--------------------------|-------------|
-| id            | uuid                     | NO          |
-| store_id      | uuid                     | NO          |
-| user_id       | uuid                     | YES         |
-| action        | text                     | NO          |
-| resource_type | text                     | NO          |
-| resource_id   | text                     | YES         |
-| details       | jsonb                    | YES         |
-| created_at    | timestamp with time zone | NO          |
-
----
-
-## categories
-| coluna     | tipo                     | aceita_nulo |
-|------------|--------------------------|-------------|
-| id         | uuid                     | NO          |
-| store_id   | uuid                     | NO          |
-| slug       | text                     | NO          |
-| name       | text                     | NO          |
-| created_at | timestamp with time zone | NO          |
-
----
-
-## delivery_addresses
-| coluna       | tipo                     | aceita_nulo |
-|--------------|--------------------------|-------------|
-| id           | uuid                     | NO          |
-| order_id     | uuid                     | YES         |
-| store_id     | uuid                     | NO          |
-| street       | text                     | NO          |
-| number       | text                     | NO          |
-| complement   | text                     | YES         |
-| neighborhood | text                     | NO          |
-| city         | text                     | NO          |
-| state_code   | text                     | NO          |
-| zip_code     | text                     | NO          |
-
----
-
-## order_items
-| coluna       | tipo    | aceita_nulo |
-|--------------|---------|-------------|
-| id           | uuid    | NO          |
-| order_id     | uuid    | NO          |
-| store_id     | uuid    | NO          |
-| product_id   | uuid    | NO          |
-| product_name | text    | NO          |
-| quantity     | integer | NO          |
-| price        | numeric | NO          |
+Documento alinhado à auditoria. **Não invente colunas:** use apenas as listadas aqui. Padrão: **snake_case** nas colunas.
 
 ---
 
 ## orders
-| coluna          | tipo                     | aceita_nulo |
-|-----------------|--------------------------|-------------|
-| id              | uuid                     | NO          |
-| store_id        | uuid                     | NO          |
-| user_id         | uuid                     | YES         |
-| status          | text                     | NO          |
-| total           | numeric                  | NO          |
-| payment_method  | text                     | YES         |
-| payment_status  | text                     | YES         |
-| payment_id      | text                     | YES         |
-| created_at      | timestamp with time zone | NO          |
-| customer_email  | text                     | YES         |
-| customer_name   | text                     | YES         |
-| customer_phone  | text                     | YES         |
 
-**payment_status — valores permitidos (inglês):** `pending`, `paid`, `shipped`, `cancelled` (grafia com dois L; a constraint do Postgres exige `cancelled`).
+| Coluna                  | Tipo                     | Valor Padrão       | Aceita Vazio? |
+| ----------------------- | ------------------------ | ------------------ | ------------- |
+| id                      | uuid                     | uuid_generate_v4() | NO            |
+| store_id                | uuid                     | null               | NO            |
+| user_id                 | uuid                     | null               | YES           |
+| status                  | text                     | 'pending'::text    | NO            |
+| total                   | numeric                  | null               | NO            |
+| payment_method          | text                     | null               | YES           |
+| payment_status          | text                     | 'pending'::text    | YES           |
+| payment_id              | text                     | null               | YES           |
+| created_at              | timestamp with time zone | now()              | NO            |
+| customer_email          | text                     | null               | YES           |
+| customer_name           | text                     | null               | YES           |
+| customer_phone          | text                     | null               | YES           |
+| tracking_code           | text                     | null               | YES           |
+| shipping_method         | text                     | 'standard'::text   | YES           |
+| shipping_cost           | numeric                  | 0.00               | YES           |
+| estimated_delivery_date  | timestamp with time zone | null               | YES           |
+| cancellation_reason     | text                     | null               | YES           |
+| paid_at                 | timestamp with time zone | null               | YES           |
+| delivered_at            | timestamp with time zone | null               | YES           |
+| updated_at              | timestamp with time zone | now()              | YES           |
+| delivery_address        | text                     | null               | YES           |
+| items                   | jsonb                    | '[]'::jsonb        | YES           |
+
+**Uso (Manual de Voo):** Dados do cliente em `customer_name`, `customer_phone`, `delivery_address`. Itens do pedido em `items` (JSONB). Rastreabilidade em `paid_at`, `delivered_at`, `updated_at`. Ignore a tabela `delivery_addresses` para dados principais.
+
+---
+
+## audit_logs
+
+| Coluna      | Tipo                     |
+| ----------- | ------------------------ |
+| id          | uuid                     |
+| store_id    | uuid                     |
+| admin_id    | uuid                     |
+| action      | text                     |
+| entity_type | text                     |
+| entity_id   | text                     |
+| details     | jsonb                    |
+| created_at  | timestamp with time zone |
+| action_key  | text                     |
+| resource_id | uuid                     |
+
+---
+
+## categories
+
+| Coluna     | Tipo                     |
+| ---------- | ------------------------ |
+| id         | uuid                     |
+| store_id   | uuid                     |
+| slug       | text                     |
+| name       | text                     |
+| created_at | timestamp with time zone |
+
+---
+
+## delivery_addresses
+
+*(Tabela externa; para dados principais do pedido use `orders.delivery_address`.)*
+
+| Coluna       | Tipo                     |
+| ------------ | ------------------------ |
+| id           | uuid                     |
+| order_id     | uuid                     |
+| store_id     | uuid                     |
+| street       | text                     |
+| number       | text                     |
+| complement   | text                     |
+| neighborhood | text                     |
+| city         | text                     |
+| state_code   | text                     |
+| zip_code     | text                     |
+
+---
+
+## order_items
+
+| Coluna       | Tipo                     |
+| ------------ | ------------------------ |
+| id           | uuid                     |
+| order_id     | uuid                     |
+| store_id     | uuid                     |
+| product_id   | uuid                     |
+| product_name | text                     |
+| quantity     | integer                  |
+| price        | numeric                  |
 
 ---
 
 ## products
-| coluna                  | tipo                     | aceita_nulo |
-|-------------------------|--------------------------|-------------|
-| id                      | uuid                     | NO          |
-| store_id                | uuid                     | NO          |
-| category_id             | uuid                     | YES         |
-| name                    | text                     | NO          |
-| description             | text                     | YES         |
-| price                   | numeric                  | NO          |
-| image_url               | text                     | YES         |
-| stock                   | integer                  | YES         |
-| status                  | text                     | NO          |
-| created_at              | timestamp with time zone | NO          |
-| updated_at              | timestamp with time zone | YES         |
-| price_wholesale          | numeric                  | YES         |
-| min_quantity_wholesale   | integer                  | YES         |
-| slug                    | text                     | NO          |
+
+| Coluna                 | Tipo                     |
+| ---------------------- | ------------------------ |
+| id                     | uuid                     |
+| store_id               | uuid                     |
+| category_id            | uuid                     |
+| name                   | text                     |
+| description            | text                     |
+| price                  | numeric                  |
+| image_url              | text                     |
+| stock                  | integer                  |
+| status                 | text                     |
+| created_at             | timestamp with time zone |
+| updated_at             | timestamp with time zone |
+| price_wholesale        | numeric                  |
+| min_quantity_wholesale | integer                  |
+| slug                   | text                     |
+| weight_g               | integer                  |
+| length_cm               | integer                  |
+| width_cm                | integer                  |
+| height_cm               | integer                  |
+| unit_type              | text                     |
 
 ---
 
 ## store_members
-| coluna     | tipo                     | aceita_nulo |
-|------------|--------------------------|-------------|
-| id         | uuid                     | NO          |
-| user_id    | uuid                     | NO          |
-| store_id   | uuid                     | NO          |
-| role       | text                     | NO          |
-| created_at | timestamp with time zone | YES         |
+
+| Coluna     | Tipo                     |
+| ---------- | ------------------------ |
+| id         | uuid                     |
+| user_id    | uuid                     |
+| store_id   | uuid                     |
+| role       | text                     |
+| created_at | timestamp with time zone |
 
 ---
 
 ## store_settings
-| coluna               | tipo                     | aceita_nulo |
-|----------------------|--------------------------|-------------|
-| store_id             | uuid                     | NO          |
-| primary_color        | text                     | YES         |
-| secondary_color      | text                     | YES         |
-| navbar_bg            | text                     | YES         |
-| logo_url             | text                     | YES         |
-| mp_access_token      | text                     | YES         |
-| mp_public_key        | text                     | YES         |
-| minimum_order_value  | numeric                  | YES         |
-| updated_at           | timestamp with time zone | YES         |
+
+| Coluna               | Tipo                     |
+| -------------------- | ------------------------ |
+| store_id             | uuid                     |
+| primary_color        | text                     |
+| secondary_color      | text                     |
+| navbar_bg            | text                     |
+| logo_url             | text                     |
+| mp_access_token      | text                     |
+| mp_public_key        | text                     |
+| minimum_order_value  | numeric                  |
+| updated_at           | timestamp with time zone |
 
 ---
 
 ## stores
-| coluna       | tipo                     | aceita_nulo |
-|--------------|--------------------------|-------------|
-| id           | uuid                     | NO          |
-| slug         | text                     | NO          |
-| display_name | text                     | NO          |
-| status       | text                     | YES         |
-| created_at   | timestamp with time zone | YES         |
-| updated_at   | timestamp with time zone | YES         |
+
+| Coluna       | Tipo                     |
+| ------------ | ------------------------ |
+| id           | uuid                     |
+| slug         | text                     |
+| display_name | text                     |
+| status       | text                     |
+| created_at   | timestamp with time zone |
+| updated_at   | timestamp with time zone |
 
 ---
 
-## view_audit_report (view)
+## view_audit_report
 
-A view do histórico precisa expor as colunas que o Worker usa. Hoje no banco você tem: `id`, `store_id`, `action_key`, `created_at`, `user_email`, `action_description`, `type`, `details`. O código do Worker espera ainda: `user_id`, `action`, `resource_type`, `resource_id`, `nome_recurso`. Use o script em **docs/supabase-view-audit-report-fix.sql** para recriar a view alinhada.
+| Coluna     | Tipo                     |
+| ---------- | ------------------------ |
+| id         | uuid                     |
+| created_at | timestamp with time zone |
+| store_id   | uuid                     |
+| action     | text                     |
+| action_key | text                     |
+| entity_type| text                     |
 
 ---
 
-*Última atualização: fev/2026 — conferir no Supabase (information_schema) se alterar tabelas.*
+## view_top_sellers
+
+*(Usada para GET /api/products/trending. Pode expor product_id além de store_id — conferir na view no Supabase.)*
+
+| Coluna   | Tipo |
+| -------- | ---- |
+| store_id | uuid |
