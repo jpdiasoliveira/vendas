@@ -16,16 +16,30 @@ const formatDate = (dateStr: string) =>
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
+/**
+ * Valores de status enviados ao banco (sempre em inglês).
+ * Nomes corretos: pending | paid | shipped | cancelled (cancelado = 'cancelled' com dois L).
+ * Labels em PT só para exibição na UI.
+ */
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pendente" },
-  { value: "approved", label: "Aprovado" },
+  { value: "paid", label: "Pago" },
   { value: "shipped", label: "Enviado" },
   { value: "cancelled", label: "Cancelado" },
 ] as const;
 
+/** Normaliza status vindo da API para um value do select (sempre inglês). */
+function statusToSelectValue(apiStatus: string | null | undefined): string {
+  const s = (apiStatus ?? "").trim().toLowerCase();
+  if (s === "approved") return "paid";
+  if (s === "canceled") return "cancelled";
+  if (["pending", "paid", "shipped", "cancelled"].includes(s)) return s;
+  return "pending";
+}
+
 interface OrderDetailsModalProps {
   isOpen: boolean;
-  orderId: number | null;
+  orderId: string | null;
   onClose: () => void;
   onStatusUpdated: () => void;
 }
@@ -52,8 +66,13 @@ export function OrderDetailsModal({
     setError(null);
     adminApiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
       .then((data) => {
-        setOrder(data);
-        setSelectedStatus(data.paymentStatus ?? data.status ?? "pending");
+        const normalized: OrderDetail = {
+          ...data,
+          items: Array.isArray(data.items) ? data.items : [],
+        };
+        console.log("Dados recebidos do Worker:", data);
+        setOrder(normalized);
+        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Erro ao carregar pedido");
@@ -124,7 +143,7 @@ export function OrderDetailsModal({
                 </div>
                 <div>
                   <p className="text-[#6D4C41]">Cliente</p>
-                  <p className="font-medium text-[#1B4332]">{order.customerName ?? "Cliente"}</p>
+                  <p className="font-medium text-[#1B4332]">{order.customerName?.trim() || "Cliente"}</p>
                 </div>
                 <div>
                   <p className="text-[#6D4C41]">Total</p>
@@ -138,30 +157,42 @@ export function OrderDetailsModal({
 
               <h3 className="font-semibold text-[#1B4332] mb-3">Itens</h3>
               <div className="overflow-x-auto rounded-xl border border-[#1B4332]/10 mb-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#1B4332]/5">
-                      <th className="text-left py-2 px-3 text-[#1B4332]">Produto</th>
-                      <th className="text-right py-2 px-3 text-[#1B4332]">Qtd</th>
-                      <th className="text-right py-2 px-3 text-[#1B4332]">Preço</th>
-                      <th className="text-right py-2 px-3 text-[#1B4332]">Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.items.map((item) => (
-                      <tr key={item.id ?? item.productId} className="border-t border-[#1B4332]/5">
-                        <td className="py-2 px-3 text-[#6D4C41]">{item.productName}</td>
-                        <td className="py-2 px-3 text-right text-[#1B4332]">{item.quantity}</td>
-                        <td className="py-2 px-3 text-right text-[#1B4332]">
-                          {formatCurrency(item.price)}
-                        </td>
-                        <td className="py-2 px-3 text-right font-medium text-[#1B4332]">
-                          {formatCurrency(item.price * item.quantity)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {(() => {
+                  const list = Array.isArray(order.items) ? order.items : [];
+                  if (list.length === 0) {
+                    return (
+                      <p className="py-4 px-3 text-[#6D4C41] text-sm">
+                        Nenhum item encontrado para este pedido.
+                      </p>
+                    );
+                  }
+                  return (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-[#1B4332]/5">
+                          <th className="text-left py-2 px-3 text-[#1B4332]">Produto</th>
+                          <th className="text-right py-2 px-3 text-[#1B4332]">Qtd</th>
+                          <th className="text-right py-2 px-3 text-[#1B4332]">Preço</th>
+                          <th className="text-right py-2 px-3 text-[#1B4332]">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {list.map((item, idx) => (
+                          <tr key={item.id ?? item.productId ?? idx} className="border-t border-[#1B4332]/5">
+                            <td className="py-2 px-3 text-[#6D4C41]">{item.productName}</td>
+                            <td className="py-2 px-3 text-right text-[#1B4332]">{item.quantity}</td>
+                            <td className="py-2 px-3 text-right text-[#1B4332]">
+                              {formatCurrency(item.price)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-medium text-[#1B4332]">
+                              {formatCurrency(item.price * item.quantity)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
 
               <h3 className="font-semibold text-[#1B4332] mb-2">Alterar status</h3>

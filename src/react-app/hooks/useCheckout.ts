@@ -3,7 +3,7 @@ import { apiFetch } from "@/react-app/lib/api";
 import type { OrderWithItems } from "@/react-app/types";
 
 interface CreateOrderData {
-  orderId: number;
+  orderId: string;
   status: string;
   total: number;
 }
@@ -31,10 +31,10 @@ export function useCheckout() {
   };
 
   const processPayment = async (
-    orderId: number,
+    orderId: string,
     paymentMethod: string
   ): Promise<{
-    orderId?: number;
+    orderId?: string;
     pixCode?: string;
     qrCodeBase64?: string;
     copyPaste?: string;
@@ -47,7 +47,7 @@ export function useCheckout() {
     setError(null);
     try {
       const data = await apiFetch<{
-        orderId?: number;
+        orderId?: string;
         pixCode?: string;
         qrCodeBase64?: string;
         copyPaste?: string;
@@ -69,7 +69,7 @@ export function useCheckout() {
     }
   };
 
-  const checkPaymentStatus = async (orderId: number): Promise<OrderWithItems> => {
+  const checkPaymentStatus = async (orderId: string): Promise<OrderWithItems> => {
     setIsProcessing(true);
     setError(null);
     try {

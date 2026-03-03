@@ -20,8 +20,15 @@ export const productSchema = z.object({
   image_url: z.string().url(msg.url).optional().or(z.literal("")),
 });
 
-/** Body para criar produto (POST): title e price obrigatórios. */
-export const productCreateSchema = productSchema.omit({ id: true });
+/** Body para criar produto (POST): title e price obrigatórios; category, stock, status opcionais. */
+export const productCreateSchema = productSchema
+  .omit({ id: true })
+  .extend({
+    category: z.string().optional().nullable(),
+    stock: z.number().int().nonnegative().optional().nullable(),
+    status: z.enum(["active", "inactive"]).optional(),
+    image_url: z.string().url(msg.url).optional().or(z.literal("")).optional(),
+  });
 
 /** Body para atualizar produto (PUT): todos os campos opcionais. Inclui campos extras do admin (priceWholesale, stock). */
 export const productUpdateSchema = productSchema
@@ -32,6 +39,7 @@ export const productUpdateSchema = productSchema
     priceWholesale: z.number().positive().nullable().optional(),
     minQuantityWholesale: z.number().int().nonnegative().nullable().optional(),
     stock: z.number().int().nonnegative().nullable().optional(),
+    status: z.enum(["active", "inactive"]).optional(),
   });
 
 export type ProductSchema = z.infer<typeof productSchema>;

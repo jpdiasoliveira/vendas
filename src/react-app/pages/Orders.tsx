@@ -35,7 +35,7 @@ export default function OrdersPage() {
   const { user, isPending } = useAuth();
   const navigate = useNavigate();
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderTotal, setSelectedOrderTotal] = useState<number>(0);
 
   // Utilizando o hook padronizado
@@ -47,7 +47,7 @@ export default function OrdersPage() {
     }
   }, [user, isPending, navigate]);
 
-  const handlePayOrder = (orderId: number, total: number) => {
+  const handlePayOrder = (orderId: string, total: number) => {
     setSelectedOrderId(orderId);
     setSelectedOrderTotal(total);
     setShowCheckoutModal(true);

@@ -106,7 +106,9 @@ export const adminApiFetch = async <T = unknown>(
   if (!response.ok) {
     const message =
       (body as { error?: string })?.error || `Erro na requisição: ${response.status}`;
-    throw new Error(message);
+    const err = new Error(message) as Error & { status?: number };
+    err.status = response.status;
+    throw err;
   }
 
   const b = body as { success?: boolean; data?: T; error?: string };

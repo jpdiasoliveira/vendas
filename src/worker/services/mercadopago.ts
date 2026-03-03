@@ -6,7 +6,7 @@
 const MP_API_BASE = "https://api.mercadopago.com";
 
 export interface CreatePIXParams {
-  orderId: number;
+  orderId: string;
   total: number;
   payerEmail: string;
   idempotencyKey: string;
@@ -46,7 +46,7 @@ export async function createPaymentPIX(
     payer: {
       email: params.payerEmail,
     },
-    external_reference: String(params.orderId),
+    external_reference: params.orderId,
     ...(params.notificationUrl && { notification_url: params.notificationUrl }),
   };
 

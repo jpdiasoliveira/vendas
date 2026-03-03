@@ -6,7 +6,7 @@ import { useCheckout } from '@/react-app/hooks/useCheckout';
 interface CheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
-    orderId: number;
+    orderId: string;
     total: number;
 }
 

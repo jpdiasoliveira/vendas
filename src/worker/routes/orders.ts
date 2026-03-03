@@ -72,7 +72,7 @@ orders.post("/:id/payment", async (c) => {
       const notificationUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/webhooks/mercadopago` : undefined;
 
       const pix = await createPaymentPIX(token, {
-        orderId: Number(orderId),
+        orderId,
         total: order.total,
         payerEmail,
         idempotencyKey,
@@ -87,7 +87,7 @@ orders.post("/:id/payment", async (c) => {
       return c.json({
         success: true,
         data: {
-          orderId: Number(orderId),
+          orderId,
           pixCode: pix.copyPaste,
           qrCodeBase64: pix.qrCodeBase64,
           copyPaste: pix.copyPaste,

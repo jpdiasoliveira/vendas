@@ -2,17 +2,21 @@ import { CheckCircle, Clock, Package, XCircle } from "lucide-react";
 
 const config: Record<string, { label: string; className: string }> = {
   pending: { label: "Pendente", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  paid: { label: "Pago", className: "bg-green-100 text-green-800 border-green-200" },
   approved: { label: "Aprovado", className: "bg-green-100 text-green-800 border-green-200" },
   shipped: { label: "Enviado", className: "bg-blue-100 text-blue-800 border-blue-200" },
   cancelled: { label: "Cancelado", className: "bg-red-100 text-red-800 border-red-200" },
+  canceled: { label: "Cancelado", className: "bg-red-100 text-red-800 border-red-200" },
   rejected: { label: "Recusado", className: "bg-red-100 text-red-800 border-red-200" },
 };
 
 const icons: Record<string, typeof CheckCircle> = {
   pending: Clock,
+  paid: CheckCircle,
   approved: CheckCircle,
   shipped: Package,
   cancelled: XCircle,
+  canceled: XCircle,
   rejected: XCircle,
 };
 

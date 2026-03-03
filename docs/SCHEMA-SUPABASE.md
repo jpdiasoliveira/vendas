@@ -74,6 +74,8 @@ Documento gerado a partir da listagem das tabelas/colunas do projeto. Padrão: *
 | customer_name   | text                     | YES         |
 | customer_phone  | text                     | YES         |
 
+**payment_status — valores permitidos (inglês):** `pending`, `paid`, `shipped`, `cancelled` (grafia com dois L; a constraint do Postgres exige `cancelled`).
+
 ---
 
 ## products

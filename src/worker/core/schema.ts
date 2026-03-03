@@ -26,6 +26,8 @@ export interface Product {
   imageUrl?: string | null;
   category?: string | null;
   stock?: number | null;
+  /** Visibilidade no catálogo: 'active' | 'inactive' (coluna status no banco) */
+  status?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -40,7 +42,8 @@ export interface Category {
 }
 
 export interface Order {
-  id: number;
+  /** ID do pedido (UUID no Supabase). */
+  id: string;
   storeId: string;
   userId: string;
   /** Nome do cliente (opcional; pode vir do perfil do usuário ou ser preenchido no pedido) */
@@ -49,13 +52,21 @@ export interface Order {
   total: number;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  /** Cidade do endereço de entrega (orders ou delivery_addresses) */
+  shippingCity?: string | null;
+  /** UF do endereço de entrega */
+  shippingState?: string | null;
+  /** Código de rastreio da transportadora */
+  trackingCode?: string | null;
+  /** Nome/método da transportadora */
+  shippingMethod?: string | null;
   createdAt: string;
   updatedAt?: string;
 }
 
 export interface OrderItem {
   id?: number;
-  orderId: number;
+  orderId: string;
   storeId: string;
   productId: string;
   productName: string;
@@ -66,7 +77,7 @@ export interface OrderItem {
 
 /** Pedido com itens (detalhamento completo para admin). */
 export interface OrderDetail {
-  id: number;
+  id: string;
   storeId: string;
   userId: string;
   customerName?: string | null;
@@ -74,6 +85,10 @@ export interface OrderDetail {
   total: number;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  shippingCity?: string | null;
+  shippingState?: string | null;
+  trackingCode?: string | null;
+  shippingMethod?: string | null;
   createdAt: string;
   updatedAt?: string;
   items: OrderItem[];

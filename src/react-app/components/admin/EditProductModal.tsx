@@ -25,7 +25,7 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
     setMinQuantityWholesale(
       product.minQuantityWholesale != null ? String(product.minQuantityWholesale) : ""
     );
-    setStock(product.stock != null ? String(product.stock) : "");
+    setStock(product.stock != null ? String(product.stock) : "0");
     setError(null);
   }, [product]);
 

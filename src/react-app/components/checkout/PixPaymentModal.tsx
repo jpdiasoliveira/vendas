@@ -6,7 +6,7 @@ import { apiFetch } from '@/react-app/lib/api';
 interface PixPaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    orderId: number;
+    orderId: string;
     qrCode: string;
     qrCodeBase64: string;
 }

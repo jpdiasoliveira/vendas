@@ -39,7 +39,7 @@ Referência rápida: **método**, **path**, **headers obrigatórios**, **body** 
 | PUT | `/api/admin/products/:id` | `{ price?, priceWholesale?, minQuantityWholesale?, stock? }` | `{ id: string }` | Atualiza produto. |
 | GET | `/api/admin/orders` | — | `Order[]` | Lista pedidos da loja. |
 | GET | `/api/admin/orders/:id` | — | `OrderDetail` | Pedido com itens. |
-| PATCH | `/api/admin/orders/:id/status` | `{ status: string }` | `{ status: string }` | Atualiza status do pedido. |
+| PATCH | `/api/admin/orders/:id/status` | `{ status: string }` | `{ status: string }` | Atualiza status do pedido. Valores aceitos (sempre em inglês): `pending`, `paid`, `shipped`, `cancelled` (com dois L). |
 
 ### Auth (Mocha) — Sem store
 

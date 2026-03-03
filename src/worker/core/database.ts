@@ -25,21 +25,30 @@ function rowToProduct(row: Record<string, unknown>): Product {
     imageUrl: (row.image_url as string | null) ?? undefined,
     category: (row.category as string | null) ?? undefined,
     stock: row.stock != null ? Number(row.stock) : undefined,
+    status: (row.status as string | null) ?? undefined,
     createdAt: row.created_at as string | undefined,
     updatedAt: row.updated_at as string | undefined,
   };
 }
 
 function rowToOrder(row: Record<string, unknown>): Order {
+  const addr = Array.isArray(row.delivery_addresses) && row.delivery_addresses[0]
+    ? (row.delivery_addresses[0] as { city?: string; state_code?: string })
+    : null;
+  const statusVal = (row.status ?? row.payment_status) as string | null | undefined;
   return {
-    id: Number(row.id),
+    id: row.id != null ? String(row.id) : "",
     storeId: row.store_id as string,
     userId: row.user_id as string,
     customerName: (row.customer_name as string | null) ?? undefined,
-    status: row.status as string,
+    status: statusVal ?? "pending",
     total: Number(row.total),
     paymentMethod: (row.payment_method as string | null) ?? undefined,
-    paymentStatus: (row.payment_status as string | null) ?? undefined,
+    paymentStatus: statusVal ?? undefined,
+    shippingCity: (row.shipping_city as string | null) ?? addr?.city ?? undefined,
+    shippingState: (row.shipping_state as string | null) ?? addr?.state_code ?? undefined,
+    trackingCode: (row.tracking_code as string | null) ?? undefined,
+    shippingMethod: (row.shipping_method as string | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string | undefined,
   };
@@ -48,7 +57,7 @@ function rowToOrder(row: Record<string, unknown>): Order {
 function rowToOrderItem(row: Record<string, unknown>): OrderItem {
   return {
     id: row.id != null ? Number(row.id) : undefined,
-    orderId: Number(row.order_id),
+    orderId: row.order_id != null ? String(row.order_id) : "",
     storeId: row.store_id as string,
     productId: row.product_id as string,
     productName: row.product_name as string,
@@ -97,7 +106,7 @@ export async function getProductsByStore(env: Env, storeId: string): Promise<Pro
     .from("products")
     .select("*")
     .eq("store_id", storeId)
-    .order("created_at", { ascending: false });
+    .order("name", { ascending: true });
 
   if (error) throw new Error(error.message);
   return (rows ?? []).map(rowToProduct);
@@ -108,10 +117,14 @@ export interface ProductCreatePayload {
   price: number;
   description?: string | null;
   imageUrl?: string | null;
+  category?: string | null;
+  stock?: number | null;
+  status?: string | null;
 }
 
 /**
- * Cria um produto na loja. Isolado por store_id (multi-tenant).
+ * Cria um produto na loja. store_id injetado pelo contexto; id gerado pelo banco (UUID).
+ * Isolado por store_id (multi-tenant).
  */
 export async function createProduct(
   env: Env,
@@ -119,14 +132,18 @@ export async function createProduct(
   data: ProductCreatePayload
 ): Promise<Product> {
   const supabase = getSupabase(env);
+  const stock = data.stock != null ? Number(Math.floor(data.stock)) : 0;
   const { data: row, error } = await supabase
     .from("products")
     .insert({
       store_id: storeId,
       name: data.name,
-      price: data.price,
+      price: Number(data.price),
       description: data.description ?? null,
       image_url: data.imageUrl ?? null,
+      category: data.category ?? null,
+      stock,
+      status: data.status ?? "active",
     })
     .select()
     .single();
@@ -143,6 +160,8 @@ export interface ProductUpdatePayload {
   name?: string;
   description?: string | null;
   imageUrl?: string | null;
+  /** 'active' | 'inactive' — visibilidade no catálogo */
+  status?: string | null;
 }
 
 /**
@@ -163,6 +182,7 @@ export async function updateProduct(
   if (data.name !== undefined) payload.name = data.name;
   if (data.description !== undefined) payload.description = data.description;
   if (data.imageUrl !== undefined) payload.image_url = data.imageUrl;
+  if (data.status !== undefined) payload.status = data.status ?? "active";
 
   const { error } = await supabase
     .from("products")
@@ -170,6 +190,24 @@ export async function updateProduct(
     .match({ id: productId, store_id: storeId });
 
   if (error) throw new Error(error.message);
+}
+
+/** Retorna o estoque atual do produto (null = produto não existe). Quando existe, stock null no banco é tratado como 0. */
+async function getProductStock(
+  env: Env,
+  productId: string,
+  storeId: string
+): Promise<number | null> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("products")
+    .select("stock")
+    .eq("id", productId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (error) return null;
+  if (row == null) return null;
+  return row.stock != null ? Number(row.stock) : 0;
 }
 
 /**
@@ -189,7 +227,7 @@ export async function deleteProduct(env: Env, productId: string, storeId: string
 export async function createOrder(
   env: Env,
   params: { storeId: string; userId: string; items: CartItemPayload[] }
-): Promise<{ orderId: number; total: number }> {
+): Promise<{ orderId: string; total: number }> {
   const supabase = getSupabase(env);
   const total = params.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -220,7 +258,7 @@ export async function createOrder(
   const { error: itemsError } = await supabase.from("order_items").insert(mappedItems);
   if (itemsError) throw new Error(itemsError.message);
 
-  return { orderId: order.id, total };
+  return { orderId: String(order.id), total };
 }
 
 export async function getOrderByIdAndStore(
@@ -261,17 +299,24 @@ export async function getOrdersByUserAndStore(
 
 /**
  * Lista todos os pedidos da loja (para painel admin).
- * Ordenado por created_at DESC. Inclui customer_name se a coluna existir no banco.
+ * Inclui cidade/UF via join com delivery_addresses (se a relação existir) e tracking_code/shipping_method.
  */
 export async function getAllOrdersByStore(env: Env, storeId: string): Promise<Order[]> {
   const supabase = getSupabase(env);
-  const { data: rows, error } = await supabase
+  let { data: rows, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, delivery_addresses(city, state_code)")
     .eq("store_id", storeId)
     .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
+  if (error) {
+    const fallback = await supabase
+      .from("orders")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    if (fallback.error) throw new Error(fallback.error.message);
+    rows = fallback.data;
+  }
   return (rows ?? []).map(rowToOrder);
 }
 
@@ -321,8 +366,126 @@ async function getOrderByIdForStore(
   return rowToOrder(row);
 }
 
+/** Retorna pedido apenas por id (usado pelo webhook). */
+export async function getOrderById(env: Env, orderId: string): Promise<Order | null> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", orderId)
+    .single();
+  if (error || !row) return null;
+  return rowToOrder(row);
+}
+
 /**
- * Atualiza o status do pedido (payment_status). Garante isolamento por store_id.
+ * Nomes corretos para a coluna orders.status (banco 100% em inglês).
+ * Usar exatamente: 'pending' | 'paid' | 'shipped' | 'cancelled'
+ * Atenção: cancelado no banco é 'cancelled' (dois L), não 'canceled'.
+ */
+const ORDER_STATUS_EN = ["pending", "paid", "shipped", "cancelled"] as const;
+
+/** Mapeia PT ou variantes para o valor em inglês salvo no banco. Retorna null se inválido. */
+export function normalizeOrderStatus(raw: string | null | undefined): (typeof ORDER_STATUS_EN)[number] | null {
+  const s = raw?.trim()?.toLowerCase();
+  if (!s) return null;
+  const map: Record<string, (typeof ORDER_STATUS_EN)[number]> = {
+    pendente: "pending",
+    pending: "pending",
+    pago: "paid",
+    paid: "paid",
+    approved: "paid",
+    enviado: "shipped",
+    shipped: "shipped",
+    cancelado: "cancelled",
+    cancelled: "cancelled",
+    canceled: "cancelled",
+  };
+  const normalized = map[s];
+  return normalized && ORDER_STATUS_EN.includes(normalized) ? normalized : null;
+}
+
+const PAID_STATUSES = ["paid", "approved"];
+
+function isPaidStatus(s: string | null | undefined): boolean {
+  return !!s && PAID_STATUSES.includes(s.toLowerCase());
+}
+
+/**
+ * Baixa estoque: subtrai as quantidades dos itens do pedido dos produtos.
+ * Chamado quando o pedido passa a status pago.
+ * Produto inexistente ou stock null é tratado com segurança; falha em um item não interrompe os demais.
+ */
+export async function decreaseStockForOrder(
+  env: Env,
+  orderId: string,
+  storeId: string
+): Promise<void> {
+  const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
+  for (const item of items) {
+    try {
+      const current = await getProductStock(env, item.productId, storeId);
+      if (current === null) {
+        console.error("[decreaseStockForOrder] Produto não encontrado, pulando:", {
+          orderId,
+          productId: item.productId,
+          storeId,
+        });
+        continue;
+      }
+      const newStock = Math.max(0, current - item.quantity);
+      await updateProduct(env, item.productId, storeId, { stock: newStock });
+    } catch (err) {
+      console.error("[decreaseStockForOrder] Erro ao baixar estoque do item:", {
+        orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+  }
+}
+
+/**
+ * Estorno de estoque: devolve as quantidades dos itens ao estoque dos produtos.
+ * Chamado quando um pedido pago é cancelado.
+ * Produto inexistente ou stock null é tratado com segurança; falha em um item não interrompe os demais.
+ */
+export async function increaseStockForOrder(
+  env: Env,
+  orderId: string,
+  storeId: string
+): Promise<void> {
+  const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
+  for (const item of items) {
+    try {
+      const current = await getProductStock(env, item.productId, storeId);
+      if (current === null) {
+        console.error("[increaseStockForOrder] Produto não encontrado, pulando:", {
+          orderId,
+          productId: item.productId,
+          storeId,
+        });
+        continue;
+      }
+      const newStock = current + item.quantity;
+      await updateProduct(env, item.productId, storeId, { stock: newStock });
+    } catch (err) {
+      console.error("[increaseStockForOrder] Erro ao estornar estoque do item:", {
+        orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+    }
+  }
+}
+
+/**
+ * Atualiza o status do pedido (coluna status no banco). Garante isolamento por store_id.
+ * Baixa/estorno de estoque em try/catch: se falhar, o status do pedido é atualizado mesmo assim.
  */
 export async function updateOrderStatus(
   env: Env,
@@ -330,13 +493,58 @@ export async function updateOrderStatus(
   storeId: string,
   newStatus: string
 ): Promise<void> {
+  const idStr = String(orderId);
+  const order = await getOrderByIdForStore(env, idStr, storeId);
+  const oldStatus = order?.paymentStatus ?? order?.status ?? null;
+  const statusLower = newStatus.trim().toLowerCase();
+  const isCanceled = statusLower === "cancelled" || statusLower === "canceled";
+
+  try {
+    if (isPaidStatus(oldStatus) && isCanceled) {
+      await increaseStockForOrder(env, idStr, storeId);
+    } else if (isPaidStatus(newStatus) && !isPaidStatus(oldStatus)) {
+      await decreaseStockForOrder(env, idStr, storeId);
+    }
+  } catch (stockErr) {
+    console.error("[updateOrderStatus] Erro na atualização de estoque (status do pedido será atualizado mesmo assim):", {
+      orderId: idStr,
+      storeId,
+      newStatus,
+      oldStatus,
+      error: stockErr instanceof Error ? stockErr.message : String(stockErr),
+      stack: stockErr instanceof Error ? stockErr.stack : undefined,
+    });
+  }
+
+  console.log("--- EXECUTANDO UPDATE ---", { id: idStr, status: newStatus });
+
   const supabase = getSupabase(env);
   const { error } = await supabase
     .from("orders")
     .update({
-      payment_status: newStatus,
+      status: newStatus,
       updated_at: new Date().toISOString(),
     })
+    .match({ id: idStr, store_id: storeId });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Atualiza código de rastreio e método de envio do pedido.
+ */
+export async function updateOrderTracking(
+  env: Env,
+  orderId: string,
+  storeId: string,
+  payload: { trackingCode?: string | null; shippingMethod?: string | null }
+): Promise<void> {
+  const supabase = getSupabase(env);
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (payload.trackingCode !== undefined) update.tracking_code = payload.trackingCode ?? null;
+  if (payload.shippingMethod !== undefined) update.shipping_method = payload.shippingMethod ?? null;
+  const { error } = await supabase
+    .from("orders")
+    .update(update)
     .match({ id: orderId, store_id: storeId });
   if (error) throw new Error(error.message);
 }
@@ -351,7 +559,7 @@ export async function updateOrderPayment(
   const supabase = getSupabase(env);
   const payload: Record<string, unknown> = {
     payment_method: paymentMethod,
-    payment_status: options?.paymentStatus ?? "pending",
+    status: options?.paymentStatus ?? "pending",
     updated_at: new Date().toISOString(),
   };
   if (options?.paymentId != null) {
@@ -360,14 +568,14 @@ export async function updateOrderPayment(
   const { error } = await supabase
     .from("orders")
     .update(payload)
-    .match({ id: orderId, store_id: storeId });
+    .match({ id: String(orderId), store_id: storeId });
 
   if (error) throw new Error(error.message);
 }
 
 /**
- * Atualiza o status do pagamento de um pedido (usado pelo webhook do Mercado Pago).
- * Atualiza por id do pedido (external_reference).
+ * Atualiza o status do pedido (coluna status; usado pelo webhook do Mercado Pago).
+ * Baixa de estoque em try/catch: se falhar, o status é atualizado mesmo assim.
  */
 export async function updateOrderPaymentStatus(
   env: Env,
@@ -375,14 +583,27 @@ export async function updateOrderPaymentStatus(
   status: string,
   _paymentInfo?: { paymentId?: number }
 ): Promise<void> {
+  const idStr = String(orderId);
+  const order = await getOrderById(env, idStr);
+  try {
+    if (order && isPaidStatus(status) && !isPaidStatus(order.paymentStatus ?? order.status)) {
+      await decreaseStockForOrder(env, idStr, order.storeId);
+    }
+  } catch (stockErr) {
+    console.error("[updateOrderPaymentStatus] Erro na baixa de estoque (status será atualizado):", {
+      orderId: idStr,
+      error: stockErr instanceof Error ? stockErr.message : String(stockErr),
+    });
+  }
+
   const supabase = getSupabase(env);
   const { error } = await supabase
     .from("orders")
     .update({
-      payment_status: status,
+      status,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", orderId);
+    .eq("id", idStr);
 
   if (error) throw new Error(error.message);
 }

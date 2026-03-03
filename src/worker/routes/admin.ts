@@ -4,6 +4,8 @@ import {
   getAllOrdersByStore,
   getOrderWithItems,
   updateOrderStatus,
+  updateOrderTracking,
+  normalizeOrderStatus,
   getProductsByStore,
   createProduct,
   updateProduct,
@@ -50,6 +52,7 @@ admin.get("/audit-logs", async (c) => {
   }
 });
 
+/** Lista produtos da loja do admin (filtro por store_id — segurança multi-tenant). */
 admin.get("/products", async (c) => {
   try {
     const store = c.get("store");
@@ -78,6 +81,9 @@ admin.post(
         price: body.price,
         description: body.description ?? null,
         imageUrl: body.image_url || null,
+        category: body.category ?? null,
+        stock: body.stock ?? 0,
+        status: body.status ?? "active",
       });
       await logAction(c, "CREATE_PRODUCT", "product", product.id);
       return c.json({ success: true, data: product }, 201);
@@ -108,6 +114,7 @@ admin.put(
         ...(body.title !== undefined && { name: body.title }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.image_url !== undefined && { imageUrl: body.image_url || null }),
+        ...(body.status !== undefined && { status: body.status }),
       });
       await logAction(c, "UPDATE_PRODUCT", "product", productId);
       return c.json({ success: true, data: { id: productId } }, 200);
@@ -149,7 +156,8 @@ admin.get("/orders/:id", async (c) => {
   try {
     const data = await getOrderWithItems(c.env, orderId, store.id);
     if (!data) return c.json({ success: false, error: "Pedido não encontrado" }, 404);
-    return c.json({ success: true, data }, 200);
+    const payload = { ...data, items: Array.isArray(data.items) ? data.items : [] };
+    return c.json({ success: true, data: payload }, 200);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao buscar pedido";
     return c.json({ success: false, error: message }, 500);
@@ -158,18 +166,47 @@ admin.get("/orders/:id", async (c) => {
 
 admin.patch("/orders/:id/status", async (c) => {
   const store = c.get("store");
-  const orderId = c.req.param("id");
+  const orderId = String(c.req.param("id"));
   const body = (await c.req.json()) as { status?: string };
-  const newStatus = body.status?.trim();
+  const newStatus = normalizeOrderStatus(body.status);
   if (!newStatus) {
-    return c.json({ success: false, error: "Campo status é obrigatório" }, 400);
+    return c.json(
+      { success: false, error: "Status inválido. Use: pending, paid, shipped ou cancelled." },
+      400
+    );
   }
   try {
     await updateOrderStatus(c.env, orderId, store.id, newStatus);
     await logAction(c, "UPDATE_ORDER_STATUS", "order", orderId, { status: newStatus });
     return c.json({ success: true, data: { status: newStatus } }, 200);
   } catch (err: unknown) {
+    console.error("[PATCH /api/admin/orders/:id/status] Erro ao atualizar status:", {
+      orderId,
+      newStatus: newStatus,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     const message = err instanceof Error ? err.message : "Erro ao atualizar status";
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
+admin.patch("/orders/:id/tracking", async (c) => {
+  const store = c.get("store");
+  const orderId = c.req.param("id");
+  const body = (await c.req.json()) as { trackingCode?: string | null; shippingMethod?: string | null };
+  try {
+    await updateOrderTracking(c.env, orderId, store.id, {
+      trackingCode: body.trackingCode,
+      shippingMethod: body.shippingMethod,
+    });
+    await logAction(c, "UPDATE_ORDER_TRACKING", "order", orderId, {
+      trackingCode: body.trackingCode ?? null,
+      shippingMethod: body.shippingMethod ?? null,
+    });
+    return c.json({ success: true, data: { ok: true } }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao atualizar rastreio";
     return c.json({ success: false, error: message }, 500);
   }
 });
