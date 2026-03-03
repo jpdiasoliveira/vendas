@@ -62,7 +62,10 @@ export function ProductQRModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6">
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6"
+        data-product-id={productId}
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-800">QR Code para prateleira</h2>
           <button

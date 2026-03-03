@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Copy, Check, Loader2, CheckCircle } from 'lucide-react';
 import { useCheckout } from '@/react-app/hooks/useCheckout';
-import { apiFetch } from '@/react-app/lib/api';
+import { apiFetch } from "@/react-app/services/api";
 
 interface PixPaymentModalProps {
     isOpen: boolean;

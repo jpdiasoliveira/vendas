@@ -18,7 +18,7 @@ import {
   logout as serviceLogout,
   type UserContext,
 } from "@/react-app/services/auth.service";
-import { supabase } from "@/react-app/lib/supabase";
+import { supabase } from "@/react-app/services/supabase";
 
 export type AuthContextValue = {
   user: UserContext | null;

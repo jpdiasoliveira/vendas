@@ -1,3 +1,7 @@
+/**
+ * Raiz da aplicação: apenas provê rotas e contextos globais.
+ * Nenhuma lógica de negócio aqui; as páginas e hooks cuidam de estado e API.
+ */
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import HomePage from "@/react-app/pages/Home";
 import AuthCallbackPage from "@/react-app/pages/AuthCallback";

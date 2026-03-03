@@ -54,6 +54,8 @@ export interface Order {
   total: number;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  /** Endereço completo de entrega (coluna delivery_address no banco) */
+  deliveryAddress?: string | null;
   /** Cidade do endereço de entrega (orders ou delivery_addresses) */
   shippingCity?: string | null;
   /** UF do endereço de entrega */
@@ -88,6 +90,7 @@ export interface OrderDetail {
   total: number;
   paymentMethod?: string | null;
   paymentStatus?: string | null;
+  deliveryAddress?: string | null;
   shippingCity?: string | null;
   shippingState?: string | null;
   trackingCode?: string | null;

@@ -1,4 +1,6 @@
+import type { Context, Next } from "hono";
 import { getStoreBySlug } from "../core/database.js";
+import type { Variables } from "../types.js";
 
 /**
  * Middleware SaaS de isolamento dinâmico (Tenant Id).
@@ -14,7 +16,10 @@ const SKIP_STORE_PATHS = [
   "/api/login",
 ];
 
-export const storeMiddleware = async (c: any, next: any) => {
+export const storeMiddleware = async (
+  c: Context<{ Bindings: Env; Variables: Variables }>,
+  next: Next
+) => {
   const path = c.req.path;
   if (SKIP_STORE_PATHS.some((p) => path.startsWith(p) || path === p)) {
     return next();

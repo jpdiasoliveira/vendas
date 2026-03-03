@@ -17,7 +17,10 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   const { user } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [currentOrderId, setCurrentOrderId] = useState<number | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
 
   const { createOrder, isProcessing, error } = useCheckout();
 
@@ -41,7 +44,11 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
         };
       });
 
-      const data = await createOrder(formattedItems);
+      const data = await createOrder(formattedItems, {
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        deliveryAddress: deliveryAddress.trim() || undefined,
+      });
       setCurrentOrderId(data.orderId);
       setShowCheckoutModal(true);
     } catch (err) {
@@ -189,6 +196,41 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
 
           {items.length > 0 && (
             <div className="bg-white border-t border-[#1B4332]/10 p-6 space-y-4">
+              <div className="space-y-3 font-inter">
+                <label className="block text-sm font-medium text-[#6D4C41]">
+                  Nome do cliente
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Como devemos chamar você?"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  aria-label="Nome do cliente"
+                />
+                <label className="block text-sm font-medium text-[#6D4C41]">
+                  Telefone
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="(00) 00000-0000"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  aria-label="Telefone para contato"
+                />
+                <label className="block text-sm font-medium text-[#6D4C41]">
+                  Endereço de entrega
+                </label>
+                <input
+                  type="text"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Rua, número, bairro, cidade..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  aria-label="Endereço de entrega"
+                />
+              </div>
               <div className="flex items-center justify-between text-lg font-inter">
                 <span className="text-[#6D4C41]">Subtotal:</span>
                 <span className="font-bold text-[#1B4332] text-2xl font-playfair">

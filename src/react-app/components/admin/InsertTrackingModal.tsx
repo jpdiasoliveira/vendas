@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Package } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 
 interface InsertTrackingModalProps {
   isOpen: boolean;

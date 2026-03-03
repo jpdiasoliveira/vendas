@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { apiFetch } from "@/react-app/lib/api";
+import { apiFetch } from "@/react-app/services/api";
 import type { OrderWithItems } from "@/react-app/types";
 
 interface CreateOrderData {
@@ -12,17 +12,26 @@ export function useCheckout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createOrder = async (items: { id: string; name: string; price: number; quantity: number; image?: string; imageUrl?: string }[]) => {
+  /** Cria pedido com itens e opcionalmente nome, telefone e endereço. */
+  const createOrder = async (
+    items: { id: string; name: string; price: number; quantity: number; image?: string; imageUrl?: string }[],
+    options?: { customerName?: string; customerPhone?: string; deliveryAddress?: string }
+  ) => {
     setIsProcessing(true);
     setError(null);
     try {
+      const body: Record<string, unknown> = { items };
+      if (options?.customerName?.trim()) body.customerName = options.customerName.trim();
+      if (options?.customerPhone?.trim()) body.customerPhone = options.customerPhone.trim();
+      if (options?.deliveryAddress?.trim()) body.deliveryAddress = options.deliveryAddress.trim();
       const data = await apiFetch<CreateOrderData>("/api/orders", {
         method: "POST",
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(body),
       });
       return data;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao processar pedido. Tente novamente.";
+      console.error("[useCheckout.createOrder] Falha ao criar pedido:", err);
       setError(message);
       throw err;
     } finally {
@@ -30,6 +39,7 @@ export function useCheckout() {
     }
   };
 
+  /** Inicia pagamento (PIX, boleto ou cartão) para um pedido já criado. */
   const processPayment = async (
     orderId: string,
     paymentMethod: string

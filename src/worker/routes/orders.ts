@@ -21,17 +21,30 @@ orders.use("*", authMiddleware);
 orders.post("/", async (c) => {
   const user = c.get("user") as { id: string };
   const store = c.get("store");
-  const body = (await c.req.json()) as { items?: CartItemPayload[] };
+  const body = (await c.req.json()) as {
+    items?: CartItemPayload[];
+    customerName?: string | null;
+    customer_phone?: string | null;
+    customerPhone?: string | null;
+    delivery_address?: string | null;
+    deliveryAddress?: string | null;
+  };
 
   if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
     return c.json({ success: false, error: "Items array is required" }, 400);
   }
+
+  const customerPhone = body.customerPhone ?? body.customer_phone ?? null;
+  const deliveryAddress = body.deliveryAddress ?? body.delivery_address ?? null;
 
   try {
     const { orderId, total } = await createOrder(c.env, {
       storeId: store.id,
       userId: user.id,
       items: body.items,
+      customerName: body.customerName ?? null,
+      customerPhone: customerPhone ?? null,
+      deliveryAddress: deliveryAddress ?? null,
     });
     return c.json(
       { success: true, data: { orderId, status: "pending", total } },

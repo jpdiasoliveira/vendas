@@ -11,7 +11,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import type { AuditLogReport } from "@/shared/types";
 
@@ -24,15 +24,7 @@ const ACTION_OPTIONS = [
   { value: "UPDATE_ORDER_STATUS", label: "Pedido" },
 ] as const;
 
-const formatDateTime = (dateStr: string) =>
-  new Date(dateStr).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+import { formatDateTime } from "@/react-app/utils/format";
 
 /** Extrai o nome real do recurso a partir de details; fallback: resource_id encurtado. */
 const getResourceDisplayName = (entry: AuditLogReport): string => {
@@ -50,7 +42,7 @@ const getResourceDisplayName = (entry: AuditLogReport): string => {
   const rid = entry.resource_id;
   if (rid && typeof rid === "string" && rid.length > 0)
     return `ID: ${rid.slice(0, 4)}${rid.length > 4 ? "…" : ""}`;
-  return entry.nome_recurso || "—";
+  return entry.tipo === "order" ? "um pedido" : "um produto";
 };
 
 /** Frase amigável da ação usando action_key e nome do recurso. */
@@ -70,7 +62,9 @@ const getFriendlyActionMessage = (entry: AuditLogReport): string => {
       return `Mudou o status do pedido #${nameOrId} para ${status}`;
     }
     default:
-      return entry.acao_descricao;
+      return (entry.acao_descricao ?? "")
+        .replace(/\bproduct\b/gi, "Produto")
+        .replace(/\border\b/gi, "Pedido") || "Ação registrada";
   }
 };
 
@@ -79,7 +73,7 @@ const formatActiveValue = (v: unknown): string => {
   const s = String(v ?? "").toLowerCase();
   if (s === "active" || s === "true" || s === "1") return "Ativo";
   if (s === "inactive" || s === "false" || s === "0") return "Inativo";
-  return s || "—";
+  return s || "n/d";
 };
 
 /** Formata valor para exibição no diff (preço, estoque, active). */
@@ -93,7 +87,7 @@ const formatChangeValue = (
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
   }
   if (key === "active") return formatActiveValue(value);
-  return String(value ?? "—");
+  return String(value ?? "n/d");
 };
 
 /** Label amigável do campo no diff. */
@@ -112,10 +106,10 @@ const formatDetalhes = (detalhes: unknown): string => {
   }
   if (typeof detalhes === "object") {
     const entries = Object.entries(detalhes as Record<string, unknown>).filter(
-      ([_, v]) => v != null
+      ([, v]) => v != null
     );
     if (entries.length === 0) return "";
-    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
+    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" ");
   }
   return String(detalhes);
 };
@@ -148,19 +142,15 @@ const getActionStyle = (
   };
 };
 
-/** Skeleton da timeline (itens verticais). */
+/** Skeleton no estilo dos cards de log. */
 const TimelineSkeleton = () => (
-  <div className="space-y-0">
+  <div className="divide-y divide-[#1B4332]/10">
     {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex gap-4 animate-pulse">
-        <div className="flex flex-col items-center">
-          <div className="h-10 w-10 rounded-full bg-[#1B4332]/15 shrink-0" />
-          {i < 4 && <div className="w-0.5 flex-1 min-h-[3rem] bg-[#1B4332]/10 mt-2" />}
-        </div>
-        <div className="flex-1 pb-8">
-          <div className="h-4 w-28 bg-[#1B4332]/10 rounded mb-2" />
-          <div className="h-4 w-48 bg-[#1B4332]/10 rounded mb-1" />
-          <div className="h-3 w-36 bg-[#1B4332]/10 rounded" />
+      <div key={i} className="flex gap-3 px-5 py-4 animate-pulse">
+        <div className="h-9 w-9 rounded-xl bg-[#1B4332]/15 shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-48 bg-[#1B4332]/10 rounded" />
+          <div className="h-3 w-32 bg-[#1B4332]/10 rounded" />
         </div>
       </div>
     ))}
@@ -233,7 +223,7 @@ export default function AuditLogsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -245,14 +235,9 @@ export default function AuditLogsPage() {
             </button>
             <div className="flex items-center gap-2">
               <History className="h-8 w-8 text-[#1B4332]" />
-              <div>
-                <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
-                  Histórico de Atividades
-                </h1>
-                <p className="text-sm text-[#6D4C41] font-inter">
-                  Quem criou, editou ou excluiu produtos e alterou status dos pedidos
-                </p>
-              </div>
+              <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
+                Histórico de Atividades
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -274,7 +259,7 @@ export default function AuditLogsPage() {
           </div>
         )}
 
-        {/* Barra de filtros */}
+        {/* Barra de filtros — estilo alinhado ao topo do painel (Ktech) */}
         <div className="mb-6 p-4 bg-[#FAF8F3]/90 border border-[#1B4332]/15 rounded-2xl shadow-sm font-inter">
           <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
             <div className="flex-1 relative">
@@ -288,19 +273,26 @@ export default function AuditLogsPage() {
                 aria-label="Busca por recurso"
               />
             </div>
-            <div className="sm:w-48">
-              <select
-                value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/80 border border-[#1B4332]/20 rounded-xl text-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition-colors cursor-pointer font-inter"
-                aria-label="Filtrar por tipo de ação"
-              >
-                {ACTION_OPTIONS.map((opt) => (
-                  <option key={opt.value || "all"} value={opt.value}>
+            <div className="flex flex-wrap items-center gap-2">
+              {ACTION_OPTIONS.map((opt) => {
+                const isActive = actionFilter === opt.value;
+                return (
+                  <button
+                    key={opt.value || "all"}
+                    type="button"
+                    onClick={() => setActionFilter(opt.value)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-[#1B4332] text-white"
+                        : "bg-white/60 text-[#6D4C41] hover:bg-white hover:text-[#1B4332] border border-[#1B4332]/10"
+                    }`}
+                    aria-pressed={isActive}
+                    aria-label={opt.label}
+                  >
                     {opt.label}
-                  </option>
-                ))}
-              </select>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -314,79 +306,65 @@ export default function AuditLogsPage() {
             Nenhum registro de atividade ainda.
           </div>
         ) : (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-6 shadow-sm">
-            {/* Timeline vertical */}
-            <div className="relative">
-              {logs.map((entry, index) => {
-                const { Icon, iconBg, iconColor, borderColor } = getActionStyle(
-                  entry.acao_descricao
-                );
-                const detalhes = (entry.detalhes ?? {}) as Record<string, unknown>;
-                const changes = detalhes.changes as Record<string, { from: unknown; to: unknown }> | undefined;
-                const detalhesStr = !changes ? formatDetalhes(entry.detalhes) : "";
-                const isLast = index === logs.length - 1;
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 overflow-hidden shadow-sm">
+            {logs.map((entry) => {
+              const { Icon, iconBg, iconColor, borderColor } = getActionStyle(
+                entry.acao_descricao
+              );
+              const detalhes = (entry.detalhes ?? {}) as Record<string, unknown>;
+              const changes = detalhes.changes as Record<string, { from: unknown; to: unknown }> | undefined;
+              const detalhesStr = !changes ? formatDetalhes(entry.detalhes) : "";
+              const categoryLabel = entry.tipo === "product" ? "Produto" : "Pedido";
+              const badgeClass =
+                entry.tipo === "order"
+                  ? "inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-800"
+                  : "inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-orange-100 text-orange-800";
 
-                return (
-                  <div key={entry.id} className="flex gap-4">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div
-                        className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${iconBg} ${iconColor} ${borderColor}`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      {!isLast && (
-                        <div
-                          className="w-0.5 flex-1 min-h-[2rem] mt-2 bg-[#1B4332]/15"
-                          aria-hidden
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-8">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 font-inter">
-                        {formatDateTime(entry.data_hora)}
-                      </p>
-                      <p className="font-semibold text-[#1B4332] font-inter mt-0.5">
-                        {getFriendlyActionMessage(entry)}
-                      </p>
-                      <p className="text-sm text-[#6D4C41] font-inter mt-0.5 flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-[#1B4332] font-inter">
-                          {entry.usuario_email || "—"}
-                        </span>
-                        <span className="text-[#6D4C41]/80">·</span>
-                        <span
-                          className={
-                            entry.tipo === "order"
-                              ? "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800"
-                              : "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-orange-100 text-orange-800"
-                          }
-                        >
-                          {entry.tipo === "product" ? "Produto" : "Pedido"}
-                        </span>
-                      </p>
-                      {changes && Object.keys(changes).length > 0 && (
-                        <ul className="mt-2 pl-4 space-y-1 text-xs text-gray-500 font-inter list-disc">
-                          {Object.entries(changes).map(([key, { from, to }]) => (
-                            <li key={key} className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-gray-600">
-                                {CHANGE_LABELS[key] ?? key}:
-                              </span>
-                              <span>{formatChangeValue(key, from)}</span>
-                              <ArrowRight className="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden />
-                              <span>{formatChangeValue(key, to)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {detalhesStr && (
-                        <p className="text-xs text-[#6D4C41]/90 mt-1 font-inter">
-                          {detalhesStr}
-                        </p>
-                      )}
-                    </div>
+              return (
+                <div
+                  key={entry.id}
+                  className="flex gap-3 px-5 py-4 border-b border-[#1B4332]/10 last:border-b-0 font-inter"
+                >
+                  <div
+                    className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${iconBg} ${iconColor} ${borderColor}`}
+                  >
+                    <Icon className="h-4 w-4" />
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[#1B4332] text-[15px] leading-snug">
+                      <span className={badgeClass}>{categoryLabel}</span>{" "}
+                      <span>{getFriendlyActionMessage(entry)}</span>
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {formatDateTime(entry.data_hora)}
+                      {entry.usuario_email ? (
+                        <>
+                          <span className="text-slate-400 mx-1.5">|</span>
+                          {entry.usuario_email}
+                        </>
+                      ) : null}
+                    </p>
+                    {changes && Object.keys(changes).length > 0 && (
+                      <ul className="mt-2 pl-4 space-y-1 text-xs text-slate-500 list-disc">
+                        {Object.entries(changes).map(([key, { from, to }]) => (
+                          <li key={key} className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-slate-600">
+                              {CHANGE_LABELS[key] ?? key}:
+                            </span>
+                            <span>{formatChangeValue(key, from)}</span>
+                            <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" aria-hidden />
+                            <span>{formatChangeValue(key, to)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {detalhesStr && (
+                      <p className="text-xs text-slate-500 mt-1">{detalhesStr}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

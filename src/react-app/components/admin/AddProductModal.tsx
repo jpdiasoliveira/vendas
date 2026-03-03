@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { X, Loader2, Save, ImagePlus } from "lucide-react";
-import { adminApiFetch, adminUploadImage } from "@/react-app/lib/api";
+import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 
 const CATEGORIES = ["Salgados", "Doces", "Combos"];
 const UNITS = [

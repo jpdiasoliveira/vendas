@@ -46,6 +46,7 @@ function rowToOrder(row: Record<string, unknown>): Order {
     total: Number(row.total),
     paymentMethod: (row.payment_method as string | null) ?? undefined,
     paymentStatus: statusVal ?? undefined,
+    deliveryAddress: (row.delivery_address as string | null) ?? undefined,
     shippingCity: (row.shipping_city as string | null) ?? addr?.city ?? undefined,
     shippingState: (row.shipping_state as string | null) ?? addr?.state_code ?? undefined,
     trackingCode: (row.tracking_code as string | null) ?? undefined,
@@ -262,20 +263,35 @@ export async function deleteProduct(env: Env, productId: string, storeId: string
 
 export async function createOrder(
   env: Env,
-  params: { storeId: string; userId: string; items: CartItemPayload[] }
+  params: {
+    storeId: string;
+    userId: string;
+    items: CartItemPayload[];
+    customerName?: string | null;
+    customerPhone?: string | null;
+    deliveryAddress?: string | null;
+  }
 ): Promise<{ orderId: string; total: number }> {
   const supabase = getSupabase(env);
   const total = params.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
+  const orderPayload: Record<string, unknown> = {
+    store_id: params.storeId,
+    user_id: params.userId,
+    total,
+    payment_method: null,
+    status: "pending",
+  };
+  if (params.customerName != null && String(params.customerName).trim() !== "")
+    orderPayload.customer_name = String(params.customerName).trim();
+  if (params.customerPhone != null && String(params.customerPhone).trim() !== "")
+    orderPayload.customer_phone = String(params.customerPhone).trim();
+  if (params.deliveryAddress != null && String(params.deliveryAddress).trim() !== "")
+    orderPayload.delivery_address = String(params.deliveryAddress).trim();
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .insert({
-      store_id: params.storeId,
-      user_id: params.userId,
-      total,
-      payment_method: null,
-      status: "pending",
-    })
+    .insert(orderPayload)
     .select()
     .single();
 
@@ -339,7 +355,7 @@ export async function getOrdersByUserAndStore(
  */
 export async function getAllOrdersByStore(env: Env, storeId: string): Promise<Order[]> {
   const supabase = getSupabase(env);
-  let { data: rows, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("orders")
     .select("*, delivery_addresses(city, state_code)")
     .eq("store_id", storeId)
@@ -351,7 +367,7 @@ export async function getAllOrdersByStore(env: Env, storeId: string): Promise<Or
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     if (fallback.error) throw new Error(fallback.error.message);
-    rows = fallback.data;
+    return (fallback.data ?? []).map(rowToOrder);
   }
   return (rows ?? []).map(rowToOrder);
 }
@@ -617,8 +633,9 @@ export async function updateOrderPaymentStatus(
   env: Env,
   orderId: string,
   status: string,
-  _paymentInfo?: { paymentId?: number }
+  _paymentInfo?: { paymentId?: number } // reservado para uso futuro (ex.: payment_id)
 ): Promise<void> {
+  void _paymentInfo;
   const idStr = String(orderId);
   const order = await getOrderById(env, idStr);
   try {

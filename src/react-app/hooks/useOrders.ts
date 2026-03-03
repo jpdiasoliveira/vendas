@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { apiFetch } from "@/react-app/lib/api";
+import { apiFetch } from "@/react-app/services/api";
 import type { Order } from "@/react-app/types";
 
 export function useOrders(userAuthLoaded: boolean) {
@@ -7,6 +7,7 @@ export function useOrders(userAuthLoaded: boolean) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /** Busca a lista de pedidos do usuário na loja atual. */
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -16,6 +17,7 @@ export function useOrders(userAuthLoaded: boolean) {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Erro ao carregar os pedidos. Tente novamente.";
+      console.error("[useOrders.fetchOrders] Falha ao carregar pedidos:", err);
       setError(message);
     } finally {
       setLoading(false);

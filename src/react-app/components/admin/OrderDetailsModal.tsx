@@ -1,20 +1,10 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Send } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 import type { OrderDetail } from "@/react-app/types";
 import { StatusBadge } from "./StatusBadge";
 
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+import { formatCurrency, formatDate } from "@/react-app/utils/format";
 
 /**
  * Valores de status enviados ao banco (sempre em inglês).

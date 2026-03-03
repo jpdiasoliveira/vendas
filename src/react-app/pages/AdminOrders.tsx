@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router";
-import { RefreshCw, Home, LayoutDashboard, Package, ChevronDown, ChevronRight, Search, X, Eye } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { RefreshCw, Home, LayoutDashboard, Package, ChevronDown, ChevronRight, Search, X, Eye, FileDown } from "lucide-react";
+import { adminApiFetch } from "@/react-app/services/api";
 import type { Order, OrderDetail } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { StatusBadge } from "@/react-app/components/admin/StatusBadge";
 import { OrderDetailsModal } from "@/react-app/components/admin/OrderDetailsModal";
 import { InsertTrackingModal } from "@/react-app/components/admin/InsertTrackingModal";
 import { HistoryOrderDetailModal } from "@/react-app/components/admin/HistoryOrderDetailModal";
+import { exportClosingPdf } from "@/react-app/lib/exportClosingPdf";
+import { formatCurrency, formatDate } from "@/react-app/utils/format";
 
 const PAID_STATUSES = ["paid", "approved"];
 const ACTIVE_STATUSES = ["pending", "paid", "shipped"];
@@ -21,18 +23,6 @@ const isPaid = (order: Order) =>
 
 const isAwaitingShipment = (order: Order) =>
   isPaid(order) && !order.trackingCode?.trim();
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 type HistoryPeriodFilter = "todos" | "hoje" | "ontem" | "7dias" | "este_mes";
 
@@ -159,6 +149,7 @@ export default function AdminOrdersPage() {
       setOrderDetailsCache((prev) => ({ ...prev, [orderId]: data }));
     } catch (err: unknown) {
       setItemsErrorOrderId(orderId);
+      console.error("[AdminOrders.handleExpandOrder] Falha ao buscar itens do pedido:", orderId, err);
       alert("Erro ao buscar itens. Verifique a conexão e tente novamente.");
     } finally {
       setLoadingItemsOrderId(null);
@@ -167,7 +158,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -205,7 +196,7 @@ export default function AdminOrdersPage() {
         )}
 
         {loading && orders.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-xl border border-white/50">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
             <RefreshCw className="h-12 w-12 text-[#1B4332] animate-spin mx-auto mb-4" />
             <p className="text-[#6D4C41] font-inter">Carregando pedidos...</p>
           </div>
@@ -305,10 +296,26 @@ export default function AdminOrdersPage() {
                         Limpar Filtros
                       </button>
                     </div>
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-inter text-sm">
-                      <span className="font-semibold">Vendas no Período:</span>{" "}
-                      {formatCurrency(historyPeriodSummary.total)} <span className="text-slate-500">|</span>{" "}
-                      <span className="font-semibold">Pedidos:</span> {historyPeriodSummary.count}
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-inter text-sm">
+                        <span className="font-semibold">Vendas no Período:</span>{" "}
+                        {formatCurrency(historyPeriodSummary.total)} <span className="text-slate-500">|</span>{" "}
+                        <span className="font-semibold">Pedidos:</span> {historyPeriodSummary.count}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          exportClosingPdf({
+                            orders: displayedOrders,
+                            periodLabel: PERIOD_LABELS[historyPeriodFilter],
+                          })
+                        }
+                        className="inline-flex items-center gap-2 bg-[#EAD7BB] hover:bg-[#EAD7BB]/90 text-[#6D4C41] px-4 py-2.5 rounded-xl font-medium transition-colors border border-[#1B4332]/10 shadow-sm"
+                        aria-label="Exportar relatório de fechamento em PDF"
+                      >
+                        <FileDown className="h-5 w-5" />
+                        Exportar PDF
+                      </button>
                     </div>
                   </div>
                 )}
@@ -316,11 +323,11 @@ export default function AdminOrdersPage() {
             )}
 
             {orders.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-xl border border-white/50">
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
                 <p className="text-[#6D4C41] font-inter">Nenhum pedido encontrado.</p>
               </div>
             ) : displayedOrders.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-xl border border-white/50">
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
                 <p className="text-[#6D4C41] font-inter">
                   {searchQuery.trim()
                     ? "Nenhum pedido encontrado com esse nome."
@@ -330,7 +337,7 @@ export default function AdminOrdersPage() {
                 </p>
               </div>
             ) : (
-              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 overflow-hidden">
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full font-inter" role="table" aria-label={activeTab === "ativos" ? "Pedidos ativos" : "Histórico de pedidos"}>
                     <thead>

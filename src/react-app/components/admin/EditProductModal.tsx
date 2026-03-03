@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
 
 interface EditProductModalProps {

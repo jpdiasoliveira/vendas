@@ -5,8 +5,8 @@
  */
 
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/react-app/lib/supabase";
-import { apiFetch } from "@/react-app/lib/api";
+import { supabase } from "@/react-app/services/supabase";
+import { apiFetch } from "@/react-app/services/api";
 
 /** Usuário no contexto da aplicação (tipagem estrita para uso global). */
 export interface UserContext {

@@ -13,7 +13,7 @@ interface CheckoutModalProps {
 export default function CheckoutModal({ isOpen, onClose, orderId, total }: CheckoutModalProps) {
     const [selectedMethod, setSelectedMethod] = useState<'pix' | 'boleto' | 'credit_card' | null>(null);
     const [showPixModal, setShowPixModal] = useState(false);
-    const [pixData, setPixData] = useState<any>(null);
+    const [pixData, setPixData] = useState<{ qr_code: string; qr_code_base64: string } | null>(null);
 
     const { processPayment, isProcessing, error } = useCheckout();
 
@@ -44,8 +44,8 @@ export default function CheckoutModal({ isOpen, onClose, orderId, total }: Check
             } else {
                 alert('Erro: Dados de pagamento incompletos. Tente novamente.');
             }
-        } catch (error) {
-            // Erro já tradado no interceptador do useCheckout
+        } catch {
+            // Erro já tratado no useCheckout (setError + throw)
         }
     };
 

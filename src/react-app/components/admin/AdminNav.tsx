@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Package, ShoppingBag, Activity, LogOut } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 
 export function AdminNav() {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { RefreshCw, Home, Package, Pencil, ImageOff, Search, Plus, AlertTriangle, QrCode, HelpCircle, Trash2 } from "lucide-react";
-import { adminApiFetch } from "@/react-app/lib/api";
+import { adminApiFetch } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { EditProductModal } from "@/react-app/components/admin/EditProductModal";
@@ -9,8 +9,7 @@ import { AddProductModal } from "@/react-app/components/admin/AddProductModal";
 import { ProductQRModal } from "@/react-app/components/admin/ProductQRModal";
 import { DeleteProductModal } from "@/react-app/components/admin/DeleteProductModal";
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+import { formatCurrency } from "@/react-app/utils/format";
 
 const DEFAULT_CATEGORIES = ["Salgados", "Doces", "Combos"];
 
@@ -146,7 +145,7 @@ export default function AdminProductsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -169,13 +168,6 @@ export default function AdminProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAddModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-sm"
-            >
-              <Plus className="h-5 w-5" />
-              Novo Produto
-            </button>
             <AdminNav />
             <button
               onClick={fetchProducts}
@@ -195,37 +187,35 @@ export default function AdminProductsPage() {
         )}
 
         {loading && products.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-xl border border-white/50">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
             <RefreshCw className="h-12 w-12 text-[#1B4332] animate-spin mx-auto mb-4" />
             <p className="text-[#6D4C41] font-inter">Carregando produtos...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-xl border border-white/50">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
             <p className="text-[#6D4C41] font-inter">Nenhum produto cadastrado.</p>
           </div>
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-3 font-inter">
-              <div className="relative flex-1 min-w-[200px]">
+            <div className="mb-4 flex flex-nowrap items-center gap-4 font-inter">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por nome..."
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm shadow-sm focus:border-[#1B4332] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] text-sm shadow-sm focus:border-[#1B4332] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
                   aria-label="Buscar produto por nome"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="category-filter" className="text-sm font-medium text-[#6D4C41]">
-                  Categoria:
-                </label>
+              <div className="w-44 shrink-0">
                 <select
                   id="category-filter"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-[#1B4332] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                  className="w-full rounded-xl border border-[#1B4332]/20 bg-white/80 px-3 py-2 text-sm text-[#1B4332] shadow-sm focus:border-[#1B4332] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+                  aria-label="Filtrar por categoria"
                 >
                   <option value="">Todas</option>
                   {categoryOptions.map((cat) => (
@@ -235,6 +225,13 @@ export default function AdminProductsPage() {
                   ))}
                 </select>
               </div>
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="shrink-0 inline-flex items-center gap-2 bg-[#EAD7BB] hover:bg-[#EAD7BB]/90 text-[#6D4C41] px-4 py-2.5 rounded-xl font-medium transition-colors border border-[#1B4332]/10 shadow-sm"
+              >
+                <Plus className="h-5 w-5" />
+                Novo Produto
+              </button>
             </div>
 
             {criticalCount > 0 && (
@@ -246,7 +243,7 @@ export default function AdminProductsPage() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 shadow-sm">
+            <div className="rounded-2xl border border-[#1B4332]/10 overflow-hidden bg-white/70 shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full font-inter">
                   <thead>
