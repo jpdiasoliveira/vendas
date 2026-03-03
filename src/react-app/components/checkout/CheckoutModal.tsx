@@ -25,8 +25,6 @@ export default function CheckoutModal({ isOpen, onClose, orderId, total }: Check
         try {
             const data = await processPayment(orderId, selectedMethod);
 
-            console.log('Payment response:', data);
-
             const pixBase64 = data.qrCodeBase64 ?? data.qr_code_base64;
             const pixCopyPaste = data.copyPaste ?? data.pixCode ?? data.qr_code;
             if (selectedMethod === 'pix' && (pixBase64 || pixCopyPaste)) {

@@ -8,7 +8,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  getAuditLogsByStore,
+  getAuditLogs,
 } from "../core/database.js";
 import { productCreateSchema, productUpdateSchema } from "../schemas/product.js";
 import { Variables } from "../types.js";
@@ -36,7 +36,12 @@ admin.get("/audit-logs", async (c) => {
   }
   try {
     const store = c.get("store");
-    const data = await getAuditLogsByStore(c.env, store.id);
+    const search = c.req.query("search");
+    const action = c.req.query("action");
+    const data = await getAuditLogs(c.env, store.id, {
+      ...(search != null && search !== "" && { search }),
+      ...(action != null && action !== "" && { action }),
+    });
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao carregar logs";

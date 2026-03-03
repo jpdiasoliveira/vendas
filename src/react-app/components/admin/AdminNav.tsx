@@ -1,19 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, History, LogOut } from "lucide-react";
+import { Package, ShoppingBag, Activity, LogOut } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { adminApiFetch } from "@/react-app/lib/api";
-
-const baseLinks = [
-  { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
-  { to: "/admin/produtos", label: "Produtos", icon: Package },
-];
+import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 
 export function AdminNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const [role, setRole] = useState<string | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     adminApiFetch<{ id: string; role: string }>("/api/admin/me")
@@ -22,8 +19,9 @@ export function AdminNav() {
   }, []);
 
   const links = [
-    ...baseLinks,
-    ...(role === "admin" ? [{ to: "/admin/audit-logs", label: "Logs", icon: History }] : []),
+    { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
+    ...(role === "admin" ? [{ to: "/admin/historico", label: "Histórico", icon: Activity }] : []),
+    { to: "/admin/produtos", label: "Produtos", icon: Package },
   ];
 
   const handleLogout = async () => {
@@ -52,13 +50,18 @@ export function AdminNav() {
       })}
       <button
         type="button"
-        onClick={handleLogout}
+        onClick={() => setShowLogoutModal(true)}
         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#6D4C41] bg-white/60 hover:bg-white border border-[#1B4332]/10 hover:text-[#1B4332] transition-colors"
         aria-label="Sair do painel"
       >
         <LogOut className="h-4 w-4" />
         Sair
       </button>
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
     </nav>
   );
 }

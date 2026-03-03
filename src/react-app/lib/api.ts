@@ -3,8 +3,10 @@
  */
 const STORE_SLUG = import.meta.env.VITE_STORE_SLUG;
 
-/** Base URL da API (ex.: http://127.0.0.1:8787 ou https://seu-worker.workers.dev). Sem trailing slash. */
-const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+/** Em dev usa URL relativa para o proxy do Vite (/api → 127.0.0.1:8787). Em prod usa VITE_API_URL. */
+const API_BASE = import.meta.env.DEV
+  ? ""
+  : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 function buildApiUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -15,8 +17,10 @@ function buildApiUrl(path: string): string {
 async function parseJsonOrThrow(response: Response): Promise<unknown> {
   const text = await response.text();
   if (text.trimStart().toLowerCase().startsWith("<!doctype")) {
-    console.error("Erro: O Worker não respondeu, o Vite devolveu HTML.");
-    throw new Error("Resposta inválida (HTML em vez de JSON). Verifique o proxy /api → Worker.");
+    console.error("API respondeu com HTML em vez de JSON. URL:", response.url);
+    throw new Error(
+      "Resposta inválida (HTML). Verifique: 1) Worker rodando (wrangler dev em http://127.0.0.1:8787); 2) Proxy no vite.config.ts para /api → http://127.0.0.1:8787."
+    );
   }
   try {
     return text ? JSON.parse(text) : {};
@@ -31,7 +35,6 @@ export const apiFetch = async <T = unknown>(
   options: RequestInit = {}
 ): Promise<T> => {
   const url = buildApiUrl(endpoint);
-  console.log("Fetching API:", url);
 
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
@@ -67,7 +70,6 @@ export const adminApiFetch = async <T = unknown>(
   options: RequestInit = {}
 ): Promise<T> => {
   const url = buildApiUrl(endpoint);
-  console.log("Fetching API:", url);
 
   const { getAccessToken } = await import("@/react-app/services/auth.service");
   const token = await getAccessToken();
@@ -80,11 +82,25 @@ export const adminApiFetch = async <T = unknown>(
   const body = await parseJsonOrThrow(response);
 
   if (response.status === 401) {
-    window.location.href = "/login";
-    throw new Error((body as { error?: string })?.error || "Não autorizado");
+    const msg = (body as { error?: string })?.error || "Não autorizado";
+    try {
+      sessionStorage.setItem("lastAuthError", JSON.stringify({ status: 401, error: msg }));
+    } catch {
+      /* ignore */
+    }
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
+    }
+    throw new Error(msg);
   }
   if (response.status === 403) {
-    throw new Error((body as { error?: string })?.error || "Acesso negado");
+    const msg = (body as { error?: string })?.error || "Acesso negado";
+    try {
+      sessionStorage.setItem("lastAuthError", JSON.stringify({ status: 403, error: msg }));
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
   }
 
   if (!response.ok) {

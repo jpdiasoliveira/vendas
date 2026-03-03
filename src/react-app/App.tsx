@@ -14,23 +14,23 @@ import { AdminGuard } from "@/react-app/components/auth/AdminGuard";
 export default function App() {
   return (
     <MochaAuthProvider>
-      <AuthProvider>
-        <CartProvider>
-          <Router>
+      <CartProvider>
+        <Router>
+          <AuthProvider>
             <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/pedidos" element={<OrdersPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin" element={<AdminGuard />}>
-              <Route path="pedidos" element={<AdminOrdersPage />} />
-              <Route path="produtos" element={<AdminProductsPage />} />
-              <Route path="audit-logs" element={<AuditLogsPage />} />
-            </Route>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/pedidos" element={<OrdersPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin" element={<AdminGuard />}>
+                <Route path="pedidos" element={<AdminOrdersPage />} />
+                <Route path="produtos" element={<AdminProductsPage />} />
+                <Route path="historico" element={<AuditLogsPage />} />
+              </Route>
             </Routes>
-          </Router>
-        </CartProvider>
-      </AuthProvider>
+          </AuthProvider>
+        </Router>
+      </CartProvider>
     </MochaAuthProvider>
   );
 }

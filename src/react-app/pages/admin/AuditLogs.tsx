@@ -1,18 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { RefreshCw, Home, History } from "lucide-react";
+import {
+  RefreshCw,
+  Home,
+  History,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
 import { adminApiFetch } from "@/react-app/lib/api";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
+import type { AuditLogReport } from "@/shared/types";
 
-export interface AuditLogEntry {
-  id: string;
-  created_at: string;
-  user_email: string | null;
-  action: string;
-  resource_type: string;
-  resource_id: string;
-  details?: Record<string, unknown> | null;
-}
+/** Valores de action na API (query param). */
+const ACTION_OPTIONS = [
+  { value: "", label: "Todas as ações" },
+  { value: "CREATE_PRODUCT", label: "Criar" },
+  { value: "UPDATE_PRODUCT", label: "Editar" },
+  { value: "DELETE_PRODUCT", label: "Excluir" },
+  { value: "UPDATE_ORDER_STATUS", label: "Pedido" },
+] as const;
 
 const formatDateTime = (dateStr: string) =>
   new Date(dateStr).toLocaleString("pt-BR", {
@@ -24,26 +33,97 @@ const formatDateTime = (dateStr: string) =>
     second: "2-digit",
   });
 
-const actionLabel: Record<string, string> = {
-  CREATE_PRODUCT: "Criar produto",
-  UPDATE_PRODUCT: "Atualizar produto",
-  DELETE_PRODUCT: "Excluir produto",
-  UPDATE_ORDER_STATUS: "Atualizar status do pedido",
+/** Exibe detalhes de forma legível (ex: status do pedido). */
+const formatDetalhes = (detalhes: unknown): string => {
+  if (detalhes == null) return "";
+  if (typeof detalhes === "object" && detalhes !== null && "status" in detalhes) {
+    return String((detalhes as { status: unknown }).status);
+  }
+  if (typeof detalhes === "object") {
+    const entries = Object.entries(detalhes as Record<string, unknown>).filter(
+      ([_, v]) => v != null
+    );
+    if (entries.length === 0) return "";
+    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
+  }
+  return String(detalhes);
 };
+
+/** Ícone e estilo por tipo de ação: verde (criação), amarelo (edição), neutro (exclusão). */
+const getActionStyle = (
+  acaoDescricao: string
+): { Icon: LucideIcon; iconBg: string; iconColor: string; borderColor: string } => {
+  if (acaoDescricao.includes("Criar")) {
+    return {
+      Icon: PlusCircle,
+      iconBg: "bg-[#1B4332]/15",
+      iconColor: "text-[#1B4332]",
+      borderColor: "border-[#1B4332]/30",
+    };
+  }
+  if (acaoDescricao.includes("Excluir")) {
+    return {
+      Icon: Trash2,
+      iconBg: "bg-[#6D4C41]/15",
+      iconColor: "text-[#6D4C41]",
+      borderColor: "border-[#6D4C41]/30",
+    };
+  }
+  return {
+    Icon: Pencil,
+    iconBg: "bg-[#FFD166]/40",
+    iconColor: "text-[#B8860B]",
+    borderColor: "border-[#FFD166]/60",
+  };
+};
+
+/** Skeleton da timeline (itens verticais). */
+const TimelineSkeleton = () => (
+  <div className="space-y-0">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="flex gap-4 animate-pulse">
+        <div className="flex flex-col items-center">
+          <div className="h-10 w-10 rounded-full bg-[#1B4332]/15 shrink-0" />
+          {i < 4 && <div className="w-0.5 flex-1 min-h-[3rem] bg-[#1B4332]/10 mt-2" />}
+        </div>
+        <div className="flex-1 pb-8">
+          <div className="h-4 w-28 bg-[#1B4332]/10 rounded mb-2" />
+          <div className="h-4 w-48 bg-[#1B4332]/10 rounded mb-1" />
+          <div className="h-3 w-36 bg-[#1B4332]/10 rounded" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const DEBOUNCE_MS = 500;
 
 export default function AuditLogsPage() {
   const navigate = useNavigate();
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [logs, setLogs] = useState<AuditLogReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
 
-  const fetchLogs = async () => {
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchInput.trim()), DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
     setForbidden(false);
+    const params = new URLSearchParams();
+    if (searchDebounced) params.set("search", searchDebounced);
+    if (actionFilter) params.set("action", actionFilter);
+    const qs = params.toString();
+    const url = `/api/admin/audit-logs${qs ? `?${qs}` : ""}`;
     try {
-      const data = await adminApiFetch<AuditLogEntry[]>("/api/admin/audit-logs");
+      const data = await adminApiFetch<AuditLogReport[]>(url);
       setLogs(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao carregar logs";
@@ -52,11 +132,11 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchDebounced, actionFilter]);
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+  }, [fetchLogs]);
 
   if (forbidden) {
     return (
@@ -67,7 +147,7 @@ export default function AuditLogsPage() {
             Acesso restrito
           </h1>
           <p className="text-[#6D4C41] font-inter">
-            Apenas administradores podem visualizar os logs de atividade.
+            Apenas administradores podem visualizar o histórico de atividades.
           </p>
           <button
             onClick={() => navigate("/admin/pedidos")}
@@ -82,7 +162,7 @@ export default function AuditLogsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -96,10 +176,10 @@ export default function AuditLogsPage() {
               <History className="h-8 w-8 text-[#1B4332]" />
               <div>
                 <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
-                  Logs de Atividade
+                  Histórico de Atividades
                 </h1>
                 <p className="text-sm text-[#6D4C41] font-inter">
-                  Histórico de ações no painel
+                  Quem criou, editou ou excluiu produtos e alterou status dos pedidos
                 </p>
               </div>
             </div>
@@ -118,58 +198,96 @@ export default function AuditLogsPage() {
         </div>
 
         {error && !forbidden && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-inter">
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-inter text-sm">
             {error}
           </div>
         )}
 
+        {/* Barra de filtros */}
+        <div className="mb-6 p-4 bg-[#FAF8F3]/90 border border-[#1B4332]/15 rounded-2xl shadow-sm font-inter">
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6D4C41]/70 pointer-events-none" />
+              <input
+                type="search"
+                placeholder="Buscar por nome do produto ou pedido..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-[#1B4332]/20 rounded-xl text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition-colors"
+                aria-label="Busca por recurso"
+              />
+            </div>
+            <div className="sm:w-48">
+              <select
+                value={actionFilter}
+                onChange={(e) => setActionFilter(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/80 border border-[#1B4332]/20 rounded-xl text-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition-colors cursor-pointer font-inter"
+                aria-label="Filtrar por tipo de ação"
+              >
+                {ACTION_OPTIONS.map((opt) => (
+                  <option key={opt.value || "all"} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {loading ? (
-          <div className="flex justify-center py-12">
-            <RefreshCw className="h-8 w-8 text-[#1B4332] animate-spin" />
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-6 shadow-sm">
+            <TimelineSkeleton />
           </div>
         ) : logs.length === 0 ? (
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-12 text-center text-[#6D4C41] font-inter">
             Nenhum registro de atividade ainda.
           </div>
         ) : (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full font-inter text-sm">
-                <thead>
-                  <tr className="bg-[#1B4332]/5 text-[#1B4332] font-semibold">
-                    <th className="text-left py-3 px-4">Data / Hora</th>
-                    <th className="text-left py-3 px-4">Usuário</th>
-                    <th className="text-left py-3 px-4">Ação</th>
-                    <th className="text-left py-3 px-4">Recurso</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className="border-t border-[#1B4332]/10 hover:bg-[#1B4332]/5 transition-colors"
-                    >
-                      <td className="py-3 px-4 text-[#6D4C41] whitespace-nowrap">
-                        {formatDateTime(entry.created_at)}
-                      </td>
-                      <td className="py-3 px-4 text-[#6D4C41]">
-                        {entry.user_email ?? "—"}
-                      </td>
-                      <td className="py-3 px-4 text-[#1B4332] font-medium">
-                        {actionLabel[entry.action] ?? entry.action}
-                      </td>
-                      <td className="py-3 px-4 text-[#6D4C41]">
-                        {entry.resource_type} #{entry.resource_id}
-                        {entry.details?.status != null && (
-                          <span className="ml-1 text-[#1B4332]/80">
-                            → {String(entry.details.status)}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-6 shadow-sm">
+            {/* Timeline vertical */}
+            <div className="relative">
+              {logs.map((entry, index) => {
+                const { Icon, iconBg, iconColor, borderColor } = getActionStyle(
+                  entry.acao_descricao
+                );
+                const detalhesStr = formatDetalhes(entry.detalhes);
+                const isLast = index === logs.length - 1;
+
+                return (
+                  <div key={entry.id} className="flex gap-4">
+                    <div className="flex flex-col items-center shrink-0">
+                      <div
+                        className={`h-10 w-10 rounded-full border-2 flex items-center justify-center ${iconBg} ${iconColor} ${borderColor}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      {!isLast && (
+                        <div
+                          className="w-0.5 flex-1 min-h-[2rem] mt-2 bg-[#1B4332]/15"
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 pb-8">
+                      <p className={`text-xs font-medium uppercase tracking-wide ${iconColor}`}>
+                        {formatDateTime(entry.data_hora)}
+                      </p>
+                      <p className="font-semibold text-[#1B4332] font-inter mt-0.5">
+                        {entry.acao_descricao}
+                      </p>
+                      <p className="text-sm text-[#6D4C41] font-inter">
+                        {entry.usuario_email || "—"} ·{" "}
+                        {entry.tipo === "product" ? "Produto" : "Pedido"} {entry.nome_recurso}
+                      </p>
+                      {detalhesStr && (
+                        <p className="text-xs text-[#6D4C41]/90 mt-1 font-inter">
+                          {detalhesStr}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

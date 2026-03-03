@@ -6,6 +6,7 @@
 
 import { getSupabase } from "./supabase.js";
 import type { Product, Order, OrderItem, CartItemPayload, OrderDetail, Store } from "./schema.js";
+import type { AuditLogReport } from "../../shared/types.js";
 
 // ---- Mapeadores: Supabase (snake_case) -> Schema (camelCase) ----
 
@@ -423,14 +424,16 @@ export async function getStoreMember(
   };
 }
 
-/** Registro da view view_audit_report (auditoria com email do usuário). */
+/** Registro da view view_audit_report. */
 export interface AuditReportRow {
   id: string;
   store_id: string;
   user_id: string;
   action: string;
+  action_key: string;
   resource_type: string;
   resource_id: string;
+  nome_recurso: string;
   details: Record<string, unknown> | null;
   created_at: string;
   user_email: string | null;
@@ -452,10 +455,65 @@ export async function getAuditLogsByStore(env: Env, storeId: string): Promise<Au
     store_id: row.store_id as string,
     user_id: row.user_id as string,
     action: row.action as string,
+    action_key: (row.action_key as string) ?? (row.action as string),
     resource_type: row.resource_type as string,
     resource_id: row.resource_id as string,
+    nome_recurso: (row.nome_recurso as string) ?? "",
     details: row.details as Record<string, unknown> | null,
     created_at: row.created_at as string,
     user_email: (row.user_email as string | null) ?? null,
+  }));
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  CREATE_PRODUCT: "Criar produto",
+  UPDATE_PRODUCT: "Atualizar produto",
+  DELETE_PRODUCT: "Excluir produto",
+  UPDATE_ORDER_STATUS: "Atualizar status do pedido",
+};
+
+export interface GetAuditLogsOptions {
+  search?: string;
+  action?: string;
+}
+
+/**
+ * Busca os logs de auditoria formatados da View para uma loja específica.
+ * Filtros opcionais: search (ilike em nome_recurso), action (eq em action_key).
+ * Retorna no contrato AuditLogReport (shared), limit 50.
+ */
+export async function getAuditLogs(
+  env: Env,
+  storeId: string,
+  options?: GetAuditLogsOptions
+): Promise<AuditLogReport[]> {
+  const supabase = getSupabase(env);
+  let query = supabase
+    .from("view_audit_report")
+    .select("*")
+    .eq("store_id", storeId);
+
+  const search = options?.search?.trim();
+  if (search) {
+    query = query.ilike("nome_recurso", `%${search}%`);
+  }
+  if (options?.action?.trim()) {
+    query = query.eq("action_key", options.action.trim());
+  }
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as AuditReportRow[];
+  return rows.map((row) => ({
+    id: row.id,
+    data_hora: row.created_at,
+    usuario_email: row.user_email ?? "",
+    acao_descricao: ACTION_LABELS[row.action] ?? row.action,
+    tipo: row.resource_type,
+    nome_recurso: row.nome_recurso ?? `${row.resource_type} #${row.resource_id}`,
+    detalhes: row.details ?? {},
   }));
 }

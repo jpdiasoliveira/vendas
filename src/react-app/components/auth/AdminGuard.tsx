@@ -30,12 +30,12 @@ export const AdminGuard = () => {
       }
       return;
     }
-    // Grace period: evita redirecionar antes da sessão ter sido atualizada após login
+    // Grace period: evita redirecionar antes da sessão ter sido atualizada após login (Supabase onAuthStateChange)
     redirectTimeoutRef.current = setTimeout(() => {
       redirectTimeoutRef.current = null;
       setGracePeriod(false);
       navigate("/login", { state: { from: location.pathname }, replace: true });
-    }, 150);
+    }, 600);
 
     return () => {
       if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);

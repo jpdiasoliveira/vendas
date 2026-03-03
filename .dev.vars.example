@@ -1,0 +1,13 @@
+# Variáveis de ambiente do Worker em desenvolvimento.
+# Copie para .dev.vars e preencha os valores (não commite .dev.vars).
+#
+# Para o login do painel admin (POST /api/login) funcionar, defina:
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+#
+# Outras variáveis usadas pelo Worker (ajuste conforme seu projeto):
+# SUPABASE_SERVICE_ROLE_KEY=
+# SUPABASE_JWT_SECRET=
+# MOCHA_USERS_SERVICE_API_URL=
+# MOCHA_USERS_SERVICE_API_KEY=
+# MERCADO_PAGO_ACCESS_TOKEN=

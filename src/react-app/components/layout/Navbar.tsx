@@ -3,6 +3,7 @@ import { Leaf, User, Package, LogOut, ShoppingCart } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useAuth } from "@getmocha/users-service/react";
 import { useNavigate } from "react-router";
+import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 
 interface NavbarProps {
   onOpenCart: () => void;
@@ -14,6 +15,7 @@ interface NavbarProps {
 export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { itemCount } = useCart();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -71,49 +73,58 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
 
           <div className="flex items-center space-x-4">
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm text-[#1B4332] px-4 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium border border-[#1B4332]/10"
-                >
-                  {user.google_user_data?.picture ? (
-                    <img
-                      src={user.google_user_data.picture}
-                      alt="User Profile"
-                      className="h-6 w-6 rounded-full"
-                    />
-                  ) : (
-                    <User className="h-5 w-5" />
+              <>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm text-[#1B4332] px-4 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium border border-[#1B4332]/10"
+                  >
+                    {user.google_user_data?.picture ? (
+                      <img
+                        src={user.google_user_data.picture}
+                        alt="User Profile"
+                        className="h-6 w-6 rounded-full"
+                      />
+                    ) : (
+                      <User className="h-5 w-5" />
+                    )}
+                    <span className="hidden md:inline">
+                      {user.google_user_data?.given_name || "Conta"}
+                    </span>
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          navigate("/pedidos");
+                        }}
+                        className="w-full flex items-center space-x-2 px-4 py-2.5 text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter"
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Meus Pedidos</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowLogoutModal(true);
+                        }}
+                        className="w-full flex items-center space-x-2 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-inter"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Sair</span>
+                      </button>
+                    </div>
                   )}
-                  <span className="hidden md:inline">
-                    {user.google_user_data?.given_name || "Conta"}
-                  </span>
-                </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        navigate("/pedidos");
-                      }}
-                      className="w-full flex items-center space-x-2 px-4 py-2.5 text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter"
-                    >
-                      <Package className="h-4 w-4" />
-                      <span>Meus Pedidos</span>
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await logout();
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full flex items-center space-x-2 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-inter"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Sair</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                </div>
+                <LogoutConfirmModal
+                  isOpen={showLogoutModal}
+                  onClose={() => setShowLogoutModal(false)}
+                  onConfirm={async () => {
+                    await logout();
+                  }}
+                />
+              </>
             ) : (
               <button
                 onClick={onOpenLogin}

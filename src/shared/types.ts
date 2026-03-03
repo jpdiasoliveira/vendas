@@ -1,4 +1,13 @@
-import z from "zod";
+/** Contrato do log de auditoria (relatório). */
+export interface AuditLogReport {
+  id: string;
+  data_hora: string;
+  usuario_email: string;
+  acao_descricao: string;
+  tipo: string;
+  nome_recurso: string;
+  detalhes: unknown;
+}
 
 /**
  * Types shared between the client and server go here.
@@ -12,4 +21,6 @@ import z from "zod";
  * })
  *
  * export type TodoType = z.infer<typeof TodoSchema>;
+ *
+ * (Re-importe zod quando for usar schemas aqui.)
  */

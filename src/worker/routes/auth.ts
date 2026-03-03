@@ -33,28 +33,55 @@ auth.post("/login", rateLimitLogin, async (c) => {
   const supabaseUrl = c.env.SUPABASE_URL;
   if (!anonKey || !supabaseUrl) {
     return c.json(
-      { success: false, error: "Login não configurado no servidor" },
+      {
+        success: false,
+        error:
+          "Login não configurado no servidor. Defina SUPABASE_URL e SUPABASE_ANON_KEY em .dev.vars (raiz do projeto) e reinicie o Worker (wrangler dev).",
+      },
       503
     );
   }
 
-  const res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (err) {
+    console.error("Login: falha ao chamar Supabase Auth", err);
+    return c.json({ success: false, error: "Serviço de login indisponível" }, 503);
+  }
 
-  const data = (await res.json()) as { access_token?: string; refresh_token?: string; user?: unknown; error_description?: string };
+  const text = await res.text();
+  let data: { access_token?: string; refresh_token?: string; user?: unknown; error_description?: string };
+  try {
+    data = text ? (JSON.parse(text) as typeof data) : {};
+  } catch {
+    return c.json({ success: false, error: "Credenciais inválidas" }, 401);
+  }
+
   if (!res.ok) {
-    const msg = data.error_description ?? "Credenciais inválidas";
+    const msg = (data && data.error_description) ? String(data.error_description) : "Credenciais inválidas";
     return c.json({ success: false, error: msg }, 401);
   }
 
-  return c.json({ success: true, data: { access_token: data.access_token, refresh_token: data.refresh_token, user: data.user } }, 200);
+  return c.json(
+    {
+      success: true,
+      data: {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user: data.user,
+      },
+    },
+    200
+  );
 });
 
 auth.get("/oauth/google/redirect_url", async (c) => {

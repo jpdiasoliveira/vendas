@@ -63,11 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const user = sessionToUser(session);
 
-  // Debug: estado atual da sessão (remover em produção se desejar)
-  useEffect(() => {
-    console.log("Auth State:", { session: !!session, loading, user: user ?? null });
-  }, [session, loading, user?.id]);
-
   const signIn = useCallback(async (email: string, password: string) => {
     await serviceLogin(email, password);
   }, []);

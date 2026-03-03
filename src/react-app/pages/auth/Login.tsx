@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+
+const LAST_AUTH_ERROR_KEY = "lastAuthError";
 
 /**
  * Interface de login do SaaS Auth Engine.
@@ -16,12 +18,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mostra o último erro de auth (401/403) que causou o redirect, para você poder ler e copiar
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(LAST_AUTH_ERROR_KEY);
+      if (raw) {
+        sessionStorage.removeItem(LAST_AUTH_ERROR_KEY);
+        const parsed = JSON.parse(raw) as { status?: number; error?: string };
+        if (parsed?.error) setError(`[${parsed.status ?? "?"}] ${parsed.error}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
       await signIn(email.trim(), password);
+      // Pequena espera para o Supabase emitir onAuthStateChange e o AuthContext atualizar antes de navegar
+      await new Promise((r) => setTimeout(r, 300));
       navigate("/admin/pedidos", { replace: true });
     } catch (err: unknown) {
       const message =
@@ -104,7 +122,18 @@ export default function LoginPage() {
                 role="alert"
               >
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
+                <span className="flex-1 break-words">{error}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(error).then(() => {}, () => {});
+                  }}
+                  className="shrink-0 p-1 rounded hover:bg-red-100 text-red-600"
+                  title="Copiar erro"
+                  aria-label="Copiar mensagem de erro"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
               </div>
             )}
 

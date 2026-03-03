@@ -19,14 +19,17 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DE
 COMMENT ON TABLE audit_logs IS 'Auditoria: ações do admin (CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT, UPDATE_ORDER_STATUS).';
 
 -- View para relatório de auditoria (Data/Hora, Usuário, Ação, Recurso). Usada por GET /api/admin/audit-logs.
+-- nome_recurso e action_key permitem filtrar por search e action na API.
 CREATE OR REPLACE VIEW view_audit_report AS
 SELECT
   a.id,
   a.store_id,
   a.user_id,
   a.action,
+  a.action AS action_key,
   a.resource_type,
   a.resource_id,
+  (a.resource_type || ' #' || a.resource_id) AS nome_recurso,
   a.details,
   a.created_at,
   u.email AS user_email
