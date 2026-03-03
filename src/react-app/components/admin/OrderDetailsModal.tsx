@@ -70,7 +70,6 @@ export function OrderDetailsModal({
           ...data,
           items: Array.isArray(data.items) ? data.items : [],
         };
-        console.log("Dados recebidos do Worker:", data);
         setOrder(normalized);
         setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
       })

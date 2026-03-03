@@ -41,6 +41,7 @@ function rowToOrder(row: Record<string, unknown>): Order {
     storeId: row.store_id as string,
     userId: row.user_id as string,
     customerName: (row.customer_name as string | null) ?? undefined,
+    customerPhone: (row.customer_phone as string | null) ?? undefined,
     status: statusVal ?? "pending",
     total: Number(row.total),
     paymentMethod: (row.payment_method as string | null) ?? undefined,
@@ -112,6 +113,23 @@ export async function getProductsByStore(env: Env, storeId: string): Promise<Pro
   return (rows ?? []).map(rowToProduct);
 }
 
+/** Retorna um produto por id e loja, ou null se não existir. */
+export async function getProductById(
+  env: Env,
+  productId: string,
+  storeId: string
+): Promise<Product | null> {
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return row ? rowToProduct(row) : null;
+}
+
 export interface ProductCreatePayload {
   name: string;
   price: number;
@@ -120,6 +138,9 @@ export interface ProductCreatePayload {
   category?: string | null;
   stock?: number | null;
   status?: string | null;
+  priceWholesale?: number | null;
+  minQuantityWholesale?: number | null;
+  unit?: string | null;
 }
 
 /**
@@ -133,18 +154,33 @@ export async function createProduct(
 ): Promise<Product> {
   const supabase = getSupabase(env);
   const stock = data.stock != null ? Number(Math.floor(data.stock)) : 0;
+  const slug =
+    data.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "") || "produto";
+  const payload: Record<string, unknown> = {
+    store_id: storeId,
+    name: data.name,
+    price: Number(data.price),
+    description: data.description ?? null,
+    image_url: data.imageUrl ?? null,
+    category: data.category ?? null,
+    stock,
+    status: data.status ?? "active",
+    slug: slug + "-" + Date.now(),
+  };
+  if (data.priceWholesale != null) payload.price_wholesale = Number(data.priceWholesale);
+  if (data.minQuantityWholesale != null)
+    payload.min_quantity_wholesale = Math.floor(Number(data.minQuantityWholesale));
+  if (data.unit != null && String(data.unit).trim() !== "")
+    payload.unit_type = String(data.unit).trim();
+
   const { data: row, error } = await supabase
     .from("products")
-    .insert({
-      store_id: storeId,
-      name: data.name,
-      price: Number(data.price),
-      description: data.description ?? null,
-      image_url: data.imageUrl ?? null,
-      category: data.category ?? null,
-      stock,
-      status: data.status ?? "active",
-    })
+    .insert(payload)
     .select()
     .single();
 
@@ -733,8 +769,10 @@ export async function getAuditLogs(
     data_hora: row.created_at,
     usuario_email: row.user_email ?? "",
     acao_descricao: ACTION_LABELS[row.action] ?? row.action,
+    action_key: row.action,
     tipo: row.resource_type,
     nome_recurso: row.nome_recurso ?? `${row.resource_type} #${row.resource_id}`,
+    resource_id: row.resource_id,
     detalhes: row.details ?? {},
   }));
 }

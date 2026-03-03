@@ -48,6 +48,8 @@ export interface Order {
   userId: string;
   /** Nome do cliente (opcional; pode vir do perfil do usuário ou ser preenchido no pedido) */
   customerName?: string | null;
+  /** Telefone do cliente (customer_phone no banco) */
+  customerPhone?: string | null;
   status: string;
   total: number;
   paymentMethod?: string | null;
@@ -81,6 +83,7 @@ export interface OrderDetail {
   storeId: string;
   userId: string;
   customerName?: string | null;
+  customerPhone?: string | null;
   status: string;
   total: number;
   paymentMethod?: string | null;

@@ -62,6 +62,48 @@ export const apiFetch = async <T = unknown>(
 };
 
 /**
+ * Upload de imagem para POST /api/admin/upload (multipart/form-data).
+ * Retorna a publicUrl da imagem no Supabase Storage. Apenas admin logado.
+ */
+export const adminUploadImage = async (file: File): Promise<{ publicUrl: string }> => {
+  const url = buildApiUrl("/api/admin/upload");
+  const { getAccessToken } = await import("@/react-app/services/auth.service");
+  const token = await getAccessToken();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers = new Headers();
+  headers.set("x-store-slug", STORE_SLUG ?? "");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  // Não definir Content-Type: o browser define multipart/form-data com boundary
+
+  const response = await fetch(url, { method: "POST", headers, body: formData });
+  const body = await parseJsonOrThrow(response);
+
+  if (response.status === 401 || response.status === 403) {
+    const msg = (body as { error?: string })?.error || "Não autorizado";
+    try {
+      sessionStorage.setItem("lastAuthError", JSON.stringify({ status: response.status, error: msg }));
+    } catch {
+      /* ignore */
+    }
+    if (response.status === 401 && !window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
+    }
+    throw new Error(msg);
+  }
+  if (!response.ok) {
+    const message = (body as { error?: string })?.error || `Erro no upload: ${response.status}`;
+    throw new Error(message);
+  }
+  const b = body as { success?: boolean; publicUrl?: string; error?: string };
+  if (b.success === true && typeof b.publicUrl === "string") {
+    return { publicUrl: b.publicUrl };
+  }
+  throw new Error((b as { error?: string })?.error || "Resposta inválida do upload.");
+};
+
+/**
  * Cliente HTTP para rotas /api/admin/*: envia x-store-slug e Authorization: Bearer <token>.
  * Use nas páginas do painel admin (requer usuário logado via Supabase Auth).
  */

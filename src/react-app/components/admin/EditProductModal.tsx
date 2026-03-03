@@ -17,17 +17,46 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
   const [stock, setStock] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [initialPrice, setInitialPrice] = useState("");
+  const [initialPriceWholesale, setInitialPriceWholesale] = useState("");
+  const [initialMinQty, setInitialMinQty] = useState("");
+  const [initialStock, setInitialStock] = useState("");
 
   useEffect(() => {
     if (!product) return;
-    setPrice(String(product.price ?? ""));
-    setPriceWholesale(product.priceWholesale != null ? String(product.priceWholesale) : "");
-    setMinQuantityWholesale(
-      product.minQuantityWholesale != null ? String(product.minQuantityWholesale) : ""
-    );
-    setStock(product.stock != null ? String(product.stock) : "0");
+    const p = String(product.price ?? "");
+    const pw = product.priceWholesale != null ? String(product.priceWholesale) : "";
+    const mq =
+      product.minQuantityWholesale != null ? String(product.minQuantityWholesale) : "";
+    const s = product.stock != null ? String(product.stock) : "0";
+    setPrice(p);
+    setPriceWholesale(pw);
+    setMinQuantityWholesale(mq);
+    setStock(s);
+    setInitialPrice(p);
+    setInitialPriceWholesale(pw);
+    setInitialMinQty(mq);
+    setInitialStock(s);
     setError(null);
+    setShowExitConfirm(false);
   }, [product]);
+
+  const isDirty =
+    price !== initialPrice ||
+    priceWholesale !== initialPriceWholesale ||
+    minQuantityWholesale !== initialMinQty ||
+    stock !== initialStock;
+
+  const requestClose = () => {
+    if (isDirty) setShowExitConfirm(true);
+    else onClose();
+  };
+
+  const handleCloseWithoutSaving = () => {
+    setShowExitConfirm(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -70,7 +99,11 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div
+        className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm"
+        onClick={requestClose}
+        aria-hidden
+      />
       <div className="relative bg-white rounded-3xl shadow-2xl border border-white/50 max-w-md w-full">
         <div className="flex items-center justify-between p-6 border-b border-[#1B4332]/10">
           <h2 className="text-xl font-bold text-[#1B4332] font-playfair">
@@ -78,7 +111,7 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="p-2 text-[#6D4C41] hover:text-[#1B4332] hover:bg-[#1B4332]/5 rounded-xl transition-colors"
             aria-label="Fechar"
           >
@@ -146,7 +179,7 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="flex-1 py-2.5 rounded-xl border border-[#1B4332]/20 text-[#6D4C41] font-medium hover:bg-[#1B4332]/5 transition-colors"
             >
               Cancelar
@@ -162,6 +195,38 @@ export function EditProductModal({ isOpen, product, onClose, onSaved }: EditProd
           </div>
         </form>
       </div>
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setShowExitConfirm(false)}
+            aria-hidden
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-amber-200 max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Alterações não salvas</h3>
+            <p className="text-sm text-slate-600 mb-6">
+              Você fez edições neste produto. Deseja realmente sair sem salvar?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+              >
+                Continuar Editando
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseWithoutSaving}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
+              >
+                Sair sem Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

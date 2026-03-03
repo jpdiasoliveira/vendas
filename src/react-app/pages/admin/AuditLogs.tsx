@@ -8,6 +8,7 @@ import {
   Pencil,
   Trash2,
   Search,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { adminApiFetch } from "@/react-app/lib/api";
@@ -32,6 +33,76 @@ const formatDateTime = (dateStr: string) =>
     minute: "2-digit",
     second: "2-digit",
   });
+
+/** Extrai o nome real do recurso a partir de details; fallback: resource_id encurtado. */
+const getResourceDisplayName = (entry: AuditLogReport): string => {
+  const d = (entry.detalhes ?? {}) as Record<string, unknown>;
+  if (entry.tipo === "product") {
+    const name = (d.product_name ?? d.name) as string | undefined;
+    if (name && String(name).trim()) return String(name).trim();
+  }
+  if (entry.tipo === "order") {
+    const customer = d.customer_name as string | undefined;
+    if (customer && String(customer).trim()) return String(customer).trim();
+    const orderNum = (d.order_number ?? d.order_id) as string | number | undefined;
+    if (orderNum != null) return String(orderNum);
+  }
+  const rid = entry.resource_id;
+  if (rid && typeof rid === "string" && rid.length > 0)
+    return `ID: ${rid.slice(0, 4)}${rid.length > 4 ? "…" : ""}`;
+  return entry.nome_recurso || "—";
+};
+
+/** Frase amigável da ação usando action_key e nome do recurso. */
+const getFriendlyActionMessage = (entry: AuditLogReport): string => {
+  const nameOrId = getResourceDisplayName(entry);
+  const key = entry.action_key ?? "";
+  const d = (entry.detalhes ?? {}) as Record<string, unknown>;
+  switch (key) {
+    case "CREATE_PRODUCT":
+      return `Criou o produto ${nameOrId}`;
+    case "UPDATE_PRODUCT":
+      return `Editou o produto ${nameOrId}`;
+    case "DELETE_PRODUCT":
+      return `Excluiu o produto ${nameOrId}`;
+    case "UPDATE_ORDER_STATUS": {
+      const status = (d.status as string) ?? "?";
+      return `Mudou o status do pedido #${nameOrId} para ${status}`;
+    }
+    default:
+      return entry.acao_descricao;
+  }
+};
+
+/** Traduz valor do campo active/status para exibição. */
+const formatActiveValue = (v: unknown): string => {
+  const s = String(v ?? "").toLowerCase();
+  if (s === "active" || s === "true" || s === "1") return "Ativo";
+  if (s === "inactive" || s === "false" || s === "0") return "Inativo";
+  return s || "—";
+};
+
+/** Formata valor para exibição no diff (preço, estoque, active). */
+const formatChangeValue = (
+  key: string,
+  value: unknown
+): string => {
+  if (key === "price" || key === "price_wholesale") {
+    const n = Number(value);
+    if (Number.isNaN(n)) return String(value);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+  }
+  if (key === "active") return formatActiveValue(value);
+  return String(value ?? "—");
+};
+
+/** Label amigável do campo no diff. */
+const CHANGE_LABELS: Record<string, string> = {
+  price: "Preço",
+  price_wholesale: "Preço atacado",
+  stock: "Estoque",
+  active: "Status",
+};
 
 /** Exibe detalhes de forma legível (ex: status do pedido). */
 const formatDetalhes = (detalhes: unknown): string => {
@@ -250,7 +321,9 @@ export default function AuditLogsPage() {
                 const { Icon, iconBg, iconColor, borderColor } = getActionStyle(
                   entry.acao_descricao
                 );
-                const detalhesStr = formatDetalhes(entry.detalhes);
+                const detalhes = (entry.detalhes ?? {}) as Record<string, unknown>;
+                const changes = detalhes.changes as Record<string, { from: unknown; to: unknown }> | undefined;
+                const detalhesStr = !changes ? formatDetalhes(entry.detalhes) : "";
                 const isLast = index === logs.length - 1;
 
                 return (
@@ -269,16 +342,41 @@ export default function AuditLogsPage() {
                       )}
                     </div>
                     <div className="flex-1 pb-8">
-                      <p className={`text-xs font-medium uppercase tracking-wide ${iconColor}`}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 font-inter">
                         {formatDateTime(entry.data_hora)}
                       </p>
                       <p className="font-semibold text-[#1B4332] font-inter mt-0.5">
-                        {entry.acao_descricao}
+                        {getFriendlyActionMessage(entry)}
                       </p>
-                      <p className="text-sm text-[#6D4C41] font-inter">
-                        {entry.usuario_email || "—"} ·{" "}
-                        {entry.tipo === "product" ? "Produto" : "Pedido"} {entry.nome_recurso}
+                      <p className="text-sm text-[#6D4C41] font-inter mt-0.5 flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-[#1B4332] font-inter">
+                          {entry.usuario_email || "—"}
+                        </span>
+                        <span className="text-[#6D4C41]/80">·</span>
+                        <span
+                          className={
+                            entry.tipo === "order"
+                              ? "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800"
+                              : "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-orange-100 text-orange-800"
+                          }
+                        >
+                          {entry.tipo === "product" ? "Produto" : "Pedido"}
+                        </span>
                       </p>
+                      {changes && Object.keys(changes).length > 0 && (
+                        <ul className="mt-2 pl-4 space-y-1 text-xs text-gray-500 font-inter list-disc">
+                          {Object.entries(changes).map(([key, { from, to }]) => (
+                            <li key={key} className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-gray-600">
+                                {CHANGE_LABELS[key] ?? key}:
+                              </span>
+                              <span>{formatChangeValue(key, from)}</span>
+                              <ArrowRight className="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden />
+                              <span>{formatChangeValue(key, to)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {detalhesStr && (
                         <p className="text-xs text-[#6D4C41]/90 mt-1 font-inter">
                           {detalhesStr}

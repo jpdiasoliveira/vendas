@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
-import { RefreshCw, Home, Package, Pencil, ImageOff, Search, Plus, AlertTriangle } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
+import { RefreshCw, Home, Package, Pencil, ImageOff, Search, Plus, AlertTriangle, QrCode, HelpCircle, Trash2 } from "lucide-react";
 import { adminApiFetch } from "@/react-app/lib/api";
 import type { Product } from "@/react-app/types";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { EditProductModal } from "@/react-app/components/admin/EditProductModal";
 import { AddProductModal } from "@/react-app/components/admin/AddProductModal";
+import { ProductQRModal } from "@/react-app/components/admin/ProductQRModal";
+import { DeleteProductModal } from "@/react-app/components/admin/DeleteProductModal";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -16,14 +18,20 @@ const DEFAULT_CATEGORIES = ["Salgados", "Doces", "Combos"];
 const displayStock = (stock: number | null | undefined) => stock ?? 0;
 const isStockCritical = (stock: number | null | undefined) => displayStock(stock) <= 5;
 
+const QR_TOOLTIP =
+  "Gere um QR Code para colar na prateleira. Ao escanear, você abre a edição deste produto instantaneamente.";
+
 export default function AdminProductsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [qrProduct, setQrProduct] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
@@ -51,6 +59,21 @@ export default function AdminProductsPage() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const editIdFromUrl = searchParams.get("edit");
+  useEffect(() => {
+    if (!editIdFromUrl || products.length === 0) return;
+    const product = products.find((p) => p.id === editIdFromUrl);
+    if (product) {
+      setEditingProduct(product);
+      setModalOpen(true);
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("edit");
+        return p;
+      }, { replace: true });
+    }
+  }, [editIdFromUrl, products, setSearchParams]);
 
   const categoryOptions = useMemo(() => {
     const fromData = Array.from(
@@ -95,6 +118,13 @@ export default function AdminProductsPage() {
 
   const handleProductCreated = () => {
     setToast("Produto cadastrado!");
+    fetchProducts();
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    await adminApiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    setProductToDelete(null);
+    setToast("Produto excluído.");
     fetchProducts();
   };
 
@@ -297,14 +327,41 @@ export default function AdminProductsPage() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(product)}
-                            className="inline-flex items-center gap-1.5 text-[#1B4332] hover:bg-[#1B4332]/10 px-3 py-2 rounded-xl font-medium transition-colors"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Editar
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setQrProduct(product)}
+                              className="p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                              title="Gerar QR Code"
+                              aria-label={`Gerar QR Code para ${product.name}`}
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </button>
+                            <span
+                              className="text-slate-400 hover:text-slate-600 cursor-help"
+                              title={QR_TOOLTIP}
+                              aria-label={QR_TOOLTIP}
+                            >
+                              <HelpCircle className="h-4 w-4" strokeWidth={2.5} />
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(product)}
+                              className="inline-flex items-center gap-1.5 text-[#1B4332] hover:bg-[#1B4332]/10 px-3 py-2 rounded-xl font-medium transition-colors"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setProductToDelete(product)}
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Excluir produto"
+                              aria-label={`Excluir ${product.name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ); })}
@@ -328,6 +385,26 @@ export default function AdminProductsPage() {
         onClose={() => setAddModalOpen(false)}
         onSaved={handleProductCreated}
       />
+
+      {qrProduct && (
+        <ProductQRModal
+          isOpen={!!qrProduct}
+          productName={qrProduct.name}
+          productId={qrProduct.id}
+          editUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/admin/products?edit=${qrProduct.id}`}
+          onClose={() => setQrProduct(null)}
+        />
+      )}
+
+      {productToDelete && (
+        <DeleteProductModal
+          isOpen={!!productToDelete}
+          productName={productToDelete.name}
+          productId={productToDelete.id}
+          onClose={() => setProductToDelete(null)}
+          onConfirm={handleDeleteProduct}
+        />
+      )}
 
       {toast && (
         <div

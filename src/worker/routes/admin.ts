@@ -7,11 +7,13 @@ import {
   updateOrderTracking,
   normalizeOrderStatus,
   getProductsByStore,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
   getAuditLogs,
 } from "../core/database.js";
+import { getSupabase } from "../core/supabase.js";
 import { productCreateSchema, productUpdateSchema } from "../schemas/product.js";
 import { Variables } from "../types.js";
 import type { AuthUser } from "../middlewares/verifyAuth.js";
@@ -52,6 +54,58 @@ admin.get("/audit-logs", async (c) => {
   }
 });
 
+const BUCKET_PRODUCT_IMAGES = "product-images";
+
+/** Gera nome único para arquivo: timestamp-nome-sanitizado.ext */
+function uniqueFileName(originalName: string): string {
+  const sanitized = originalName
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .slice(0, 80) || "image";
+  const ext = originalName.includes(".")
+    ? originalName.split(".").pop()?.toLowerCase() || "jpg"
+    : "jpg";
+  const base = sanitized.includes(".") ? sanitized : `${sanitized}.${ext}`;
+  return `${Date.now()}-${base}`;
+}
+
+/**
+ * Upload de imagem para Supabase Storage (bucket product-images).
+ * Apenas administradores logados (verifyAuth). Retorna publicUrl.
+ */
+admin.post("/upload", async (c) => {
+  const store = c.get("store");
+  try {
+    const contentType = c.req.header("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      return c.json({ success: false, error: "Content-Type deve ser multipart/form-data" }, 400);
+    }
+    const formData = await c.req.formData();
+    const file = formData.get("file") ?? formData.get("image") ?? formData.get("file[]");
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, error: "Nenhum arquivo enviado (use o campo 'file' ou 'image')" }, 400);
+    }
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      return c.json({ success: false, error: "Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou GIF." }, 400);
+    }
+    const path = `${store.id}/${uniqueFileName(file.name)}`;
+    const supabase = getSupabase(c.env);
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_PRODUCT_IMAGES)
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      console.error("Upload product image error:", uploadError);
+      return c.json({ success: false, error: uploadError.message }, 500);
+    }
+    const { data: urlData } = supabase.storage.from(BUCKET_PRODUCT_IMAGES).getPublicUrl(path);
+    return c.json({ success: true, publicUrl: urlData.publicUrl }, 201);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro no upload";
+    console.error("Admin upload error:", err);
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
 /** Lista produtos da loja do admin (filtro por store_id — segurança multi-tenant). */
 admin.get("/products", async (c) => {
   try {
@@ -84,6 +138,9 @@ admin.post(
         category: body.category ?? null,
         stock: body.stock ?? 0,
         status: body.status ?? "active",
+        priceWholesale: body.priceWholesale ?? null,
+        minQuantityWholesale: body.minQuantityWholesale ?? null,
+        unit: body.unit_type ?? null,
       });
       await logAction(c, "CREATE_PRODUCT", "product", product.id);
       return c.json({ success: true, data: product }, 201);
@@ -106,7 +163,8 @@ admin.put(
     const productId = c.req.param("id");
     const body = c.req.valid("json");
     try {
-      await updateProduct(c.env, productId, store.id, {
+      const oldProduct = await getProductById(c.env, productId, store.id);
+      const updatePayload = {
         ...(body.price !== undefined && { price: body.price }),
         ...(body.priceWholesale !== undefined && { priceWholesale: body.priceWholesale }),
         ...(body.minQuantityWholesale !== undefined && { minQuantityWholesale: body.minQuantityWholesale }),
@@ -115,8 +173,33 @@ admin.put(
         ...(body.description !== undefined && { description: body.description }),
         ...(body.image_url !== undefined && { imageUrl: body.image_url || null }),
         ...(body.status !== undefined && { status: body.status }),
-      });
-      await logAction(c, "UPDATE_PRODUCT", "product", productId);
+      };
+      await updateProduct(c.env, productId, store.id, updatePayload);
+
+      const changes: Record<string, { from: unknown; to: unknown }> = {};
+      if (body.price !== undefined && oldProduct != null && Number(oldProduct.price) !== Number(body.price)) {
+        changes.price = { from: oldProduct.price, to: body.price };
+      }
+      if (body.priceWholesale !== undefined && oldProduct != null) {
+        const oldVal = oldProduct.priceWholesale ?? null;
+        const newVal = body.priceWholesale ?? null;
+        if (Number(oldVal) !== Number(newVal)) changes.price_wholesale = { from: oldVal, to: newVal };
+      }
+      if (body.stock !== undefined && oldProduct != null) {
+        const oldVal = oldProduct.stock ?? 0;
+        const newVal = body.stock;
+        if (Number(oldVal) !== Number(newVal)) changes.stock = { from: oldVal, to: newVal };
+      }
+      if (body.status !== undefined && oldProduct != null) {
+        const oldVal = oldProduct.status ?? "active";
+        const newVal = body.status ?? "active";
+        if (String(oldVal) !== String(newVal)) changes.active = { from: oldVal, to: newVal };
+      }
+
+      const details: Record<string, unknown> = {};
+      if (oldProduct?.name) details.product_name = oldProduct.name;
+      if (Object.keys(changes).length > 0) details.changes = changes;
+      await logAction(c, "UPDATE_PRODUCT", "product", productId, details);
       return c.json({ success: true, data: { id: productId } }, 200);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao atualizar produto";

@@ -4,8 +4,12 @@ export interface AuditLogReport {
   data_hora: string;
   usuario_email: string;
   acao_descricao: string;
+  /** Chave técnica da ação (ex: UPDATE_PRODUCT) para montar frases amigáveis. */
+  action_key?: string;
   tipo: string;
   nome_recurso: string;
+  /** ID do recurso (ex: UUID) para fallback quando details não tem nome. */
+  resource_id?: string;
   detalhes: unknown;
 }
 
