@@ -5,15 +5,36 @@
  */
 
 import { getSupabase } from "./supabase.js";
-import type { Product, Order, OrderItem, CartItemPayload, OrderDetail, Store, StoreSettings } from "./schema.js";
+import type {
+  Product,
+  Order,
+  OrderItem,
+  CartItemPayload,
+  OrderDetail,
+  Store,
+  StoreSettings,
+  Category,
+} from "./schema.js";
 import type { AuditLogReport } from "../../shared/types.js";
 
 // ---- Mapeadores: Supabase (snake_case) -> Schema (camelCase) ----
+
+function categoryNameFromJoinedRow(row: Record<string, unknown>): string | undefined {
+  const raw = row.categories;
+  if (raw == null || typeof raw !== "object") return undefined;
+  if (Array.isArray(raw)) {
+    const first = raw[0] as { name?: unknown } | undefined;
+    return typeof first?.name === "string" ? first.name : undefined;
+  }
+  const n = (raw as { name?: unknown }).name;
+  return typeof n === "string" ? n : undefined;
+}
 
 function rowToProduct(row: Record<string, unknown>): Product {
   const price = Number(row.price);
   const priceWholesale = row.price_wholesale != null ? Number(row.price_wholesale) : undefined;
   const minQty = row.min_quantity_wholesale != null ? Number(row.min_quantity_wholesale) : undefined;
+  const joinedName = categoryNameFromJoinedRow(row);
   return {
     id: row.id as string,
     storeId: row.store_id as string,
@@ -23,7 +44,8 @@ function rowToProduct(row: Record<string, unknown>): Product {
     priceWholesale: priceWholesale ?? undefined,
     minQuantityWholesale: minQty ?? undefined,
     imageUrl: (row.image_url as string | null) ?? undefined,
-    category: (row.category as string | null) ?? undefined,
+    categoryId: row.category_id != null ? String(row.category_id) : undefined,
+    category: joinedName ?? (row.category as string | null) ?? undefined,
     stock: row.stock != null ? Number(row.stock) : undefined,
     status: (row.status as string | null) ?? undefined,
     createdAt: row.created_at as string | undefined,
@@ -196,13 +218,39 @@ export async function updateStoreSettingsAndDisplayName(
   }
 }
 
+// ---- Categorias ----
+
+function rowToCategory(row: Record<string, unknown>): Category {
+  return {
+    id: row.id as string,
+    storeId: row.store_id as string,
+    name: row.name as string,
+    slug: (row.slug as string | null) ?? undefined,
+    createdAt: row.created_at as string | undefined,
+  };
+}
+
+export async function getCategoriesByStore(env: Env, storeId: string): Promise<Category[]> {
+  const supabase = getSupabase(env);
+  const { data: rows, error } = await supabase
+    .from("categories")
+    .select("id, store_id, name, slug, created_at")
+    .eq("store_id", storeId)
+    .order("name", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (rows ?? []).map((r) => rowToCategory(r as Record<string, unknown>));
+}
+
 // ---- Produtos ----
+
+const PRODUCT_SELECT_WITH_CATEGORY = "*, categories(name)";
 
 export async function getProductsByStore(env: Env, storeId: string): Promise<Product[]> {
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("products")
-    .select("*")
+    .select(PRODUCT_SELECT_WITH_CATEGORY)
     .eq("store_id", storeId)
     .order("name", { ascending: true });
 
@@ -219,7 +267,7 @@ export async function getProductById(
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
     .from("products")
-    .select("*")
+    .select(PRODUCT_SELECT_WITH_CATEGORY)
     .eq("id", productId)
     .eq("store_id", storeId)
     .maybeSingle();
@@ -253,12 +301,31 @@ export interface ProductCreatePayload {
   price: number;
   description?: string | null;
   imageUrl?: string | null;
-  category?: string | null;
+  /** UUID em `categories` da mesma loja */
+  categoryId?: string | null;
   stock?: number | null;
   status?: string | null;
   priceWholesale?: number | null;
   minQuantityWholesale?: number | null;
   unit?: string | null;
+}
+
+async function assertCategoryIdForStore(
+  env: Env,
+  storeId: string,
+  categoryId: string | null | undefined
+): Promise<string | null> {
+  if (categoryId == null || String(categoryId).trim() === "") return null;
+  const supabase = getSupabase(env);
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("id", categoryId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Categoria inválida ou não pertence a esta loja.");
+  return String(data.id);
 }
 
 /**
@@ -279,17 +346,18 @@ export async function createProduct(
       .replace(/\p{Diacritic}/gu, "")
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-]/g, "") || "produto";
+  const category_id = await assertCategoryIdForStore(env, storeId, data.categoryId);
   const payload: Record<string, unknown> = {
     store_id: storeId,
     name: data.name,
     price: Number(data.price),
     description: data.description ?? null,
     image_url: data.imageUrl ?? null,
-    category: data.category ?? null,
     stock,
     status: data.status ?? "active",
     slug: slug + "-" + Date.now(),
   };
+  if (category_id != null) payload.category_id = category_id;
   if (data.priceWholesale != null) payload.price_wholesale = Number(data.priceWholesale);
   if (data.minQuantityWholesale != null)
     payload.min_quantity_wholesale = Math.floor(Number(data.minQuantityWholesale));
@@ -299,7 +367,7 @@ export async function createProduct(
   const { data: row, error } = await supabase
     .from("products")
     .insert(payload)
-    .select()
+    .select(PRODUCT_SELECT_WITH_CATEGORY)
     .single();
 
   if (error) throw new Error(error.message);

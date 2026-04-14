@@ -5,7 +5,29 @@ export function Newsletter() {
 
     const handleNewsletterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        alert('Obrigado por se inscrever!');
+        
+        if (!email.trim()) return;
+
+        // [MOCK LOCAL]: Salvando no localStorage para simular o banco de dados
+        // No futuro, isso será uma chamada para a API: await apiFetch('/api/newsletter/subscribe', 'POST', { email })
+        try {
+            const existingSubscribers = JSON.parse(localStorage.getItem('@natfoods:newsletter') || '[]');
+            
+            // Verifica se já está inscrito localmente
+            if (!existingSubscribers.includes(email)) {
+                existingSubscribers.push(email);
+                localStorage.setItem('@natfoods:newsletter', JSON.stringify(existingSubscribers));
+                console.log('✅ [LocalDB] E-mail salvo com sucesso:', email);
+                console.log('📦 [LocalDB] Total de inscritos:', existingSubscribers.length);
+            } else {
+                console.log('⚠️ [LocalDB] E-mail já estava inscrito:', email);
+            }
+            
+            alert('Obrigado por se inscrever! (Modo Teste: Salvo Localmente)');
+        } catch (error) {
+            console.error('Erro ao salvar e-mail localmente', error);
+        }
+
         setEmail('');
     };
 

@@ -1,14 +1,65 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { X, Loader2, Save, ImagePlus } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
-
-const CATEGORIES = ["Salgados", "Doces", "Combos"];
+import type { Category } from "@/react-app/types";
 const UNITS = [
   { value: "Un", label: "Un" },
   { value: "Kg", label: "Kg" },
   { value: "Pacote", label: "Pacote" },
   { value: "Fardo", label: "Fardo" },
 ];
+
+/** Alinha texto do bloco atacado com a unidade de medida do produto (mesma base do estoque/preço). */
+function wholesaleCopy(unitValue: string): {
+  pricePer: string;
+  minQtyLabel: string;
+  minQtyHint: string;
+} {
+  const v = unitValue.trim();
+  if (!v) {
+    return {
+      pricePer: "unidade de venda",
+      minQtyLabel: "Quantidade mínima no pedido",
+      minQtyHint:
+        "Escolha primeiro a «Unidade de medida» acima (Un, Kg, Pacote ou Fardo). O número aqui será nessa mesma base — ex.: com «Un», 20 = 20 peças; com «Pacote», 20 = 20 pacotes.",
+    };
+  }
+  if (v === "Un") {
+    return {
+      pricePer: "unidade (cada peça/item)",
+      minQtyLabel: "Mínimo de unidades no pedido",
+      minQtyHint:
+        "Conta em unidades: cada 1 = uma peça vendida. Ex.: 20 = o preço atacado vale quando o cliente leva 20 ou mais unidades.",
+    };
+  }
+  if (v === "Kg") {
+    return {
+      pricePer: "quilograma",
+      minQtyLabel: "Mínimo de quilogramas no pedido",
+      minQtyHint:
+        "Conta em kg totais do produto no pedido. Ex.: 20 = preço atacado a partir de 20 kg.",
+    };
+  }
+  if (v === "Pacote") {
+    return {
+      pricePer: "pacote",
+      minQtyLabel: "Mínimo de pacotes no pedido",
+      minQtyHint: "Conta em pacotes. Ex.: 20 = preço atacado a partir de 20 pacotes.",
+    };
+  }
+  if (v === "Fardo") {
+    return {
+      pricePer: "fardo",
+      minQtyLabel: "Mínimo de fardos no pedido",
+      minQtyHint: "Conta em fardos. Ex.: 20 = preço atacado a partir de 20 fardos.",
+    };
+  }
+  return {
+    pricePer: "unidade de venda",
+    minQtyLabel: "Quantidade mínima no pedido",
+    minQtyHint: "Use o mesmo critério da unidade de medida selecionada para o produto.",
+  };
+}
 
 /** Extrai apenas dígitos da string (para máscara). */
 function digitsOnly(s: string): string {
@@ -27,12 +78,14 @@ function parseBRLToFloat(s: string): number {
 function useCurrencyMask(initial = "R$ 0,00") {
   const [display, setDisplay] = useState(initial);
   const setFromDigits = useCallback((digits: string) => {
-    if (digits === "") {
+    const stripped = digits.replace(/^0+/, "");
+    if (stripped === "") {
       setDisplay("R$ 0,00");
       return;
     }
-    const cents = digits.slice(-2).padStart(2, "0");
-    const intPart = digits.slice(0, -2) || "0";
+    const padded = stripped.padStart(3, "0");
+    const cents = padded.slice(-2);
+    const intPart = padded.slice(0, -2);
     const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     setDisplay(`R$ ${formatted},${cents}`);
   }, []);
@@ -68,7 +121,9 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
   const [name, setName] = useState("");
   const priceMask = useCurrencyMask();
   const [stock, setStock] = useState("0");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -87,7 +142,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
     name.trim() !== "" ||
     priceMask.parse() > 0 ||
     stock !== "0" ||
-    category.trim() !== "" ||
+    categoryId.trim() !== "" ||
     imageUrl.trim() !== "" ||
     imageFile !== null ||
     wholesaleEnabled ||
@@ -107,13 +162,35 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
   const inputBase =
     "w-full rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 bg-white transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-200 focus:outline-none";
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setCategoriesLoading(true);
+    adminApiFetch<Category[]>("/api/admin/categories")
+      .then((list) => {
+        if (!cancelled) setCategoryOptions(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        console.error("[AddProductModal.loadCategories]", err);
+        if (!cancelled) setCategoryOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCategoriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  const wholesaleHints = wholesaleCopy(unitType);
+
   if (!isOpen) return null;
 
   const resetForm = () => {
     setName("");
     priceMask.setValue(0);
     setStock("0");
-    setCategory("");
+    setCategoryId("");
     setImageUrl("");
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -173,7 +250,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
         title: nameTrim,
         price: priceNum,
         stock: stockInt,
-        category: category.trim() || undefined,
+        ...(categoryId.trim() !== "" ? { category_id: categoryId.trim() } : {}),
         image_url: imageUrlFinal || "",
         status,
         unit_type: unitType.trim() || undefined,
@@ -295,17 +372,27 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoria</label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               className={inputBase}
+              disabled={categoriesLoading}
             >
-              <option value="">Selecione</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              <option value="">
+                {categoriesLoading ? "Carregando…" : "Selecione (opcional)"}
+              </option>
+              {categoryOptions.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
                 </option>
               ))}
             </select>
+            {!categoriesLoading && categoryOptions.length === 0 && (
+              <p className="mt-1.5 text-xs text-amber-700">
+                Nenhuma categoria cadastrada para esta loja. Crie registros na tabela{" "}
+                <code className="rounded bg-amber-100 px-1">categories</code> no Supabase (nome, slug,
+                store_id) para aparecerem aqui.
+              </p>
+            )}
           </div>
 
           <div>
@@ -354,32 +441,45 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
               <span className="text-sm font-medium text-slate-700">Ativar Atacado</span>
             </label>
             {wholesaleEnabled && (
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Preço Atacado
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={wholesaleMask.display}
-                    onChange={wholesaleMask.handleChange}
-                    className={inputBase}
-                  />
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-2 gap-4 items-end">
+                  <div className="flex flex-col">
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Preço atacado
+                      <span className="mt-0.5 block font-normal text-xs leading-snug text-slate-500">
+                        Por {wholesaleHints.pricePer} (mesma base do preço normal).
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={wholesaleMask.display}
+                      onChange={wholesaleMask.handleChange}
+                      className={inputBase}
+                      aria-describedby="wholesale-qty-hint"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      {wholesaleHints.minQtyLabel}
+                      <span className="mt-0.5 block font-normal text-xs leading-snug text-slate-500">
+                        Mesma unidade do produto.
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={minWholesaleQty}
+                      onChange={(e) => setMinWholesaleQty(e.target.value)}
+                      className={inputBase}
+                      placeholder="0"
+                      aria-describedby="wholesale-qty-hint"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Qtd Mínima Atacado
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={minWholesaleQty}
-                    onChange={(e) => setMinWholesaleQty(e.target.value)}
-                    className={inputBase}
-                    placeholder="0"
-                  />
-                </div>
+                <p id="wholesale-qty-hint" className="text-xs text-slate-600 leading-relaxed">
+                  {wholesaleHints.minQtyHint}
+                </p>
               </div>
             )}
           </div>

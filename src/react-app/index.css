@@ -56,6 +56,31 @@ html {
   background: linear-gradient(180deg, #2D5F4A, #1B4332);
 }
 
+/* Rolagem discreta em modais (evita o thumb grosso/verde do estilo global em painéis estreitos) */
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(27, 67, 50, 0.32) rgba(27, 67, 50, 0.06);
+}
+
+.scrollbar-slim::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-track {
+  margin: 10px 0;
+  background: rgba(27, 67, 50, 0.06);
+  border-radius: 999px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background: rgba(27, 67, 50, 0.28);
+  border-radius: 999px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb:hover {
+  background: rgba(27, 67, 50, 0.45);
+}
+
 /* Glassmorphism utility */
 .glass {
   background: rgba(255, 255, 255, 0.1);

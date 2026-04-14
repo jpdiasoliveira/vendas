@@ -32,6 +32,9 @@ export interface Product {
   /** Quantidade mínima para ativar o preço de atacado */
   minQuantityWholesale?: number | null;
   imageUrl?: string | null;
+  /** UUID da linha em `categories` */
+  categoryId?: string | null;
+  /** Nome da categoria (quando a listagem faz join com `categories`) */
   category?: string | null;
   stock?: number | null;
   /** Visibilidade no catálogo: 'active' | 'inactive' (coluna status no banco) */

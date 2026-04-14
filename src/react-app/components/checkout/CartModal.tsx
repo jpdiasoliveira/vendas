@@ -80,11 +80,11 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300"
+        className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
 
-      <div className="fixed right-0 top-0 h-full w-full md:w-[480px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out">
+      <div className="fixed right-0 top-0 z-[100] h-full w-full transform bg-white shadow-2xl transition-transform duration-300 ease-out md:w-[480px]">
         <div className="flex flex-col h-full">
           <div className="bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white p-6 flex items-center justify-between">
             <div className="flex items-center space-x-3">

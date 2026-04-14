@@ -109,7 +109,9 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
-          <AdminNav />
+          <div className="w-full min-w-0 sm:w-auto">
+            <AdminNav />
+          </div>
         </div>
 
         {error && (

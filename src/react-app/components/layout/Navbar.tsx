@@ -36,7 +36,7 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
 
   return (
     <nav
-      className={`fixed w-full top-0 z-50 transition-all duration-500 ${
+      className={`fixed top-0 z-40 w-full transition-all duration-500 ${
         scrolled ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5" : "bg-white/40 backdrop-blur-md"
       }`}
     >

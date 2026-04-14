@@ -65,13 +65,6 @@ export default function CheckoutModal({ isOpen, onClose, orderId, total }: Check
             color: 'from-teal-500 to-cyan-500',
         },
         {
-            id: 'boleto' as const,
-            name: 'Boleto',
-            description: 'Pagamento em até 3 dias úteis',
-            icon: FileText,
-            color: 'from-orange-500 to-yellow-500',
-        },
-        {
             id: 'credit_card' as const,
             name: 'Cartão de Crédito',
             description: 'Parcelamento em até 12x',
@@ -82,8 +75,8 @@ export default function CheckoutModal({ isOpen, onClose, orderId, total }: Check
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-md" onClick={onClose}></div>
                 <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-white/50 max-h-[90vh] overflow-y-auto">
                     <button
                         onClick={onClose}

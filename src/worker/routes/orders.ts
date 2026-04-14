@@ -11,7 +11,7 @@ import {
 } from "../core/database.js";
 import type { CartItemPayload } from "../core/schema.js";
 import { Variables } from "../types.js";
-import { createPaymentPIX } from "../services/mercadopago.js";
+import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -109,11 +109,16 @@ orders.post("/:id/payment", async (c) => {
   const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
   const payerEmail = user.google_user_data?.email ?? user.email ?? "comprador@email.com";
 
-  if (body.payment_method === "pix" && token) {
+  if (!token) {
+    return c.json({ success: false, error: "Servidor não configurado (MP Token)" }, 500);
+  }
+
+  const baseUrl = (c.env as { NOTIFICATION_BASE_URL?: string }).NOTIFICATION_BASE_URL;
+  const notificationUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/webhooks/mercadopago` : undefined;
+
+  if (body.payment_method === "pix") {
     try {
       const idempotencyKey = crypto.randomUUID();
-      const baseUrl = (c.env as { NOTIFICATION_BASE_URL?: string }).NOTIFICATION_BASE_URL;
-      const notificationUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/webhooks/mercadopago` : undefined;
 
       const pix = await createPaymentPIX(token, {
         orderId,
@@ -146,31 +151,54 @@ orders.post("/:id/payment", async (c) => {
     }
   }
 
-  try {
-    await updateOrderPayment(c.env, orderId, store.id, body.payment_method);
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Incapaz de registrar o método de pagamento";
-    return c.json({ success: false, error: message }, 500);
+  if (body.payment_method === "credit_card") {
+    try {
+      // Pega os itens do pedido para mandar pro Checkout Pro
+      const items = await getOrderItemsByOrderAndStore(c.env, orderId, store.id);
+      
+      const prefItems = items.map((i) => ({
+        title: i.productName,
+        quantity: i.quantity,
+        unit_price: Number(i.price),
+      }));
+
+      // Caso não consiga pegar os itens, envia um item genérico com o total
+      if (prefItems.length === 0) {
+        prefItems.push({
+          title: `Pedido #${orderId}`,
+          quantity: 1,
+          unit_price: order.total,
+        });
+      }
+
+      const pref = await createPreference(token, {
+        orderId,
+        total: order.total,
+        payerEmail,
+        notificationUrl,
+        items: prefItems,
+      });
+
+      await updateOrderPayment(c.env, orderId, store.id, "credit_card", {
+        paymentStatus: "pending",
+      });
+
+      return c.json({
+        success: true,
+        data: {
+          orderId,
+          payment_method: "credit_card",
+          init_point: pref.init_point,
+        }
+      }, 200);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Falha ao gerar Cartão no Mercado Pago";
+      console.error("Mercado Pago Cartão error:", err);
+      return c.json({ success: false, error: message }, 500);
+    }
   }
 
-  let ticketUrl: string | null = null;
-  let initPoint: string | null = null;
-  if (body.payment_method === "boleto") {
-    ticketUrl = "https://www.mercadopago.com.br/sandbox/payments/ticket";
-  } else if (body.payment_method === "credit_card") {
-    initPoint = "https://www.mercadopago.com.br/checkout/v1/redirect";
-  }
-
-  return c.json({
-    success: true,
-    data: {
-      payment_method: body.payment_method,
-      status: "pending",
-      ticket_url: ticketUrl,
-      init_point: initPoint,
-    },
-  }, 200);
+  return c.json({ success: false, error: "Método de pagamento inválido ou não suportado" }, 400);
 });
 
 /**

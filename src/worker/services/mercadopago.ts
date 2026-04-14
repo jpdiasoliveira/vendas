@@ -76,6 +76,69 @@ export async function createPaymentPIX(
   };
 }
 
+export interface CreatePreferenceParams {
+  orderId: string;
+  total: number;
+  payerEmail: string;
+  notificationUrl?: string;
+  items: Array<{
+    title: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+}
+
+export interface CreatePreferenceResult {
+  init_point: string;
+  id: string;
+}
+
+/**
+ * Cria uma preferência de pagamento (Checkout Pro) no Mercado Pago.
+ * Retorna a URL de redirecionamento (init_point) e o ID da preferência.
+ */
+export async function createPreference(
+  accessToken: string,
+  params: CreatePreferenceParams
+): Promise<CreatePreferenceResult> {
+  const url = `${MP_API_BASE}/checkout/preferences`;
+  
+  const body = {
+    items: params.items,
+    payer: {
+      email: params.payerEmail,
+    },
+    external_reference: params.orderId,
+    ...(params.notificationUrl && { notification_url: params.notificationUrl }),
+    payment_methods: {
+      excluded_payment_types: [
+        { id: "ticket" }, // Exclui boleto conforme solicitado
+      ]
+    }
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = (await res.json()) as any;
+
+  if (!res.ok) {
+    const msg = data.message ?? data.error ?? `MP API error: ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return {
+    init_point: data.init_point,
+    id: data.id,
+  };
+}
+
 export interface GetPaymentResult {
   id: number;
   status: string;

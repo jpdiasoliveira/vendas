@@ -8,6 +8,7 @@ import {
   normalizeOrderStatus,
   getProductsByStore,
   getProductById,
+  getCategoriesByStore,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -158,6 +159,19 @@ admin.post("/upload", async (c) => {
   }
 });
 
+/** Lista categorias da loja (para selects no admin). */
+admin.get("/categories", async (c) => {
+  try {
+    const store = c.get("store");
+    const data = await getCategoriesByStore(c.env, store.id);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao buscar categorias";
+    console.error("[GET /api/admin/categories]", err);
+    return c.json({ success: false, error: message }, 500);
+  }
+});
+
 /** Lista produtos da loja do admin (filtro por store_id — segurança multi-tenant). */
 admin.get("/products", async (c) => {
   try {
@@ -187,7 +201,7 @@ admin.post(
         price: body.price,
         description: body.description ?? null,
         imageUrl: body.image_url || null,
-        category: body.category ?? null,
+        categoryId: body.category_id ?? null,
         stock: body.stock ?? 0,
         status: body.status ?? "active",
         priceWholesale: body.priceWholesale ?? null,

@@ -240,16 +240,18 @@ export default function AuditLogsPage() {
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <AdminNav />
-            <button
-              onClick={fetchLogs}
-              disabled={loading}
-              className="inline-flex items-center gap-2 bg-white/80 hover:bg-white border border-[#1B4332]/20 text-[#1B4332] px-4 py-2.5 rounded-xl font-medium transition-all shadow-sm disabled:opacity-60"
-            >
-              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
-              Atualizar
-            </button>
+          <div className="w-full min-w-0 sm:w-auto">
+            <AdminNav>
+              <button
+                type="button"
+                onClick={() => void fetchLogs()}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/20 bg-white/80 px-4 py-2.5 font-medium text-[#1B4332] shadow-sm transition-all hover:bg-white disabled:opacity-60"
+              >
+                <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+                Atualizar
+              </button>
+            </AdminNav>
           </div>
         </div>
 

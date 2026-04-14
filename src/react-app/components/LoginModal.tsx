@@ -16,8 +16,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm" onClick={onClose}></div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-md" onClick={onClose}></div>
       <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50">
         <button
           onClick={onClose}
@@ -53,35 +53,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               />
             </svg>
             <span>Continuar com Google</span>
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#1B4332]/10"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-[#6D4C41]">Outras opções em breve</span>
-            </div>
-          </div>
-
-          <button
-            disabled
-            className="w-full flex items-center justify-center space-x-3 bg-[#6D4C41]/10 text-[#6D4C41]/50 px-6 py-4 rounded-full font-medium cursor-not-allowed font-inter"
-          >
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M23.5 12c0-6.351-5.149-11.5-11.5-11.5S.5 5.649.5 12c0 5.737 4.208 10.491 9.719 11.358V15.27H7.094V12h3.125V9.356c0-3.084 1.836-4.786 4.644-4.786 1.345 0 2.751.24 2.751.24v3.027h-1.549c-1.526 0-2.002.947-2.002 1.918V12h3.406l-.545 3.27h-2.861v8.089C19.292 22.491 23.5 17.737 23.5 12" />
-            </svg>
-            <span>Microsoft (em breve)</span>
-          </button>
-
-          <button
-            disabled
-            className="w-full flex items-center justify-center space-x-3 bg-[#6D4C41]/10 text-[#6D4C41]/50 px-6 py-4 rounded-full font-medium cursor-not-allowed font-inter"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span>Email/Senha (em breve)</span>
           </button>
         </div>
       </div>

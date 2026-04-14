@@ -24,7 +24,10 @@ export const productSchema = z.object({
 export const productCreateSchema = productSchema
   .omit({ id: true })
   .extend({
-    category: z.string().optional().nullable(),
+    category_id: z.preprocess(
+      (val) => (val === "" || val === null || val === undefined ? undefined : val),
+      z.string().uuid("ID de categoria inválido").optional()
+    ),
     stock: z.number().int().nonnegative().optional().nullable(),
     status: z.enum(["active", "inactive"]).optional(),
     image_url: z.string().url(msg.url).optional().or(z.literal("")).optional(),
