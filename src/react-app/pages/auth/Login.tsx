@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 
 const LAST_AUTH_ERROR_KEY = "lastAuthError";
+
+function safeInternalPath(next: string | null): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  if (next.includes("://")) return null;
+  return next;
+}
 
 /**
  * Interface de login do SaaS Auth Engine.
@@ -11,6 +17,7 @@ const LAST_AUTH_ERROR_KEY = "lastAuthError";
  */
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +47,8 @@ export default function LoginPage() {
       await signIn(email.trim(), password);
       // Pequena espera para o Supabase emitir onAuthStateChange e o AuthContext atualizar antes de navegar
       await new Promise((r) => setTimeout(r, 300));
-      navigate("/admin/pedidos", { replace: true });
+      const next = safeInternalPath(searchParams.get("next")?.trim() ?? null);
+      navigate(next ?? "/admin/pedidos", { replace: true });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Credenciais inválidas. Tente novamente.";
@@ -59,7 +67,7 @@ export default function LoginPage() {
               Bem-vindo ao Painel de Gestão
             </h1>
             <p className="text-[#6D4C41] mt-2 text-sm">
-              Entre com sua conta para acessar pedidos e produtos
+              Mesma conta de e-mail e senha dos pedidos na loja ou do painel administrativo.
             </p>
           </div>
 

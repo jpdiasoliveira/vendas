@@ -7,6 +7,8 @@ import type { Store } from "./core/schema.js";
 export type AuthUser = {
   id: string;
   role: string;
+  /** Preenchido no fluxo de cliente (JWT Supabase). */
+  email?: string;
 };
 
 /**

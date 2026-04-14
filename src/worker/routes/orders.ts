@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { authMiddleware } from "@getmocha/users-service/backend";
+import { verifyCustomerAuth } from "../middlewares/verifyCustomerAuth.js";
 import {
   createOrder,
   getOrderByIdAndStore,
@@ -15,7 +15,7 @@ import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-orders.use("*", authMiddleware);
+orders.use("*", verifyCustomerAuth);
 
 /**
  * Cria pedido com itens do carrinho (store_id + user_id).
@@ -92,7 +92,7 @@ orders.post("/", async (c) => {
  * Registra método de pagamento. Para PIX, chama a API do Mercado Pago e retorna QR Code e Copia e Cola.
  */
 orders.post("/:id/payment", async (c) => {
-  const user = c.get("user") as { id: string; email?: string; google_user_data?: { email?: string } };
+  const user = c.get("user") as { id: string; email?: string };
   const store = c.get("store");
   const orderId = c.req.param("id");
   const body = (await c.req.json()) as { payment_method?: string };
@@ -107,7 +107,7 @@ orders.post("/:id/payment", async (c) => {
   }
 
   const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
-  const payerEmail = user.google_user_data?.email ?? user.email ?? "comprador@email.com";
+  const payerEmail = user.email?.trim() || "comprador@email.com";
 
   if (!token) {
     return c.json({ success: false, error: "Servidor não configurado (MP Token)" }, 500);

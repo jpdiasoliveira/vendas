@@ -4,14 +4,11 @@
  */
 
 import { createMiddleware } from "hono/factory";
-import { jwtVerify, createRemoteJWKSet } from "jose";
 import { getStoreMember } from "../core/database.js";
-import type { Variables } from "../types.js";
+import { getClaimsFromSupabaseAccessToken } from "./supabaseJwt.js";
+import type { AuthUser, Variables } from "../types.js";
 
-export type AuthUser = {
-  id: string;
-  role: string;
-};
+export type { AuthUser };
 
 export const verifyAuth = createMiddleware<{
   Bindings: Env;
@@ -26,54 +23,11 @@ export const verifyAuth = createMiddleware<{
     return c.json({ success: false, error: "Token de acesso ausente" }, 401);
   }
 
-  let userId: string;
-  try {
-    let payload: { sub?: string } | undefined;
-
-    // 1) Tentar verificação via JWKS (Supabase com chaves assimétricas)
-    const supabaseUrl = (c.env.SUPABASE_URL ?? "").replace(/\/$/, "");
-    if (supabaseUrl) {
-      try {
-        const jwksUrl = `${supabaseUrl}/auth/v1/.well-known/jwks.json`;
-        const JWKS = createRemoteJWKSet(new URL(jwksUrl));
-        const result = await jwtVerify(token, JWKS);
-        payload = result.payload;
-      } catch {
-        payload = undefined;
-      }
-    }
-
-    // 2) Se JWKS não retornou payload, usar JWT Secret (legado / HS256)
-    if (!payload?.sub) {
-      const rawSecret = (c.env.SUPABASE_JWT_SECRET ?? "").trim();
-      const secretAsUtf8 = new TextEncoder().encode(rawSecret);
-      let secretBytes: Uint8Array = secretAsUtf8;
-      try {
-        const base64 = rawSecret.replace(/-/g, "+").replace(/_/g, "/");
-        const padded = base64 + "==".slice(0, (4 - (base64.length % 4)) % 4);
-        const binary = atob(padded);
-        secretBytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) secretBytes[i] = binary.charCodeAt(i);
-      } catch {
-        /* usar secretAsUtf8 */
-      }
-      try {
-        const result = await jwtVerify(token, secretAsUtf8);
-        payload = result.payload;
-      } catch {
-        const result = await jwtVerify(token, secretBytes);
-        payload = result.payload;
-      }
-    }
-
-    const sub = payload?.sub;
-    if (!sub || typeof sub !== "string") {
-      return c.json({ success: false, error: "Token inválido" }, 401);
-    }
-    userId = sub;
-  } catch {
+  const claims = await getClaimsFromSupabaseAccessToken(token, c.env);
+  if (!claims) {
     return c.json({ success: false, error: "Token inválido ou expirado" }, 401);
   }
+  const userId = claims.sub;
 
   const store = c.get("store");
   let member;
@@ -91,7 +45,7 @@ export const verifyAuth = createMiddleware<{
     );
   }
 
-  const user: AuthUser = { id: userId, role: member.role };
+  const user: AuthUser = { id: userId, role: member.role, email: claims.email };
   c.set("user", user);
   await next();
 });

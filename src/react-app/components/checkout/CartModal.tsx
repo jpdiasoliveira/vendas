@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag, Tag } from "lucide-react";
-import { useAuth } from "@getmocha/users-service/react";
+import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import LoginModal from "@/react-app/components/LoginModal";

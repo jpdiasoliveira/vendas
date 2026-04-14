@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@getmocha/users-service/react';
+import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useNavigate } from 'react-router';
 import { Package, CheckCircle, Home, Loader2, CreditCard } from 'lucide-react';
 import CheckoutModal from '@/react-app/components/checkout/CheckoutModal';
@@ -32,20 +32,20 @@ const getStatusText = (status: string) => {
 };
 
 export default function OrdersPage() {
-  const { user, isPending } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderTotal, setSelectedOrderTotal] = useState<number>(0);
 
   // Utilizando o hook padronizado
-  const { orders, loading, error, refreshOrders } = useOrders(!isPending && !!user);
+  const { orders, loading: ordersLoading, error, refreshOrders } = useOrders(!authLoading && !!user);
 
   useEffect(() => {
-    if (!isPending && !user) {
-      navigate('/');
+    if (!authLoading && !user) {
+      navigate("/");
     }
-  }, [user, isPending, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handlePayOrder = (orderId: string, total: number) => {
     setSelectedOrderId(orderId);
@@ -61,7 +61,11 @@ export default function OrdersPage() {
     refreshOrders();
   };
 
-  if (loading || isPending) {
+  if (!authLoading && !user) {
+    return null;
+  }
+
+  if (authLoading || (user && ordersLoading)) {
     return (
       <div className="min-h-screen bg-[#FAF8F3] pt-24 pb-12 px-4 flex items-center justify-center">
         <div className="text-center">

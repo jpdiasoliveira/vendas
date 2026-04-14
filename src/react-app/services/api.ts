@@ -49,6 +49,13 @@ export async function apiFetch<T = unknown>(
   headers.set("Content-Type", "application/json");
   headers.set("x-store-slug", STORE_SLUG ?? "");
 
+  /** Evita ciclo com auth.service (login) e não envia Bearer no POST público de login. */
+  if (!/\/api\/login(\?|$)/.test(endpoint)) {
+    const { getAccessToken } = await import("@/react-app/services/auth.service");
+    const token = await getAccessToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const response = await fetch(url, { ...options, headers });
   const body = await parseJsonOrThrow(response);
 

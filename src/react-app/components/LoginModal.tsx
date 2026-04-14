@@ -1,15 +1,22 @@
-import { useAuth } from '@getmocha/users-service/react';
-import { X } from 'lucide-react';
+import { useAuth } from "@getmocha/users-service/react";
+import { useNavigate } from "react-router";
+import { Mail, X } from "lucide-react";
 
-interface LoginModalProps {
+type LoginModalProps = {
   isOpen: boolean;
   onClose: () => void;
-}
+};
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
+  const navigate = useNavigate();
   const { redirectToLogin } = useAuth();
 
   if (!isOpen) return null;
+
+  const goEmailLogin = () => {
+    onClose();
+    navigate("/login?next=" + encodeURIComponent("/"));
+  };
 
   const handleGoogleLogin = async () => {
     await redirectToLogin();
@@ -17,22 +24,35 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-md" onClick={onClose}></div>
-      <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50">
+      <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative max-w-md w-full rounded-3xl border border-white/50 bg-white/95 p-8 shadow-2xl backdrop-blur-xl">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#6D4C41] hover:text-[#1B4332] transition-colors"
+          className="absolute right-4 top-4 text-[#6D4C41] transition-colors hover:text-[#1B4332]"
         >
           <X className="h-6 w-6" />
         </button>
 
-        <h2 className="text-3xl font-bold text-[#1B4332] font-playfair mb-2">Bem-vindo!</h2>
-        <p className="text-[#6D4C41] mb-8 font-inter">Faça login para continuar com sua compra</p>
+        <h2 className="mb-2 font-playfair text-3xl font-bold text-[#1B4332]">Bem-vindo!</h2>
+        <p className="mb-8 font-inter text-[#6D4C41]">Entre para finalizar a compra com seus pedidos salvos na conta.</p>
 
         <div className="space-y-4">
           <button
+            type="button"
+            onClick={goEmailLogin}
+            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#1B4332]/20 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-4 font-inter font-medium text-white transition-all hover:shadow-lg"
+          >
+            <Mail className="h-5 w-5 shrink-0" />
+            <span>Entrar com e-mail e senha</span>
+          </button>
+
+          <p className="text-center font-inter text-xs text-[#6D4C41]/80">ou</p>
+
+          <button
+            type="button"
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 bg-white border-2 border-[#1B4332]/20 text-[#1B4332] px-6 py-4 rounded-full font-medium hover:border-[#1B4332]/40 hover:shadow-lg transition-all duration-300 font-inter"
+            className="flex w-full items-center justify-center space-x-3 rounded-full border-2 border-[#1B4332]/20 bg-white px-6 py-4 font-inter font-medium text-[#1B4332] transition-all hover:border-[#1B4332]/40 hover:shadow-lg"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -54,8 +74,14 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </svg>
             <span>Continuar com Google</span>
           </button>
+
+          <p className="pt-1 text-center font-inter text-xs leading-relaxed text-[#6D4C41]/70">
+            O Google usa outro fluxo de sessão; para unificar com o painel e os pedidos, prefira e-mail e senha.
+          </p>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginModal;

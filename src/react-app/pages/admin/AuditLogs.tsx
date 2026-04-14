@@ -201,29 +201,31 @@ export default function AuditLogsPage() {
 
   if (forbidden) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <History className="h-16 w-16 text-[#1B4332]/50 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-[#1B4332] font-playfair mb-2">
-            Acesso restrito
-          </h1>
-          <p className="text-[#6D4C41] font-inter">
-            Apenas administradores podem visualizar o histórico de atividades.
-          </p>
-          <button
-            onClick={() => navigate("/admin/pedidos")}
-            className="mt-6 px-4 py-2 bg-[#1B4332] text-white rounded-xl font-medium hover:bg-[#1B4332]/90 transition-colors"
-          >
-            Voltar ao painel
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="mx-auto max-w-md text-center">
+            <History className="h-16 w-16 text-[#1B4332]/50 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-[#1B4332] font-playfair mb-2">
+              Acesso restrito
+            </h1>
+            <p className="text-[#6D4C41] font-inter">
+              Apenas administradores podem visualizar o histórico de atividades.
+            </p>
+            <button
+              onClick={() => navigate("/admin/pedidos")}
+              className="mt-6 px-4 py-2 bg-[#1B4332] text-white rounded-xl font-medium hover:bg-[#1B4332]/90 transition-colors"
+            >
+              Voltar ao painel
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -235,9 +237,14 @@ export default function AuditLogsPage() {
             </button>
             <div className="flex items-center gap-2">
               <History className="h-8 w-8 text-[#1B4332]" />
-              <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
-                Histórico de Atividades
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
+                  Histórico de Atividades
+                </h1>
+                <p className="text-sm text-[#6D4C41] font-inter">
+                  Alterações em produtos e pedidos
+                </p>
+              </div>
             </div>
           </div>
           <div className="w-full min-w-0 sm:w-auto">

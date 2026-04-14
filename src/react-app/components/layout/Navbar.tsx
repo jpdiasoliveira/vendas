@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Leaf, User, Package, LogOut, ShoppingCart } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
-import { useAuth } from "@getmocha/users-service/react";
+import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useNavigate } from "react-router";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 
@@ -19,7 +19,7 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { itemCount } = useCart();
   const { settings } = useStoreSettings();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const displayName = settings?.displayName?.trim() || "Natfoods";
   const logoUrl = settings?.logoUrl?.trim();
@@ -94,17 +94,9 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm text-[#1B4332] px-4 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium border border-[#1B4332]/10"
                   >
-                    {user.google_user_data?.picture ? (
-                      <img
-                        src={user.google_user_data.picture}
-                        alt="User Profile"
-                        className="h-6 w-6 rounded-full"
-                      />
-                    ) : (
-                      <User className="h-5 w-5" />
-                    )}
-                    <span className="hidden md:inline">
-                      {user.google_user_data?.given_name || "Conta"}
+                    <User className="h-5 w-5 shrink-0" />
+                    <span className="hidden max-w-[10rem] truncate md:inline">
+                      {user.email?.split("@")[0]?.trim() || "Minha conta"}
                     </span>
                   </button>
                   {showUserMenu && (
@@ -136,7 +128,8 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                   isOpen={showLogoutModal}
                   onClose={() => setShowLogoutModal(false)}
                   onConfirm={async () => {
-                    await logout();
+                    await signOut();
+                    setShowLogoutModal(false);
                   }}
                 />
               </>
