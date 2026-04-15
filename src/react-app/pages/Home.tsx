@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CartModal from "@/react-app/components/checkout/CartModal";
+import GuestOrderLookupModal from "@/react-app/components/checkout/GuestOrderLookupModal";
 import LoginModal from "@/react-app/components/LoginModal";
 import { Navbar } from "@/react-app/components/layout/Navbar";
 import { Footer } from "@/react-app/components/layout/Footer";
@@ -15,6 +16,7 @@ import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 export default function HomePage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [guestOrderLookupOpen, setGuestOrderLookupOpen] = useState(false);
   const { products, loading, error } = useProducts();
   const trendingProductIds = useTrendingProductIds();
 
@@ -30,6 +32,7 @@ export default function HomePage() {
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
         onOpenLogin={() => setShowLoginModal(true)}
+        onOpenGuestOrderLookup={() => setGuestOrderLookupOpen(true)}
         scrollToProducts={scrollToProducts}
         scrollToTop={scrollToTop}
       />
@@ -45,10 +48,11 @@ export default function HomePage() {
       <Lifestyle />
       <Benefits />
       <Newsletter />
-      <Footer />
+      <Footer onConsultOrder={() => setGuestOrderLookupOpen(true)} />
 
       <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      <GuestOrderLookupModal isOpen={guestOrderLookupOpen} onClose={() => setGuestOrderLookupOpen(false)} />
     </div>
   );
 }

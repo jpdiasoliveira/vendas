@@ -282,7 +282,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
         onClick={requestClose}
         aria-hidden
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <h2 className="text-xl font-bold text-slate-800">Novo Produto</h2>
           <button

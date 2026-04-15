@@ -55,15 +55,18 @@ export function OrderDetailsModal({
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [statusSuccessMessage, setStatusSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !orderId) {
       setOrder(null);
       setError(null);
+      setStatusSuccessMessage(null);
       return;
     }
     setLoading(true);
     setError(null);
+    setStatusSuccessMessage(null);
     adminApiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
       .then((data) => {
         const normalized: OrderDetail = {
@@ -83,12 +86,24 @@ export function OrderDetailsModal({
     if (!orderId || !selectedStatus) return;
     setUpdating(true);
     setError(null);
+    setStatusSuccessMessage(null);
     try {
       await adminApiFetch(`/api/admin/orders/${orderId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: selectedStatus }),
       });
-      setOrder((prev) => (prev ? { ...prev, paymentStatus: selectedStatus } : null));
+      const label =
+        STATUS_OPTIONS.find((o) => o.value === selectedStatus)?.label ?? selectedStatus;
+      setStatusSuccessMessage(`Status alterado para «${label}».`);
+      setOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: selectedStatus,
+              paymentStatus: selectedStatus,
+            }
+          : null
+      );
       onStatusUpdated();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao atualizar status");
@@ -233,10 +248,21 @@ export function OrderDetailsModal({
                 )}
 
                 <h3 className="mb-3 font-semibold text-[#1B4332]">Alterar status</h3>
+                {statusSuccessMessage ? (
+                  <div
+                    className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-900"
+                    role="status"
+                  >
+                    {statusSuccessMessage}
+                  </div>
+                ) : null}
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
                   <select
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedStatus(e.target.value);
+                      setStatusSuccessMessage(null);
+                    }}
                     className="min-h-[48px] w-full rounded-xl border border-[#1B4332]/20 bg-white px-4 py-3 text-base text-[#1B4332] sm:min-w-[180px] sm:w-auto"
                   >
                     {STATUS_OPTIONS.map((opt) => (

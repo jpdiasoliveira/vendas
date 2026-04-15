@@ -1,6 +1,7 @@
 import { Link } from "react-router";
-import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, Phone, MessageCircle } from "lucide-react";
+import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
+import type { StorePublicProfile } from "@/react-app/types";
 
 function whatsappHref(raw: string | null | undefined): string | null {
   const t = (raw ?? "").trim();
@@ -11,7 +12,94 @@ function whatsappHref(raw: string | null | undefined): string | null {
   return `https://wa.me/${digits}`;
 }
 
-export const Footer = () => {
+/** href seguro para Instagram/Facebook quando faltar https:// */
+function externalHttpUrl(raw: string | null | undefined): string | null {
+  const t = raw?.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t.replace(/^\/+/, "")}`;
+}
+
+type FooterProps = {
+  onConsultOrder?: () => void;
+};
+
+type ContactBlockProps = {
+  p?: StorePublicProfile;
+  wa: string | null;
+  ig: string | undefined;
+  fb: string | undefined;
+  igHref: string | null;
+  fbHref: string | null;
+  mail: string | undefined;
+  phone: string | undefined;
+};
+
+const ContactDetailsBlock = ({ p, wa, ig, fb, igHref, fbHref, mail, phone }: ContactBlockProps) => (
+  <div className="space-y-1.5 font-inter text-sm leading-relaxed text-white/85">
+    {p?.contactWhatsapp?.trim() ? (
+      <p>
+        <span className="text-white/55">WhatsApp: </span>
+        {wa ? (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#FFD166] hover:underline break-all"
+          >
+            {p.contactWhatsapp.trim()}
+          </a>
+        ) : (
+          <span className="break-all">{p.contactWhatsapp.trim()}</span>
+        )}
+      </p>
+    ) : null}
+    {mail ? (
+      <p>
+        <span className="text-white/55">E-mail: </span>
+        <a href={`mailto:${mail}`} className="text-[#FFD166] hover:underline break-all">
+          {mail}
+        </a>
+      </p>
+    ) : null}
+    {phone ? (
+      <p>
+        <span className="text-white/55">Telefone: </span>
+        <a href={`tel:${phone.replace(/\D/g, "")}`} className="text-[#FFD166] hover:underline">
+          {phone}
+        </a>
+      </p>
+    ) : null}
+    {igHref ? (
+      <p>
+        <span className="text-white/55">Instagram: </span>
+        <a
+          href={igHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#FFD166] hover:underline break-all"
+        >
+          {ig?.replace(/^https?:\/\//i, "")}
+        </a>
+      </p>
+    ) : null}
+    {fbHref ? (
+      <p>
+        <span className="text-white/55">Facebook: </span>
+        <a
+          href={fbHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#FFD166] hover:underline break-all"
+        >
+          {fb?.replace(/^https?:\/\//i, "")}
+        </a>
+      </p>
+    ) : null}
+  </div>
+);
+
+export const Footer = ({ onConsultOrder }: FooterProps) => {
   const { settings } = useStoreSettings();
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   const p = settings?.publicProfile;
@@ -21,8 +109,13 @@ export const Footer = () => {
   const wa = whatsappHref(p?.contactWhatsapp);
   const ig = p?.instagramUrl?.trim();
   const fb = p?.facebookUrl?.trim();
+  const igHref = ig ? externalHttpUrl(ig) : null;
+  const fbHref = fb ? externalHttpUrl(fb) : null;
   const mail = p?.contactEmail?.trim();
   const phone = p?.contactPhone?.trim();
+  const hasLegal =
+    !!(p?.deliveryPolicy?.trim() || p?.returnsPolicy?.trim() || p?.privacyPolicy?.trim());
+  const hasContactChannel = !!(wa || mail || phone || igHref || fbHref);
 
   return (
     <footer id="contato" className="relative overflow-hidden">
@@ -55,19 +148,10 @@ export const Footer = () => {
                 {p?.shippingInfo?.trim() ||
                   "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
               </p>
-              {(p?.businessHours?.trim() || phone) && (
-                <p className="text-white/70 text-sm font-inter mb-4 space-y-1">
-                  {p?.businessHours?.trim() ? (
-                    <span className="block whitespace-pre-line">{p.businessHours}</span>
-                  ) : null}
-                  {phone ? (
-                    <a href={`tel:${phone.replace(/\D/g, "")}`} className="inline-flex items-center gap-1.5 hover:text-[#FFD166]">
-                      <Phone className="h-4 w-4 shrink-0" />
-                      {phone}
-                    </a>
-                  ) : null}
-                </p>
-              )}
+              {p?.businessHours?.trim() ? (
+                <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p.businessHours}</p>
+              ) : null}
+              <p className="sr-only">Atalhos para WhatsApp, redes e e-mail</p>
               <div className="flex flex-wrap gap-3">
                 {wa ? (
                   <a
@@ -80,9 +164,9 @@ export const Footer = () => {
                     <MessageCircle className="h-5 w-5 text-[#FFD166]" />
                   </a>
                 ) : null}
-                {ig ? (
+                {igHref ? (
                   <a
-                    href={ig}
+                    href={igHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-white/10 backdrop-blur-sm p-3 rounded-full hover:bg-white/20 border border-white/20 hover:border-white/30 transition-all duration-300 hover:scale-110"
@@ -91,9 +175,9 @@ export const Footer = () => {
                     <Instagram className="h-5 w-5 group-hover:text-[#FFD166] transition-colors" />
                   </a>
                 ) : null}
-                {fb ? (
+                {fbHref ? (
                   <a
-                    href={fb}
+                    href={fbHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-white/10 backdrop-blur-sm p-3 rounded-full hover:bg-white/20 border border-white/20 hover:border-white/30 transition-all duration-300 hover:scale-110"
@@ -139,6 +223,18 @@ export const Footer = () => {
                     Nossa História
                   </a>
                 </li>
+                {onConsultOrder ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={onConsultOrder}
+                      className="inline-flex items-center gap-1.5 text-left text-white/80 transition-colors duration-300 hover:text-[#FFD166]"
+                    >
+                      <Search className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                      Consultar pedido
+                    </button>
+                  </li>
+                ) : null}
                 <li>
                   <Link
                     to="/admin/pedidos"
@@ -153,6 +249,28 @@ export const Footer = () => {
 
             <div>
               <h5 className="font-bold text-lg mb-4 font-playfair">Informações</h5>
+              {hasContactChannel ? (
+                <div className="mb-6">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#FFD166]/90 font-inter">
+                    Contato e redes
+                  </p>
+                  <ContactDetailsBlock
+                    p={p}
+                    wa={wa}
+                    ig={ig}
+                    fb={fb}
+                    igHref={igHref}
+                    fbHref={fbHref}
+                    mail={mail}
+                    phone={phone}
+                  />
+                </div>
+              ) : null}
+              {hasLegal ? (
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70 font-inter">
+                  Políticas
+                </p>
+              ) : null}
               <ul className="space-y-2 font-inter">
                 {p?.deliveryPolicy?.trim() ? (
                   <li>
@@ -175,8 +293,12 @@ export const Footer = () => {
                     </a>
                   </li>
                 ) : null}
-                {!p?.deliveryPolicy?.trim() && !p?.returnsPolicy?.trim() && !p?.privacyPolicy?.trim() ? (
-                  <li className="text-white/60 text-sm">Configure textos em Admin → Configurações.</li>
+                {!hasLegal ? (
+                  <li className="text-white/60 text-sm">
+                    {hasContactChannel
+                      ? "Políticas (entrega, trocas, privacidade): preencha em Admin → Configurações."
+                      : "Configure textos e contato em Admin → Configurações."}
+                  </li>
                 ) : null}
               </ul>
             </div>

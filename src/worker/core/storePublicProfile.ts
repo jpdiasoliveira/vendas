@@ -1,6 +1,7 @@
 /**
  * Conteúdo de store_settings.public_profile (JSONB).
  * Campos opcionais; requireLoginToCheckout ausente = true (comportamento atual).
+ * Aceita objeto JSONB, string JSON, e chaves em camelCase ou snake_case.
  */
 
 export type StorePublicProfile = {
@@ -24,29 +25,60 @@ function str(v: unknown): string | null {
   return s === "" ? null : s;
 }
 
+function firstStr(o: Record<string, unknown>, keys: string[]): string | null {
+  for (const k of keys) {
+    const s = str(o[k]);
+    if (s) return s;
+  }
+  return null;
+}
+
+function normalizePublicProfileRaw(raw: unknown): Record<string, unknown> | null {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (t === "") return null;
+    try {
+      const parsed = JSON.parse(t) as unknown;
+      if (parsed != null && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return null;
+}
+
 export function parsePublicProfile(raw: unknown): StorePublicProfile {
-  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+  const o = normalizePublicProfileRaw(raw);
+  if (!o) {
     return { requireLoginToCheckout: true };
   }
-  const o = raw as Record<string, unknown>;
-  const requireRaw = o.requireLoginToCheckout;
+
+  const requireRaw = o.requireLoginToCheckout ?? o.require_login_to_checkout;
   let requireLoginToCheckout = true;
   if (typeof requireRaw === "boolean") {
     requireLoginToCheckout = requireRaw;
   } else if (requireRaw === "false" || requireRaw === 0) {
     requireLoginToCheckout = false;
   }
+
   return {
-    contactPhone: str(o.contactPhone),
-    contactWhatsapp: str(o.contactWhatsapp),
-    contactEmail: str(o.contactEmail),
-    instagramUrl: str(o.instagramUrl),
-    facebookUrl: str(o.facebookUrl),
-    businessHours: str(o.businessHours),
-    shippingInfo: str(o.shippingInfo),
-    deliveryPolicy: str(o.deliveryPolicy),
-    returnsPolicy: str(o.returnsPolicy),
-    privacyPolicy: str(o.privacyPolicy),
+    contactPhone: firstStr(o, ["contactPhone", "contact_phone"]),
+    contactWhatsapp: firstStr(o, ["contactWhatsapp", "contact_whatsapp", "whatsapp"]),
+    contactEmail: firstStr(o, ["contactEmail", "contact_email"]),
+    instagramUrl: firstStr(o, ["instagramUrl", "instagram_url"]),
+    facebookUrl: firstStr(o, ["facebookUrl", "facebook_url"]),
+    businessHours: firstStr(o, ["businessHours", "business_hours"]),
+    shippingInfo: firstStr(o, ["shippingInfo", "shipping_info"]),
+    deliveryPolicy: firstStr(o, ["deliveryPolicy", "delivery_policy"]),
+    returnsPolicy: firstStr(o, ["returnsPolicy", "returns_policy"]),
+    privacyPolicy: firstStr(o, ["privacyPolicy", "privacy_policy"]),
     requireLoginToCheckout,
   };
 }

@@ -1,21 +1,29 @@
 import { useState, useEffect } from "react";
-import { Leaf, User, Package, LogOut, ShoppingCart, Menu, X } from "lucide-react";
+import { Leaf, User, Package, LogOut, ShoppingCart, Menu, X, LayoutDashboard, Loader2, Search } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+import { useAdminStoreRole } from "@/react-app/hooks/useAdminStoreRole";
 import { useNavigate } from "react-router";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 
 interface NavbarProps {
   onOpenCart: () => void;
   onOpenLogin: () => void;
+  onOpenGuestOrderLookup?: () => void;
   scrollToProducts: () => void;
   scrollToTop: () => void;
 }
 
 const touchBtn = "min-h-[44px] min-w-[44px] inline-flex items-center justify-center";
 
-export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop }: NavbarProps) => {
+export const Navbar = ({
+  onOpenCart,
+  onOpenLogin,
+  onOpenGuestOrderLookup,
+  scrollToProducts,
+  scrollToTop,
+}: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -23,6 +31,7 @@ export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
   const { itemCount } = useCart();
   const { settings } = useStoreSettings();
   const { user, signOut } = useAuth();
+  const { ready: adminRoleReady, isStaff } = useAdminStoreRole();
   const navigate = useNavigate();
   const displayName = settings?.displayName?.trim() || "Natfoods";
   const logoUrl = settings?.logoUrl?.trim();
@@ -127,6 +136,7 @@ export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
               <>
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
                   >
@@ -136,17 +146,37 @@ export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                     </span>
                   </button>
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
-                      <button
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          navigate("/pedidos");
-                        }}
-                        className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
-                      >
-                        <Package className="h-4 w-4 shrink-0" />
-                        <span>Meus Pedidos</span>
-                      </button>
+                    <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
+                      {!adminRoleReady ? (
+                        <div className="flex min-h-[44px] items-center gap-2 px-4 text-xs text-[#6D4C41]/70">
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                          <span>Verificando permissões…</span>
+                        </div>
+                      ) : isStaff ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            navigate("/admin/pedidos");
+                          }}
+                          className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
+                        >
+                          <LayoutDashboard className="h-4 w-4 shrink-0" />
+                          <span>Painel da loja</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            navigate("/pedidos");
+                          }}
+                          className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
+                        >
+                          <Package className="h-4 w-4 shrink-0" />
+                          <span>Meus Pedidos</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
@@ -170,13 +200,26 @@ export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                 />
               </>
             ) : (
-              <button
-                onClick={onOpenLogin}
-                className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
-              >
-                <User className="h-5 w-5 shrink-0" />
-                <span className="hidden sm:inline">Entrar</span>
-              </button>
+              <>
+                {onOpenGuestOrderLookup ? (
+                  <button
+                    type="button"
+                    onClick={onOpenGuestOrderLookup}
+                    className={`hidden sm:inline-flex ${touchBtn} items-center gap-1.5 rounded-full border border-[#1B4332]/15 bg-white/50 px-3 text-sm font-medium text-[#1B4332] backdrop-blur-sm transition-all hover:bg-white/80`}
+                  >
+                    <Search className="h-4 w-4 shrink-0" />
+                    <span className="max-w-[9rem] truncate lg:max-w-none">Consultar pedido</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={onOpenLogin}
+                  className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
+                >
+                  <User className="h-5 w-5 shrink-0" />
+                  <span className="hidden sm:inline">Entrar</span>
+                </button>
+              </>
             )}
             <div className="relative">
               <button
@@ -222,6 +265,21 @@ export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                   </a>
                 </li>
               ))}
+              {onOpenGuestOrderLookup ? (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenGuestOrderLookup();
+                      closeMobileNav();
+                    }}
+                    className="flex w-full min-h-[48px] items-center gap-2 px-3 text-left text-base font-medium text-[#1B4332] hover:bg-[#FAF8F3] active:bg-[#1B4332]/5 rounded-xl"
+                  >
+                    <Search className="h-5 w-5 shrink-0 opacity-80" />
+                    Consultar pedido
+                  </button>
+                </li>
+              ) : null}
             </ul>
           </div>
         </>

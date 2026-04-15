@@ -184,9 +184,9 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
         onClick={requestClose}
         aria-hidden
       />
-      <div className="relative bg-white rounded-3xl shadow-2xl border border-white/50 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-[#1B4332]/10">
-          <h2 className="text-xl font-bold text-[#1B4332] font-playfair">
+      <div className="relative bg-white rounded-3xl shadow-2xl border border-white/50 w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <div className="flex items-start justify-between gap-4 p-6 border-b border-[#1B4332]/10">
+          <h2 className="text-xl font-bold text-[#1B4332] font-playfair break-words pr-2 min-w-0 flex-1 leading-snug">
             Editar produto {name.trim() || product?.name || ""}
           </h2>
           <button
@@ -199,7 +199,7 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 font-inter space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 font-inter space-y-5">
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded-xl text-sm">{error}</div>
           )}
@@ -218,117 +218,121 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">Imagem do produto</label>
-            <div className="space-y-3">
-              <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-[#1B4332]/20 rounded-xl cursor-pointer hover:border-[#1B4332]/40 hover:bg-[#1B4332]/5 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                />
-                <ImagePlus className="h-5 w-5 text-[#6D4C41]" />
-                <span className="text-sm text-[#6D4C41]">Escolher novo arquivo</span>
+          {/* Mobile: imagem em cima, descrição embaixo. Desktop: duas colunas, labels alinhados, descrição estica com a coluna da imagem */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-8">
+            <div className="flex h-full min-h-0 min-w-0 flex-col gap-1">
+              <label className="block shrink-0 text-sm font-medium leading-5 text-[#6D4C41] min-h-[2.5rem] lg:flex lg:items-end">
+                Imagem do produto
               </label>
-              {imageFile && (
-                <button
-                  type="button"
-                  onClick={clearNewImageFile}
-                  className="text-sm text-[#6D4C41] underline underline-offset-2 hover:text-[#1B4332]"
-                >
-                  Descartar arquivo selecionado
-                </button>
-              )}
-              {previewSrc ? (
-                <div className="relative rounded-xl overflow-hidden border border-[#1B4332]/15 bg-[#1B4332]/5">
-                  <img src={previewSrc} alt="" className="w-full h-40 object-contain" />
-                  <p className="text-xs text-[#6D4C41] p-2 bg-white/90 border-t border-[#1B4332]/10">
-                    {imageFile
-                      ? "Ao salvar, a imagem será enviada e a URL será atualizada no produto."
-                      : "Imagem atual ou URL informada abaixo."}
-                  </p>
-                </div>
-              ) : null}
+              <div className="flex min-h-0 flex-1 flex-col gap-3">
+                <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-[#1B4332]/20 rounded-xl cursor-pointer hover:border-[#1B4332]/40 hover:bg-[#1B4332]/5 transition-colors shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                  />
+                  <ImagePlus className="h-5 w-5 text-[#6D4C41]" />
+                  <span className="text-sm text-[#6D4C41]">Escolher novo arquivo</span>
+                </label>
+                {imageFile && (
+                  <button
+                    type="button"
+                    onClick={clearNewImageFile}
+                    className="text-sm text-[#6D4C41] underline underline-offset-2 hover:text-[#1B4332] shrink-0"
+                  >
+                    Descartar arquivo selecionado
+                  </button>
+                )}
+                {previewSrc ? (
+                  <div className="relative shrink-0 rounded-xl overflow-hidden border border-[#1B4332]/15 bg-[#1B4332]/5">
+                    <img src={previewSrc} alt="" className="w-full max-h-52 object-contain" />
+                    <p className="text-xs text-[#6D4C41] p-2 bg-white/90 border-t border-[#1B4332]/10">
+                      {imageFile
+                        ? "Ao salvar, a imagem será enviada e a URL será atualizada no produto."
+                        : "Imagem atual ou URL informada abaixo."}
+                    </p>
+                  </div>
+                ) : null}
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className={`${inputBase} break-all shrink-0`}
+                  placeholder="Ou cole a URL da imagem (https://...)"
+                />
+              </div>
+            </div>
+
+            <div className="flex h-full min-h-0 min-w-0 flex-col gap-1">
+              <label className="block shrink-0 text-sm font-medium leading-5 text-[#6D4C41] min-h-[2.5rem] lg:flex lg:items-end">
+                Descrição / informações ao consumidor
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={6}
+                className={`${inputBase} min-h-[160px] w-full flex-1 resize-y lg:min-h-[12rem]`}
+                placeholder="Ingredientes, tabela nutricional, valores energéticos, alérgenos, etc."
+              />
+              <p className="shrink-0 text-xs text-[#6D4C41]/80">
+                Esse texto pode aparecer na ficha do produto no site, conforme o layout da vitrine.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label className="block text-sm font-medium text-[#6D4C41] mb-1">Preço (Varejo) R$</label>
               <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
                 className={inputBase}
-                placeholder="Ou cole a URL da imagem (https://...)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#6D4C41] mb-1">
+                Preço Atacado R$ (opcional)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={priceWholesale}
+                onChange={(e) => setPriceWholesale(e.target.value)}
+                className={inputBase}
+                placeholder="—"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#6D4C41] mb-1">
+                Qtd. mínima atacado (opcional)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={minQuantityWholesale}
+                onChange={(e) => setMinQuantityWholesale(e.target.value)}
+                className={inputBase}
+                placeholder="—"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#6D4C41] mb-1">Estoque</label>
+              <input
+                type="number"
+                min="0"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                className={inputBase}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">
-              Descrição / informações ao consumidor
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              className={`${inputBase} resize-y min-h-[120px]`}
-              placeholder="Ingredientes, tabela nutricional, valores energéticos, alérgenos, etc."
-            />
-            <p className="mt-1 text-xs text-[#6D4C41]/80">
-              Esse texto pode aparecer na ficha do produto no site, conforme o layout da vitrine.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">Preço (Varejo) R$</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className={inputBase}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">
-              Preço Atacado R$ (opcional)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={priceWholesale}
-              onChange={(e) => setPriceWholesale(e.target.value)}
-              className={inputBase}
-              placeholder="—"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">
-              Qtd. mínima atacado (opcional)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={minQuantityWholesale}
-              onChange={(e) => setMinQuantityWholesale(e.target.value)}
-              className={inputBase}
-              placeholder="—"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#6D4C41] mb-1">Estoque</label>
-            <input
-              type="number"
-              min="0"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              className={inputBase}
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={requestClose}

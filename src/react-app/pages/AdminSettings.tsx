@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Home, LayoutDashboard, Save, Image as ImageIcon, ImagePlus, Loader2 } from "lucide-react";
+import { Home, LayoutDashboard, Save, Image as ImageIcon, ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import type { StorePublicProfile } from "@/react-app/types";
 import { parsePublicProfile } from "@/worker/core/storePublicProfile";
+import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
 
 function formatBRL(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "";
@@ -34,9 +35,13 @@ export default function AdminSettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
   const [minimumOrderValue, setMinimumOrderValue] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#1B4332");
   const [publicProfile, setPublicProfile] = useState<StorePublicProfile>(emptyProfile);
+  /** Mensagem após marcar/desmarcar «Exigir login» (some ao salvar com sucesso). */
+  const [checkoutLoginAck, setCheckoutLoginAck] = useState<string | null>(null);
+  const saveSuccessRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -49,7 +54,14 @@ export default function AdminSettingsPage() {
         setPrimaryColor(
           data?.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(data.primaryColor) ? data.primaryColor : "#1B4332"
         );
-        setPublicProfile(parsePublicProfile(data?.publicProfile ?? {}));
+        const parsed = parsePublicProfile(data?.publicProfile ?? {});
+        setPublicProfile({
+          ...parsed,
+          contactWhatsapp: parsed.contactWhatsapp
+            ? formatBrazilPhoneInput(parsed.contactWhatsapp)
+            : null,
+          contactPhone: parsed.contactPhone ? formatBrazilPhoneInput(parsed.contactPhone) : null,
+        });
       })
       .catch((err: unknown) => {
         if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar configurações");
@@ -64,9 +76,19 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     if (!success) return;
-    const t = setTimeout(() => setSuccess(false), 3000);
-    return () => clearTimeout(t);
+    const id = requestAnimationFrame(() => {
+      saveSuccessRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    const t = setTimeout(() => setSuccess(false), 8000);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(t);
+    };
   }, [success]);
+
+  useEffect(() => {
+    setLogoPreviewFailed(false);
+  }, [imagePreview, logoUrl]);
 
   const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,8 +137,9 @@ export default function AdminSettingsPage() {
         return null;
       });
       if (logoUrlFinal) setLogoUrl(logoUrlFinal);
+      setCheckoutLoginAck(null);
       setSuccess(true);
-      await refetchStoreSettings();
+      await refetchStoreSettings({ silent: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
@@ -168,12 +191,6 @@ export default function AdminSettingsPage() {
             {error}
           </div>
         )}
-        {success && (
-          <div className="bg-green-50 text-green-800 border border-green-200 rounded-2xl p-4 mb-6 font-inter">
-            Configurações salvas com sucesso.
-          </div>
-        )}
-
         <form
           onSubmit={handleSubmit}
           className="w-full bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 p-6 space-y-8 font-inter"
@@ -196,38 +213,76 @@ export default function AdminSettingsPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#6D4C41] mb-1">Logomarca</label>
-              <p className="text-xs text-[#6D4C41]/80 mb-2">
-                Envie um arquivo ou informe a URL pública da imagem.
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-[#6D4C41]">Logomarca</label>
+              <p className="text-xs text-[#6D4C41]/80 -mt-1">
+                Envie um arquivo ou informe a URL pública da imagem. A pré-visualização mostra como o logo tende a aparecer na barra do site.
               </p>
-              <label className="flex items-center justify-center gap-2 w-full max-w-md py-3 px-4 border-2 border-dashed border-[#1B4332]/20 rounded-xl cursor-pointer hover:border-[#1B4332]/40 hover:bg-[#1B4332]/5 transition-colors mb-3">
-                <input type="file" accept="image/*" className="sr-only" onChange={handleLogoFile} />
-                <ImagePlus className="h-5 w-5 text-[#6D4C41]" />
-                <span className="text-sm text-[#6D4C41]">Enviar imagem do logo</span>
-              </label>
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <input
-                  id="logoUrl"
-                  type="url"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="https://..."
-                  className={`flex-1 w-full ${inputCls}`}
-                />
-                <div className="flex-shrink-0 w-24 h-24 rounded-xl border border-[#1B4332]/20 bg-[#FAF8F3] flex items-center justify-center overflow-hidden">
-                  {imagePreview || logoUrl.trim() ? (
-                    <img
-                      src={imagePreview ?? logoUrl}
-                      alt="Preview logo"
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <ImageIcon className="h-10 w-10 text-[#6D4C41]/40" />
-                  )}
+
+              <div className="rounded-2xl border border-[#1B4332]/12 bg-[#FAF8F3]/50 p-4 sm:p-5">
+                <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch lg:gap-6">
+                  <div className="flex min-h-0 min-w-0 flex-col justify-between gap-4 lg:min-h-[12.5rem]">
+                    <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white">
+                      <input type="file" accept="image/*" className="sr-only" onChange={handleLogoFile} />
+                      <ImagePlus className="h-5 w-5 shrink-0 text-[#6D4C41]" />
+                      <span className="text-sm font-medium text-[#6D4C41]">Enviar imagem do logo</span>
+                    </label>
+                    <div className="min-w-0">
+                      <label htmlFor="logoUrl" className="mb-1 block text-xs font-medium text-[#6D4C41]/90">
+                        URL da imagem (opcional se enviar arquivo)
+                      </label>
+                      <input
+                        id="logoUrl"
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="https://..."
+                        className={`w-full ${inputCls} break-all`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-0 flex-col gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wide text-[#6D4C41]/70">
+                      Pré-visualização
+                    </span>
+                    <div
+                      className="relative flex min-h-[12.5rem] flex-1 flex-col items-center justify-center rounded-2xl border-2 border-[#1B4332]/12 bg-gradient-to-b from-white to-[#F0EBE0]/90 px-4 py-5 shadow-inner sm:px-5 sm:py-6"
+                      aria-live="polite"
+                    >
+                      <div
+                        className="pointer-events-none absolute inset-x-0 top-0 h-9 rounded-t-[0.9rem] bg-[#1B4332]/[0.07]"
+                        aria-hidden
+                      />
+                      <div className="relative flex h-[7.25rem] w-full max-w-[240px] items-center justify-center rounded-xl bg-white/95 px-3 py-2.5 shadow-sm ring-1 ring-[#1B4332]/10">
+                        {imagePreview || logoUrl.trim() ? (
+                          logoPreviewFailed ? (
+                            <div className="flex flex-col items-center gap-1 px-2 text-center text-[#6D4C41]/70">
+                              <ImageIcon className="h-8 w-8 shrink-0 opacity-60" />
+                              <span className="text-[11px] leading-snug">
+                                Não foi possível carregar esta URL. Confira o link ou envie um arquivo.
+                              </span>
+                            </div>
+                          ) : (
+                            <img
+                              src={imagePreview ?? logoUrl}
+                              alt=""
+                              className="max-h-full max-w-full object-contain"
+                              onError={() => setLogoPreviewFailed(true)}
+                            />
+                          )
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-2 text-center text-[#6D4C41]/50">
+                            <ImageIcon className="h-11 w-11 opacity-45" />
+                            <span className="text-[11px] leading-snug">Nenhuma imagem ainda</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-3 max-w-[14rem] text-center text-[11px] leading-relaxed text-[#6D4C41]/65">
+                        Área aproximada na barra. PNG ou SVG com fundo transparente costumam funcionar melhor.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,12 +347,18 @@ export default function AdminSettingsPage() {
                 type="checkbox"
                 className="mt-1 rounded border-[#1B4332]/30 text-[#1B4332] focus:ring-[#1B4332]/30"
                 checked={publicProfile.requireLoginToCheckout !== false}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const checked = e.target.checked;
                   setPublicProfile((p) => ({
                     ...p,
-                    requireLoginToCheckout: e.target.checked,
-                  }))
-                }
+                    requireLoginToCheckout: checked,
+                  }));
+                  setCheckoutLoginAck(
+                    checked
+                      ? "Opção registrada: a loja exigirá login para finalizar a compra. Clique em «Salvar configurações» abaixo para publicar."
+                      : "Opção registrada: visitantes poderão comprar sem conta (e-mail, telefone e endereço). Clique em «Salvar configurações» abaixo para publicar."
+                  );
+                }}
               />
               <span>
                 <span className="font-medium text-[#1B4332]">Exigir login para comprar</span>
@@ -307,6 +368,15 @@ export default function AdminSettingsPage() {
                 </span>
               </span>
             </label>
+            {checkoutLoginAck ? (
+              <div
+                className="flex gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 font-inter"
+                role="status"
+              >
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" aria-hidden />
+                <p>{checkoutLoginAck}</p>
+              </div>
+            ) : null}
           </section>
 
           <section className="space-y-4">
@@ -318,11 +388,16 @@ export default function AdminSettingsPage() {
                 <label className="block text-sm font-medium text-[#6D4C41] mb-1">Telefone / WhatsApp</label>
                 <input
                   type="text"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={publicProfile.contactWhatsapp ?? ""}
                   onChange={(e) =>
-                    setPublicProfile((p) => ({ ...p, contactWhatsapp: e.target.value || null }))
+                    setPublicProfile((p) => ({
+                      ...p,
+                      contactWhatsapp: formatBrazilPhoneInput(e.target.value) || null,
+                    }))
                   }
-                  placeholder="61999990000 ou link wa.me"
+                  placeholder="(47) 99999-9999 ou link wa.me"
                   className={inputCls}
                 />
               </div>
@@ -330,9 +405,14 @@ export default function AdminSettingsPage() {
                 <label className="block text-sm font-medium text-[#6D4C41] mb-1">Telefone fixo / outro</label>
                 <input
                   type="text"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={publicProfile.contactPhone ?? ""}
                   onChange={(e) =>
-                    setPublicProfile((p) => ({ ...p, contactPhone: e.target.value || null }))
+                    setPublicProfile((p) => ({
+                      ...p,
+                      contactPhone: formatBrazilPhoneInput(e.target.value) || null,
+                    }))
                   }
                   placeholder="(61) 3333-0000"
                   className={inputCls}
@@ -462,6 +542,23 @@ export default function AdminSettingsPage() {
             )}
             {uploadingImage ? "Enviando logo..." : saving ? "Salvando..." : "Salvar configurações"}
           </button>
+
+          {success ? (
+            <div
+              ref={saveSuccessRef}
+              className="mt-4 flex gap-3 rounded-2xl border border-green-200 bg-green-50/95 px-4 py-4 text-green-900 shadow-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600 mt-0.5" aria-hidden />
+              <div className="min-w-0 font-inter">
+                <p className="font-semibold text-green-900">Configurações salvas com sucesso</p>
+                <p className="mt-1 text-sm text-green-800/90">
+                  As alterações já estão aplicadas na vitrine e no checkout desta loja.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </form>
       </div>
     </div>

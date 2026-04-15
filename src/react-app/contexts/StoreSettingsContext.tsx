@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { apiFetch } from "@/react-app/services/api";
 import type { StorePublicProfile } from "@/react-app/types";
 
@@ -14,7 +14,7 @@ interface StoreSettingsContextType {
   settings: StoreSettingsData | null;
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
 const StoreSettingsContext = createContext<StoreSettingsContextType | undefined>(undefined);
@@ -24,23 +24,44 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSettings = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchSettings = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await apiFetch<StoreSettingsData>("/api/store/settings");
       setSettings(data ?? null);
+      if (silent) setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar configurações");
-      setSettings(null);
+      if (!silent) {
+        setError(err instanceof Error ? err.message : "Erro ao carregar configurações");
+        setSettings(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    void fetchSettings();
+  }, [fetchSettings]);
+
+  /** Ao voltar para a aba, atualiza em segundo plano (ex.: salvou no admin em outra aba). */
+  useEffect(() => {
+    let tid: ReturnType<typeof setTimeout> | undefined;
+    const onVis = () => {
+      if (document.visibilityState !== "visible") return;
+      clearTimeout(tid);
+      tid = setTimeout(() => void fetchSettings({ silent: true }), 400);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      clearTimeout(tid);
+    };
+  }, [fetchSettings]);
 
   return (
     <StoreSettingsContext.Provider value={{ settings, loading, error, refetch: fetchSettings }}>
