@@ -29,7 +29,14 @@ export const verifyAuth = createMiddleware<{
   }
   const userId = claims.sub;
 
-  const store = c.get("store");
+  const store = c.get("store") as { id: string } | undefined;
+  if (!store?.id) {
+    return c.json(
+      { success: false, error: "Loja não identificada. Envie o header x-store-slug." },
+      400
+    );
+  }
+
   let member;
   try {
     member = await getStoreMember(c.env, userId, store.id);

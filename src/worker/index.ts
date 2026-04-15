@@ -17,11 +17,20 @@ import store from "./routes/store.js";
  */
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-// --- 0. CORS (permite origem do frontend em dev) ---
+// --- 0. CORS: lista explícita (nunca *). CORS_ORIGIN=v1,v2 em secrets / .dev.vars ---
+function parseCorsOrigins(env: Env): string[] {
+  const raw = (env.CORS_ORIGIN ?? "http://localhost:5173").split(",");
+  return raw.map((s) => s.trim()).filter(Boolean);
+}
+
 app.use(
   "*",
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, c) => {
+      const allowed = parseCorsOrigins(c.env);
+      if (!origin) return allowed[0] ?? "http://localhost:5173";
+      return allowed.includes(origin) ? origin : undefined;
+    },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "x-store-slug"],
     exposeHeaders: ["Content-Length"],

@@ -21,6 +21,7 @@ import { productCreateSchema, productUpdateSchema } from "../schemas/product.js"
 import { Variables } from "../types.js";
 import type { AuthUser } from "../middlewares/verifyAuth.js";
 import { logAction } from "../utils/audit.js";
+import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
 import { parsePublicProfile } from "../core/storePublicProfile.js";
 
 const admin = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -55,8 +56,8 @@ admin.get("/settings", async (c) => {
     const data = await getStoreSettingsWithDisplayName(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao carregar configurações";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /settings", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -85,8 +86,8 @@ admin.patch("/settings", async (c) => {
     const data = await getStoreSettingsWithDisplayName(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao salvar configurações";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.patch /settings", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -105,9 +106,8 @@ admin.get("/audit-logs", async (c) => {
     });
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao carregar logs";
-    console.error("Admin audit-logs error:", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /audit-logs", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -151,15 +151,14 @@ admin.post("/upload", async (c) => {
       .from(BUCKET_PRODUCT_IMAGES)
       .upload(path, file, { contentType: file.type, upsert: false });
     if (uploadError) {
-      console.error("Upload product image error:", uploadError);
-      return c.json({ success: false, error: uploadError.message }, 500);
+      logServerError("admin.upload storage", uploadError);
+      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
     const { data: urlData } = supabase.storage.from(BUCKET_PRODUCT_IMAGES).getPublicUrl(path);
     return c.json({ success: true, publicUrl: urlData.publicUrl }, 201);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro no upload";
-    console.error("Admin upload error:", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.post /upload", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -170,9 +169,8 @@ admin.get("/categories", async (c) => {
     const data = await getCategoriesByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar categorias";
-    console.error("[GET /api/admin/categories]", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /categories", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -183,9 +181,8 @@ admin.get("/products", async (c) => {
     const data = await getProductsByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar produtos";
-    console.error("Admin products error:", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /products", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -215,8 +212,8 @@ admin.post(
       await logAction(c, "CREATE_PRODUCT", "product", product.id);
       return c.json({ success: true, data: product }, 201);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao criar produto";
-      return c.json({ success: false, error: message }, 500);
+      logServerError("admin.post /products", err);
+      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
   }
 );
@@ -272,8 +269,8 @@ admin.put(
       await logAction(c, "UPDATE_PRODUCT", "product", productId, details);
       return c.json({ success: true, data: { id: productId } }, 200);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao atualizar produto";
-      return c.json({ success: false, error: message }, 500);
+      logServerError("admin.put /products/:id", err);
+      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
   }
 );
@@ -286,8 +283,8 @@ admin.delete("/products/:id", async (c) => {
     await logAction(c, "DELETE_PRODUCT", "product", productId);
     return c.json({ success: true, data: { id: productId } }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao excluir produto";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.delete /products/:id", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -297,9 +294,8 @@ admin.get("/orders", async (c) => {
     const data = await getAllOrdersByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar pedidos";
-    console.error("Admin orders error:", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /orders", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -312,8 +308,8 @@ admin.get("/orders/:id", async (c) => {
     const payload = { ...data, items: Array.isArray(data.items) ? data.items : [] };
     return c.json({ success: true, data: payload }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar pedido";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.get /orders/:id", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -342,8 +338,7 @@ admin.patch("/orders/:id/status", async (c) => {
       error: err instanceof Error ? err.message : String(err),
       stack: err instanceof Error ? err.stack : undefined,
     });
-    const message = err instanceof Error ? err.message : "Erro ao atualizar status";
-    return c.json({ success: false, error: message }, 500);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -362,8 +357,8 @@ admin.patch("/orders/:id/tracking", async (c) => {
     });
     return c.json({ success: true, data: { ok: true } }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao atualizar rastreio";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("admin.patch /orders/:id/tracking", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 

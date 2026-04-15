@@ -391,14 +391,21 @@ export async function updateOrderPaymentStatus(
   void _paymentInfo;
   const idStr = String(orderId);
   const order = await getOrderById(env, idStr);
+  if (!order) {
+    console.warn("[updateOrderPaymentStatus] Pedido não encontrado, update ignorado:", idStr);
+    return;
+  }
+  const storeId = order.storeId;
+
   try {
-    const prev = order?.paymentStatus ?? order?.status ?? null;
-    if (order && isPaidStatus(status) && !inventoryCommittedStatus(prev)) {
-      await decreaseStockForOrder(env, idStr, order.storeId);
+    const prev = order.paymentStatus ?? order.status ?? null;
+    if (isPaidStatus(status) && !inventoryCommittedStatus(prev)) {
+      await decreaseStockForOrder(env, idStr, storeId);
     }
   } catch (stockErr) {
     console.error("[updateOrderPaymentStatus] Erro na baixa de estoque (status será atualizado):", {
       orderId: idStr,
+      storeId,
       error: stockErr instanceof Error ? stockErr.message : String(stockErr),
     });
   }
@@ -413,7 +420,7 @@ export async function updateOrderPaymentStatus(
     updateRow.paid_at = new Date().toISOString();
   }
 
-  const { error } = await supabase.from("orders").update(updateRow).eq("id", idStr);
+  const { error } = await supabase.from("orders").update(updateRow).match({ id: idStr, store_id: storeId });
 
   if (error) throw new Error(error.message);
 }

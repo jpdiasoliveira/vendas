@@ -11,3 +11,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # MOCHA_USERS_SERVICE_API_URL=
 # MOCHA_USERS_SERVICE_API_KEY=
 # MERCADO_PAGO_ACCESS_TOKEN=
+# Secret de assinatura dos webhooks (Suas integrações > Webhooks) — recomendado em produção
+# MERCADO_PAGO_WEBHOOK_SECRET=
+# CORS: origens permitidas separadas por vírgula (não use *)
+# CORS_ORIGIN=http://localhost:5173,https://seu-dominio.com

@@ -3,6 +3,10 @@ interface Env {
   MOCHA_USERS_SERVICE_API_URL: string;
   MOCHA_USERS_SERVICE_API_KEY: string;
   MERCADO_PAGO_ACCESS_TOKEN: string;
+  /** Secret da assinatura de webhooks (Suas integrações > Webhooks). Recomendado em produção. */
+  MERCADO_PAGO_WEBHOOK_SECRET?: string;
+  /** Origens CORS permitidas, separadas por vírgula. Padrão dev: http://localhost:5173 */
+  CORS_ORIGIN?: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** JWT Secret do projeto Supabase (Project Settings > API > JWT Secret) para validar tokens do Auth. */

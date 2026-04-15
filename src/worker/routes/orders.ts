@@ -13,6 +13,7 @@ import {
 import type { CartItemPayload } from "../core/schema.js";
 import type { AuthUser, Variables } from "../types.js";
 import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
+import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -40,6 +41,13 @@ orders.post("/", optionalCustomerAuth, async (c) => {
 
   if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
     return c.json({ success: false, error: "Items array is required" }, 400);
+  }
+  const MAX_ITEMS = 100;
+  if (body.items.length > MAX_ITEMS) {
+    return c.json(
+      { success: false, error: `Limite de ${MAX_ITEMS} itens por pedido excedido` },
+      400
+    );
   }
 
   const customerPhone = body.customerPhone ?? body.customer_phone ?? null;
@@ -107,9 +115,8 @@ orders.post("/", optionalCustomerAuth, async (c) => {
       201
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Falha ao criar pedido";
-    console.error("Order creation error:", err);
-    return c.json({ success: false, error: message }, 500);
+    logServerError("orders.post /", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
