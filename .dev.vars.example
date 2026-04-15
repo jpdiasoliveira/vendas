@@ -17,3 +17,6 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # REQUIRE_MP_WEBHOOK_SECRET=false
 # CORS: origens permitidas separadas por vírgula (não use *)
 # CORS_ORIGIN=http://localhost:5173,https://seu-dominio.com
+#
+# URL da vitrine (Checkout Pro: back_urls). Se omitido, o Worker usa o header Origin na criação da preferência.
+# STOREFRONT_BASE_URL=http://localhost:5173

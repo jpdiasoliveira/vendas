@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useNavigate } from 'react-router';
-import { Package, CheckCircle, Home, Loader2, CreditCard } from 'lucide-react';
+import { Package, CheckCircle, Home, Loader2, CreditCard, Truck, ExternalLink } from 'lucide-react';
+import { buildTrackingExternalUrl } from '@/react-app/utils/trackingCarrierUrl';
 import CheckoutModal from '@/react-app/components/checkout/CheckoutModal';
 import { useOrders } from '@/react-app/hooks/useOrders';
 
@@ -11,6 +12,7 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     case 'paid': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'approved': return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'processing': return 'bg-purple-100 text-purple-800 border-purple-200';
     case 'shipped': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
     case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
@@ -23,6 +25,7 @@ const getStatusText = (status: string) => {
   switch (status) {
     case 'pending': return 'Aguardando Pagamento';
     case 'paid': return 'Pagamento Aprovado';
+    case 'approved': return 'Pagamento Aprovado';
     case 'processing': return 'Em Separação';
     case 'shipped': return 'Enviado';
     case 'delivered': return 'Entregue';
@@ -158,16 +161,17 @@ export default function OrdersPage() {
                         </span>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold font-inter border ${order.paymentStatus === 'approved' ? 'bg-green-100 text-green-800 border-green-200' :
-                        order.paymentStatus === 'rejected' ? 'bg-red-100 text-red-800 border-red-200' :
+                        order.paymentStatus === 'rejected' || order.paymentStatus === 'cancelled' ? 'bg-red-100 text-red-800 border-red-200' :
                           'bg-yellow-100 text-yellow-800 border-yellow-200'
                         }`}>
-                        {order.paymentStatus === 'approved' ? 'Aprovado' :
-                          order.paymentStatus === 'rejected' ? 'Recusado' : 'Pendente'}
+                        {order.paymentStatus === 'approved' ? 'Pagamento confirmado' :
+                          order.paymentStatus === 'rejected' ? 'Recusado' :
+                            order.paymentStatus === 'cancelled' ? 'Cancelado' : 'Pendente'}
                       </span>
                     </div>
 
                     {/* Botão de Pagar Agora se estiver pendente */}
-                    {order.status === 'pending' && (!order.paymentStatus || order.paymentStatus === 'pending') && (
+                    {order.status === 'pending' && order.paymentStatus === 'pending' && (
                       <button
                         onClick={() => handlePayOrder(order.id, order.total)}
                         className="w-full mt-4 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 font-inter flex items-center justify-center space-x-2"
@@ -178,14 +182,55 @@ export default function OrdersPage() {
                     )}
                   </div>
 
-                  {/* ... Timeline section (omitted to save characters, assuming it uses standard icons as in original) ... */}
                   <div>
                     <h4 className="font-bold text-[#1B4332] mb-4 font-inter text-sm uppercase tracking-wider">Acompanhamento</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 text-green-600">
-                        <CheckCircle className="h-5 w-5" />
-                        <span className="font-medium font-inter">Pedido Confirmado</span>
+                    <div className="space-y-3 text-sm text-[#6D4C41]">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
+                        <div>
+                          <span className="font-medium text-[#1B4332]">Recebido</span>
+                          <p className="text-xs">Pedido registrado na loja.</p>
+                        </div>
                       </div>
+                      <div className="flex items-start gap-2">
+                        {order.paymentStatus === 'approved' ? (
+                          <CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
+                        ) : (
+                          <Package className="h-5 w-5 shrink-0 text-[#1B4332]/30" />
+                        )}
+                        <div>
+                          <span className="font-medium text-[#1B4332]">Pagamento</span>
+                          <p className="text-xs">
+                            {order.paymentStatus === 'approved'
+                              ? 'Confirmado — permanece válido após o envio.'
+                              : 'Aguardando confirmação.'}
+                          </p>
+                        </div>
+                      </div>
+                      {(order.status?.toLowerCase() === 'shipped' || order.status?.toLowerCase() === 'delivered') && (
+                        <div className="flex items-start gap-2">
+                          <Truck className="h-5 w-5 shrink-0 text-indigo-600" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-medium text-[#1B4332]">Envio</span>
+                            {order.trackingCode?.trim() ? (
+                              <>
+                                <p className="mt-1 font-mono text-xs break-all text-[#1B4332]">{order.trackingCode.trim()}</p>
+                                <a
+                                  href={buildTrackingExternalUrl(order.trackingCode.trim())}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#1B4332] underline-offset-2 hover:underline"
+                                >
+                                  Rastrear
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </>
+                            ) : (
+                              <p className="text-xs">Em trânsito — código de rastreio em breve.</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

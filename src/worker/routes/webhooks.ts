@@ -59,8 +59,17 @@ webhooks.post("/mercadopago", async (c) => {
     }
 
     if (payment.status === "approved") {
-      await updateOrderPaymentStatus(c.env, orderId, "approved", { paymentId: payment.id });
-      console.log("[Webhook MP] Order updated to paid:", orderId);
+      const outcome = await updateOrderPaymentStatus(c.env, orderId, "approved", {
+        paymentId: payment.id,
+      });
+      if (outcome === "paid") {
+        console.log("[Webhook MP] Order updated to paid:", orderId);
+      } else if (outcome === "stock_conflict_cancelled") {
+        console.warn(
+          "[Webhook MP] Pedido cancelado por estoque insuficiente após aprovação no MP (estorno manual):",
+          orderId
+        );
+      }
     } else if (
       payment.status === "rejected" ||
       payment.status === "cancelled" ||

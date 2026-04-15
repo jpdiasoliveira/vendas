@@ -232,36 +232,58 @@ function inventoryCommittedStatus(s: string | null | undefined): boolean {
   return t === "paid" || t === "approved" || t === "shipped" || t === "delivered";
 }
 
-export async function decreaseStockForOrder(
+/**
+ * Baixa de estoque atômica via RPC `decrement_stock_for_order` (ver docs/supabase-rpc-decrement-order-stock.sql).
+ */
+export async function tryAtomicDecrementStockForOrder(
   env: Env,
   orderId: string,
   storeId: string
-): Promise<void> {
-  const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
-  for (const item of items) {
-    if (!item.productId) continue;
-    try {
-      const current = await getProductStock(env, item.productId, storeId);
-      if (current === null) {
-        console.error("[decreaseStockForOrder] Produto não encontrado, pulando:", {
-          orderId,
-          productId: item.productId,
-          storeId,
-        });
-        continue;
-      }
-      const newStock = Math.max(0, current - item.quantity);
-      await updateProduct(env, item.productId, storeId, { stock: newStock });
-    } catch (err) {
-      console.error("[decreaseStockForOrder] Erro ao baixar estoque do item:", {
-        orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        error: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-      });
-    }
+): Promise<{ ok: true } | { ok: false; detail: string }> {
+  const supabase = getSupabase(env);
+  const { error } = await supabase.rpc("decrement_stock_for_order", {
+    p_order_id: orderId,
+    p_store_id: storeId,
+  });
+  if (!error) return { ok: true };
+  const msg = error.message ?? String(error);
+  if (msg.includes("INSUFFICIENT_STOCK")) {
+    return { ok: false, detail: msg };
   }
+  console.error("[tryAtomicDecrementStockForOrder.rpc]", error);
+  throw new Error(msg || "Falha na baixa atômica de estoque (confira se a RPC foi aplicada no Supabase).");
+}
+
+/** Pedido cancelado após aprovação no MP sem estoque: exige estorno manual no gateway. */
+export async function cancelOrderForInsufficientStockAfterPayment(
+  env: Env,
+  orderId: string,
+  storeId: string,
+  options: { mpPaymentId?: number; detail: string }
+): Promise<void> {
+  const supabase = getSupabase(env);
+  const { data: row, error: selErr } = await supabase
+    .from("orders")
+    .select("metadata")
+    .eq("id", orderId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (selErr) throw new Error(selErr.message);
+  const prevMeta = (row?.metadata as Record<string, unknown> | null) ?? {};
+  const payload: Record<string, unknown> = {
+    status: "cancelled",
+    updated_at: new Date().toISOString(),
+    metadata: {
+      ...prevMeta,
+      insufficient_stock_at_payment: true,
+      insufficient_stock_detail: options.detail,
+    },
+  };
+  if (options.mpPaymentId != null) {
+    payload.payment_id = String(options.mpPaymentId);
+  }
+  const { error } = await supabase.from("orders").update(payload).match({ id: orderId, store_id: storeId });
+  if (error) throw new Error(error.message);
 }
 
 export async function increaseStockForOrder(
@@ -304,25 +326,30 @@ export async function updateOrderStatus(
 ): Promise<void> {
   const idStr = String(orderId);
   const order = await getOrderByIdForStore(env, idStr, storeId);
-  const oldStatus = order?.paymentStatus ?? order?.status ?? null;
+  const oldStatus = order?.status ?? null;
   const statusLower = newStatus.trim().toLowerCase();
   const isCanceled = statusLower === "cancelled" || statusLower === "canceled";
 
-  try {
-    if (inventoryCommittedStatus(oldStatus) && isCanceled) {
+  if (inventoryCommittedStatus(oldStatus) && isCanceled) {
+    try {
       await increaseStockForOrder(env, idStr, storeId);
-    } else if (isPaidStatus(newStatus) && !inventoryCommittedStatus(oldStatus)) {
-      await decreaseStockForOrder(env, idStr, storeId);
+    } catch (stockErr) {
+      console.error("[updateOrderStatus] Erro ao repor estoque no cancelamento:", {
+        orderId: idStr,
+        storeId,
+        newStatus,
+        oldStatus,
+        error: stockErr instanceof Error ? stockErr.message : String(stockErr),
+        stack: stockErr instanceof Error ? stockErr.stack : undefined,
+      });
     }
-  } catch (stockErr) {
-    console.error("[updateOrderStatus] Erro na atualização de estoque (status do pedido será atualizado mesmo assim):", {
-      orderId: idStr,
-      storeId,
-      newStatus,
-      oldStatus,
-      error: stockErr instanceof Error ? stockErr.message : String(stockErr),
-      stack: stockErr instanceof Error ? stockErr.stack : undefined,
-    });
+  } else if (isPaidStatus(newStatus) && !inventoryCommittedStatus(oldStatus)) {
+    const dec = await tryAtomicDecrementStockForOrder(env, idStr, storeId);
+    if (!dec.ok) {
+      throw new Error(
+        `Estoque insuficiente para marcar o pedido como pago (${dec.detail}). Ajuste o estoque ou cancele o pedido.`
+      );
+    }
   }
 
   const supabase = getSupabase(env);
@@ -382,32 +409,45 @@ export async function updateOrderPayment(
   if (error) throw new Error(error.message);
 }
 
+export type UpdateOrderPaymentStatusOutcome =
+  | "paid"
+  | "stock_conflict_cancelled"
+  | "skipped_not_found"
+  | "updated_non_paid";
+
 export async function updateOrderPaymentStatus(
   env: Env,
   orderId: string,
   status: string,
-  _paymentInfo?: { paymentId?: number }
-): Promise<void> {
-  void _paymentInfo;
+  paymentInfo?: { paymentId?: number }
+): Promise<UpdateOrderPaymentStatusOutcome> {
   const idStr = String(orderId);
   const order = await getOrderById(env, idStr);
   if (!order) {
     console.warn("[updateOrderPaymentStatus] Pedido não encontrado, update ignorado:", idStr);
-    return;
+    return "skipped_not_found";
   }
   const storeId = order.storeId;
+  const prev = order.status ?? null;
 
-  try {
-    const prev = order.paymentStatus ?? order.status ?? null;
-    if (isPaidStatus(status) && !inventoryCommittedStatus(prev)) {
-      await decreaseStockForOrder(env, idStr, storeId);
+  if (isPaidStatus(status) && !inventoryCommittedStatus(prev)) {
+    const dec = await tryAtomicDecrementStockForOrder(env, idStr, storeId);
+    if (!dec.ok) {
+      await cancelOrderForInsufficientStockAfterPayment(env, idStr, storeId, {
+        mpPaymentId: paymentInfo?.paymentId,
+        detail: dec.detail,
+      });
+      console.error("[updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED]", {
+        reason: "INSUFFICIENT_STOCK_AT_MP_APPROVAL",
+        orderId: idStr,
+        storeId,
+        mpPaymentId: paymentInfo?.paymentId ?? null,
+        rpcDetail: dec.detail,
+        message:
+          "Pedido cancelado no sistema: pagamento aprovado no Mercado Pago mas estoque insuficiente. Efetue estorno manual no MP.",
+      });
+      return "stock_conflict_cancelled";
     }
-  } catch (stockErr) {
-    console.error("[updateOrderPaymentStatus] Erro na baixa de estoque (status será atualizado):", {
-      orderId: idStr,
-      storeId,
-      error: stockErr instanceof Error ? stockErr.message : String(stockErr),
-    });
   }
 
   const supabase = getSupabase(env);
@@ -423,4 +463,6 @@ export async function updateOrderPaymentStatus(
   const { error } = await supabase.from("orders").update(updateRow).match({ id: idStr, store_id: storeId });
 
   if (error) throw new Error(error.message);
+  if (st === "paid" || st === "approved") return "paid";
+  return "updated_non_paid";
 }

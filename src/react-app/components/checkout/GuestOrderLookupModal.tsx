@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { X, Search, Loader2, Package, CreditCard, Copy, Check } from "lucide-react";
+import { X, Search, Loader2, Package, CreditCard, Copy, Check, Truck, ExternalLink } from "lucide-react";
+import { buildTrackingExternalUrl } from "@/react-app/utils/trackingCarrierUrl";
 import { apiFetch } from "@/react-app/services/api";
 import type { OrderWithItems } from "@/react-app/types";
 import CheckoutModal from "@/react-app/components/checkout/CheckoutModal";
@@ -301,13 +302,40 @@ const GuestOrderLookupModal = ({ isOpen, onClose }: GuestOrderLookupModalProps) 
                   {" · "}
                   <span className="text-[#6D4C41]">
                     {order.paymentStatus === "approved"
-                      ? "Aprovado"
+                      ? "Confirmado (válido após envio)"
                       : order.paymentStatus === "rejected"
                         ? "Recusado"
-                        : "Pendente"}
+                        : order.paymentStatus === "cancelled"
+                          ? "Cancelado"
+                          : "Pendente"}
                   </span>
                 </p>
               </div>
+
+              {(order.status?.toLowerCase() === "shipped" || order.status?.toLowerCase() === "delivered") && (
+                <div className="mb-4 flex gap-2 rounded-xl border border-[#1B4332]/10 bg-[#FAF8F3] p-3">
+                  <Truck className="mt-0.5 h-5 w-5 shrink-0 text-[#1B4332]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#6D4C41]">Rastreio</p>
+                    {order.trackingCode?.trim() ? (
+                      <>
+                        <p className="mt-1 break-all font-mono text-sm text-[#1B4332]">{order.trackingCode.trim()}</p>
+                        <a
+                          href={buildTrackingExternalUrl(order.trackingCode.trim())}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#1B4332] underline-offset-2 hover:underline"
+                        >
+                          Rastrear envio
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </>
+                    ) : (
+                      <p className="mt-1 text-sm text-[#6D4C41]">Envio em andamento; código em breve.</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {order.items && order.items.length > 0 ? (
                 <div className="mb-4">

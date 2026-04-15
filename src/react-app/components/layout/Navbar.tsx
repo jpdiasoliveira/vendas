@@ -222,22 +222,24 @@ export const Navbar = ({
                 </button>
               </>
             )}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={onOpenCart}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 font-inter font-medium relative overflow-hidden group min-h-[44px] px-4 sm:px-6"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#FFE084] to-[#FFD166] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <ShoppingCart className="h-5 w-5 relative z-10 shrink-0" />
-                <span className="relative z-10 hidden sm:inline">Carrinho</span>
-              </button>
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white text-xs font-bold rounded-full min-h-[22px] min-w-[22px] px-1 flex items-center justify-center shadow-lg z-10">
-                  {itemCount}
-                </span>
-              )}
-            </div>
+            {!(adminRoleReady && isStaff) ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={onOpenCart}
+                  className="flex items-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 font-inter font-medium relative overflow-hidden group min-h-[44px] px-4 sm:px-6"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FFE084] to-[#FFD166] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <ShoppingCart className="h-5 w-5 relative z-10 shrink-0" />
+                  <span className="relative z-10 hidden sm:inline">Carrinho</span>
+                </button>
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white text-xs font-bold rounded-full min-h-[22px] min-w-[22px] px-1 flex items-center justify-center shadow-lg z-10">
+                    {itemCount}
+                  </span>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

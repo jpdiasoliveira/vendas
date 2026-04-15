@@ -21,4 +21,9 @@ interface Env {
   ASSETS: Fetcher;
   /** Opcional: URL base pública para o webhook (ex: https://seu-dominio.com). Se definida, notification_url é enviada ao MP. */
   NOTIFICATION_BASE_URL?: string;
+  /**
+   * URL absoluta da vitrine (ex.: https://loja.com ou http://localhost:5173).
+   * Usada em back_urls do Checkout Pro e, em dev, como fallback se Origin não for enviado.
+   */
+  STOREFRONT_BASE_URL?: string;
 }

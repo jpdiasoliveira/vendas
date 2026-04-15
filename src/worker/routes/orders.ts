@@ -17,6 +17,27 @@ import { genericServerErrorMessage, logServerError } from "../utils/safeApiError
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+function resolveStorefrontBaseUrl(env: Env, request: Request): string {
+  const fromEnv = env.STOREFRONT_BASE_URL?.trim().replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  const origin = request.headers.get("Origin")?.trim().replace(/\/$/, "");
+  if (origin) return origin;
+  return "http://localhost:5173";
+}
+
+function buildOrderConfirmationUrl(
+  storefrontBase: string,
+  orderId: string,
+  guestEmail: string | null | undefined,
+  mpResult: "success" | "failure" | "pending"
+): string {
+  const u = new URL(`${storefrontBase.replace(/\/$/, "")}/order/${encodeURIComponent(orderId)}/confirmation`);
+  const ge = guestEmail?.trim();
+  if (ge) u.searchParams.set("guestEmail", ge);
+  u.searchParams.set("mp_result", mpResult);
+  return u.toString();
+}
+
 function isValidGuestEmail(email: string): boolean {
   const t = email.trim();
   return t.length > 4 && t.includes("@") && !t.includes(" ");
@@ -212,11 +233,19 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
         });
       }
 
+      const storefrontBase = resolveStorefrontBaseUrl(c.env, c.req.raw);
+      const guestForUrl = order.guestCheckoutEmail?.trim() || guestEmail?.trim() || null;
+
       const pref = await createPreference(token, {
         orderId,
         total: order.total,
         payerEmail,
         notificationUrl,
+        backUrls: {
+          success: buildOrderConfirmationUrl(storefrontBase, orderId, guestForUrl, "success"),
+          failure: buildOrderConfirmationUrl(storefrontBase, orderId, guestForUrl, "failure"),
+          pending: buildOrderConfirmationUrl(storefrontBase, orderId, guestForUrl, "pending"),
+        },
         items: prefItems,
       });
 

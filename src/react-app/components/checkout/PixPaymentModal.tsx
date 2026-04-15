@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Link } from 'react-router';
 import { X, Copy, Check, Loader2, CheckCircle } from 'lucide-react';
 import { useCheckout } from '@/react-app/hooks/useCheckout';
 import { apiFetch } from "@/react-app/services/api";
@@ -27,6 +28,12 @@ export default function PixPaymentModal({
     const [paymentApproved, setPaymentApproved] = useState(false);
     const { checkPaymentStatus, isProcessing } = useCheckout();
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const confirmationHref = useMemo(() => {
+        const path = `/order/${encodeURIComponent(orderId)}/confirmation`;
+        const ge = guestCheckoutEmail?.trim();
+        return ge ? `${path}?guestEmail=${encodeURIComponent(ge)}` : path;
+    }, [orderId, guestCheckoutEmail]);
 
     useEffect(() => {
         if (copied) {
@@ -119,7 +126,13 @@ export default function PixPaymentModal({
                                 <CheckCircle className="h-10 w-10" />
                             </div>
                             <p className="text-xl font-bold text-[#1B4332] font-playfair mb-2">Pagamento aprovado!</p>
-                            <p className="text-[#6D4C41] font-inter mb-6">Obrigado pela sua compra.</p>
+                            <p className="text-[#6D4C41] font-inter mb-4">Obrigado pela sua compra.</p>
+                            <Link
+                                to={confirmationHref}
+                                className="mb-4 inline-flex min-h-[48px] min-w-[10rem] items-center justify-center rounded-full border-2 border-[#1B4332]/25 px-8 py-3 text-base font-bold text-[#1B4332] font-inter hover:bg-[#FAF8F3]"
+                            >
+                                Ver confirmação do pedido
+                            </Link>
                             <button
                                 type="button"
                                 onClick={onClose}

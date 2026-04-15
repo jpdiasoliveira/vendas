@@ -81,6 +81,12 @@ export interface CreatePreferenceParams {
   total: number;
   payerEmail: string;
   notificationUrl?: string;
+  /** URLs absolutas de retorno do Checkout Pro (sucesso, falha, pendente). */
+  backUrls?: {
+    success: string;
+    failure: string;
+    pending: string;
+  };
   items: Array<{
     title: string;
     quantity: number;
@@ -103,7 +109,7 @@ export async function createPreference(
 ): Promise<CreatePreferenceResult> {
   const url = `${MP_API_BASE}/checkout/preferences`;
   
-  const body = {
+  const body: Record<string, unknown> = {
     items: params.items,
     payer: {
       email: params.payerEmail,
@@ -113,9 +119,18 @@ export async function createPreference(
     payment_methods: {
       excluded_payment_types: [
         { id: "ticket" }, // Exclui boleto conforme solicitado
-      ]
-    }
+      ],
+    },
   };
+
+  if (params.backUrls) {
+    body.back_urls = {
+      success: params.backUrls.success,
+      failure: params.backUrls.failure,
+      pending: params.backUrls.pending,
+    };
+    body.auto_return = "approved";
+  }
 
   const res = await fetch(url, {
     method: "POST",

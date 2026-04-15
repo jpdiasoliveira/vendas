@@ -40,8 +40,20 @@ export function rowToProduct(row: Record<string, unknown>): Product {
   };
 }
 
+/** Rótulo de pagamento desacoplado do status logístico (evita “Pendente” após envio). */
+function derivePaymentStatusForOrder(row: Record<string, unknown>): string {
+  const raw = String(row.status ?? "pending").trim().toLowerCase();
+  const paidAt = row.paid_at as string | null | undefined;
+  if (raw === "cancelled" || raw === "canceled") return "cancelled";
+  if (paidAt) return "approved";
+  if (["paid", "approved", "shipped", "delivered"].includes(raw)) return "approved";
+  if (raw === "pending") return "pending";
+  return "pending";
+}
+
 export function rowToOrder(row: Record<string, unknown>): Order {
   const statusVal = (row.status ?? row.payment_status) as string | null | undefined;
+  const fulfillmentStatus = statusVal ?? "pending";
   return {
     id: row.id != null ? String(row.id) : "",
     storeId: String(row.store_id),
@@ -49,12 +61,12 @@ export function rowToOrder(row: Record<string, unknown>): Order {
     guestCheckoutEmail: (row.guest_checkout_email as string | null) ?? undefined,
     customerName: (row.customer_name as string | null) ?? undefined,
     customerPhone: (row.customer_phone as string | null) ?? undefined,
-    status: statusVal ?? "pending",
+    status: fulfillmentStatus,
     total: Number(row.total),
     currency: (row.currency as string | null) ?? undefined,
     paymentMethod: (row.payment_method as string | null) ?? undefined,
     paymentId: (row.payment_id as string | null) ?? undefined,
-    paymentStatus: statusVal ?? undefined,
+    paymentStatus: derivePaymentStatusForOrder(row),
     deliveryAddress: (row.delivery_address as string | null) ?? undefined,
     shippingCity: (row.shipping_city as string | null) ?? undefined,
     shippingState: (row.shipping_state as string | null) ?? undefined,
