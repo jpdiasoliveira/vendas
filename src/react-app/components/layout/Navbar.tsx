@@ -6,6 +6,7 @@ import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useAdminStoreRole } from "@/react-app/hooks/useAdminStoreRole";
 import { useNavigate } from "react-router";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 
 interface NavbarProps {
   onOpenCart: () => void;
@@ -75,9 +76,9 @@ export const Navbar = ({
         scrolled ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5" : "bg-white/40 backdrop-blur-md"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20 gap-2 min-w-0">
-          <div className="flex items-center space-x-2 group min-w-0 flex-1">
+      <div className={storefrontShellClass}>
+        <div className="flex h-20 min-h-[5rem] w-full min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 basis-0 items-center gap-2 group">
             <div className="relative flex-shrink-0">
               {logoUrl ? (
                 <img
@@ -106,32 +107,31 @@ export const Navbar = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`${touchBtn} md:hidden rounded-xl border border-[#1B4332]/15 bg-white/80 text-[#1B4332] shrink-0`}
-            onClick={() => setMobileNavOpen((o) => !o)}
-            aria-expanded={mobileNavOpen}
-            aria-controls="mobile-nav-menu"
-            aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
-          >
-            {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden shrink-0 items-center gap-5 md:flex lg:gap-7">
             {navItems.map((item, index) => (
               <a
                 key={item}
                 href={navIds[index]}
                 onClick={(e) => handleNavClick(index, e)}
-                className="min-h-[44px] inline-flex items-center text-[#6D4C41] hover:text-[#1B4332] transition-all duration-300 font-inter relative group px-1"
+                className="min-h-[44px] inline-flex items-center whitespace-nowrap px-0.5 font-inter text-[#6D4C41] transition-all duration-300 hover:text-[#1B4332] relative group"
               >
                 {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1B4332] to-[#FFD166] group-hover:w-full transition-all duration-300" />
+                <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-gradient-to-r from-[#1B4332] to-[#FFD166] transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex min-w-0 flex-1 basis-0 items-center justify-end gap-1 sm:gap-2">
+            <button
+              type="button"
+              className={`${touchBtn} shrink-0 rounded-xl border border-[#1B4332]/15 bg-white/80 text-[#1B4332] md:hidden`}
+              onClick={() => setMobileNavOpen((o) => !o)}
+              aria-expanded={mobileNavOpen}
+              aria-controls="mobile-nav-menu"
+              aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
+            >
+              {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
             {user ? (
               <>
                 <div className="relative">
@@ -178,6 +178,7 @@ export const Navbar = ({
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => {
                           setShowUserMenu(false);
                           setShowLogoutModal(true);
@@ -223,6 +224,7 @@ export const Navbar = ({
             )}
             <div className="relative">
               <button
+                type="button"
                 onClick={onOpenCart}
                 className="flex items-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 font-inter font-medium relative overflow-hidden group min-h-[44px] px-4 sm:px-6"
               >
@@ -253,7 +255,7 @@ export const Navbar = ({
             role="navigation"
             aria-label="Menu principal"
           >
-            <ul className="py-2 font-inter max-w-7xl mx-auto px-4">
+            <ul className={`${storefrontShellClass} py-2 font-inter`}>
               {navItems.map((item, index) => (
                 <li key={item}>
                   <a

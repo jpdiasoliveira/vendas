@@ -1,7 +1,8 @@
 import { ProductCard } from "./ProductCard";
 import type { Product } from "@/react-app/types";
-import { Loader2, Package } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { Loader2, Package } from "lucide-react";
+import { useNavigate } from "react-router";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 
 interface ProductGridProps {
   products: Product[];
@@ -46,7 +47,7 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
     }
 
     return (
-        <section id="produtos" className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto relative">
+        <section id="produtos" className={`relative py-16 sm:py-24 ${storefrontShellClass}`}>
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#FFD166]/10 to-transparent rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#1B4332]/10 to-transparent rounded-full blur-3xl"></div>
 
@@ -62,7 +63,7 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 relative z-10">
+            <div className="relative z-10 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                 {products.map((product) => (
                     <ProductCard
                         key={product.id}

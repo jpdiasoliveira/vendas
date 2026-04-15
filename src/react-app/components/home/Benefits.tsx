@@ -1,4 +1,5 @@
-import { Leaf, Shield, MapPin } from 'lucide-react';
+import { Leaf, Shield, MapPin } from "lucide-react";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 
 export function Benefits() {
     return (
@@ -9,7 +10,7 @@ export function Benefits() {
                 <div className="absolute bottom-10 right-10 w-64 h-64 bg-[#FFD166]/20 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite_reverse]"></div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className={`relative z-10 ${storefrontShellClass}`}>
                 <div className="grid md:grid-cols-3 gap-8 text-center">
                     <div className="flex flex-col items-center space-y-4 group">
                         <div className="relative">

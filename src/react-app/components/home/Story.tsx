@@ -1,4 +1,5 @@
-import { Leaf, MapPin } from 'lucide-react';
+import { Leaf, MapPin } from "lucide-react";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 
 export function Story() {
     return (
@@ -9,7 +10,7 @@ export function Story() {
                 <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#FFD166]/10 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className={`relative z-10 ${storefrontShellClass}`}>
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="order-2 md:order-1">
                         <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-8 md:p-10 border border-white/50 shadow-2xl">

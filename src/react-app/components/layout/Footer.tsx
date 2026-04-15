@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import type { StorePublicProfile } from "@/react-app/types";
 
 function whatsappHref(raw: string | null | undefined): string | null {
@@ -122,8 +123,8 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
       <div className="absolute inset-0 bg-gradient-to-br from-[#1B4332] via-[#2D5F4A] to-[#1B4332]" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#FFD166]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 text-white py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="relative z-10 py-20 text-white">
+        <div className={storefrontShellClass}>
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4 group">

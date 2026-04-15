@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 
 export function Newsletter() {
     const [email, setEmail] = useState('');
@@ -32,11 +33,12 @@ export function Newsletter() {
     };
 
     return (
-        <section className="py-24 px-4 relative overflow-hidden">
+        <section className="relative overflow-hidden py-24">
             <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F3] to-white"></div>
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-b from-[#FFD166]/20 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="max-w-3xl mx-auto text-center relative z-10">
+            <div className={`relative z-10 ${storefrontShellClass}`}>
+            <div className="mx-auto max-w-3xl text-center">
                 <div className="bg-white/60 backdrop-blur-2xl rounded-3xl p-12 border border-white/50 shadow-2xl">
                     <div className="inline-block bg-gradient-to-r from-[#1B4332]/10 to-[#FFD166]/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-[#1B4332]/10">
                         <span className="text-sm font-medium text-[#1B4332] font-inter">Newsletter</span>
@@ -64,6 +66,7 @@ export function Newsletter() {
                         </button>
                     </form>
                 </div>
+            </div>
             </div>
         </section>
     );

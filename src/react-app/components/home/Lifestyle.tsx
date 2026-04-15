@@ -1,10 +1,12 @@
+import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+
 export function Lifestyle() {
     return (
-        <section className="py-24 px-4 relative overflow-hidden">
+        <section className="relative overflow-hidden py-24">
             <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F3] via-white to-[#FAF8F3]"></div>
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#FFD166]/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="max-w-7xl mx-auto relative z-10">
+            <div className={`relative z-10 ${storefrontShellClass}`}>
                 <div className="text-center mb-16">
                     <div className="inline-block bg-white/60 backdrop-blur-sm px-6 py-2 rounded-full mb-4 border border-[#1B4332]/10">
                         <span className="text-sm font-medium text-[#1B4332] font-inter">Estilo de Vida</span>

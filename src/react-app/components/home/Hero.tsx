@@ -1,4 +1,5 @@
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles } from "lucide-react";
+import { STOREFRONT_EDGE_PADDING_CLASS } from "@/react-app/utils/storefrontLayout";
 
 export function Hero({ onShopClick }: { onShopClick: () => void }) {
     return (
@@ -12,7 +13,7 @@ export function Hero({ onShopClick }: { onShopClick: () => void }) {
                 <div className="absolute inset-0 bg-gradient-to-b from-[#1B4332]/60 via-[#1B4332]/40 to-[#1B4332]/70"></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#FFD166]/10 via-transparent to-[#1B4332]/20"></div>
             </div>
-            <div className="relative z-10 text-center px-4 max-w-3xl mx-auto w-full">
+            <div className={`relative z-10 mx-auto w-full max-w-3xl text-center ${STOREFRONT_EDGE_PADDING_CLASS}`}>
                 <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 md:p-8 border border-white/20 shadow-2xl animate-[float_6s_ease-in-out_infinite]">
                     <div className="inline-flex items-center space-x-2 bg-[#FFD166]/20 backdrop-blur-sm px-3 py-2 rounded-full mb-4 border border-[#FFD166]/30">
                         <Sparkles className="h-4 w-4 text-[#FFD166] shrink-0" />

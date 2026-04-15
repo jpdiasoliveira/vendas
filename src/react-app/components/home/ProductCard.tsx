@@ -32,7 +32,7 @@ export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) =
   };
 
   return (
-    <div className={`group relative ${isFeatured ? "md:-mt-4" : ""}`}>
+    <div className="group relative">
       <div
         className={`absolute inset-0 rounded-3xl bg-gradient-to-br transition-all duration-500 ${
           isFeatured
