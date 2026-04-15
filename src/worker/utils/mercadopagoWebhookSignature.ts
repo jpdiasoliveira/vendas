@@ -53,19 +53,50 @@ export type MercadoPagoWebhookVerifyEnv = {
   MERCADO_PAGO_WEBHOOK_SECRET?: string;
 };
 
+export type MercadoPagoWebhookVerifyOptions = {
+  /**
+   * true: exige `MERCADO_PAGO_WEBHOOK_SECRET` configurado e assinatura válida (produção multi-tenant).
+   * false: sem secret → aceita; com secret → valida (desenvolvimento / legado).
+   */
+  requireSecretAndSignature: boolean;
+};
+
 /**
- * Se `MERCADO_PAGO_WEBHOOK_SECRET` estiver definido, valida x-signature.
- * Sem secret configurado, retorna ok (compatível com integrações antigas — configure em produção).
+ * Valida notificação conforme política.
+ * Modo estrito: sem secret ou assinatura inválida → ok: false (sem atalhos).
  */
 export async function verifyMercadoPagoWebhookSignature(
   env: MercadoPagoWebhookVerifyEnv,
   headers: Headers,
   requestUrl: string,
-  dataId: string | null | undefined
+  dataId: string | null | undefined,
+  options: MercadoPagoWebhookVerifyOptions
 ): Promise<{ ok: boolean; reason?: string }> {
   const secret = env.MERCADO_PAGO_WEBHOOK_SECRET?.trim();
-  if (!secret) return { ok: true };
+  const mandatory = options.requireSecretAndSignature;
 
+  if (mandatory) {
+    if (!secret) {
+      return {
+        ok: false,
+        reason: "REQUIRE_MP_WEBHOOK_SECRET ativo: MERCADO_PAGO_WEBHOOK_SECRET não configurado",
+      };
+    }
+    return verifySignatureWithSecret(secret, headers, requestUrl, dataId);
+  }
+
+  if (!secret) {
+    return { ok: true };
+  }
+  return verifySignatureWithSecret(secret, headers, requestUrl, dataId);
+}
+
+async function verifySignatureWithSecret(
+  secret: string,
+  headers: Headers,
+  requestUrl: string,
+  dataId: string | null | undefined
+): Promise<{ ok: boolean; reason?: string }> {
   const parsed = parseXSignature(headers.get("x-signature"));
   if (!parsed) return { ok: false, reason: "x-signature ausente ou inválido" };
 
@@ -74,7 +105,7 @@ export async function verifyMercadoPagoWebhookSignature(
   const urlObj = new URL(requestUrl);
   const fromQuery = urlObj.searchParams.get("data.id");
   const id = String(fromQuery ?? dataId ?? "").trim();
-  if (!id) return { ok: false, reason: "data.id ausente" };
+  if (!id) return { ok: false, reason: "data.id ausente (body ou query)" };
 
   const requestId = headers.get("x-request-id")?.trim() ?? "";
   const segments: string[] = [];

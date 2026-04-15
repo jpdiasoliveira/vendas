@@ -13,5 +13,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # MERCADO_PAGO_ACCESS_TOKEN=
 # Secret de assinatura dos webhooks (Suas integrações > Webhooks) — recomendado em produção
 # MERCADO_PAGO_WEBHOOK_SECRET=
+# Produção SaaS: true + secret obrigatórios. Dev: false ou omitido permite webhook sem assinatura
+# REQUIRE_MP_WEBHOOK_SECRET=false
 # CORS: origens permitidas separadas por vírgula (não use *)
 # CORS_ORIGIN=http://localhost:5173,https://seu-dominio.com

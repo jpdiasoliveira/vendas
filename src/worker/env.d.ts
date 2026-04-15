@@ -5,6 +5,11 @@ interface Env {
   MERCADO_PAGO_ACCESS_TOKEN: string;
   /** Secret da assinatura de webhooks (Suas integrações > Webhooks). Recomendado em produção. */
   MERCADO_PAGO_WEBHOOK_SECRET?: string;
+  /**
+   * Se true: webhook MP recusa sem secret ou com assinatura inválida (403). Obrigatório em produção SaaS.
+   * false/omitido: permite notificação sem secret (apenas desenvolvimento).
+   */
+  REQUIRE_MP_WEBHOOK_SECRET?: string | boolean;
   /** Origens CORS permitidas, separadas por vírgula. Padrão dev: http://localhost:5173 */
   CORS_ORIGIN?: string;
   SUPABASE_URL: string;

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { getPayment } from "../services/mercadopago.js";
 import { updateOrderPaymentStatus, updateOrderStatus, getOrderById } from "../core/database.js";
+import { isRequireMpWebhookSecret } from "../core/config.js";
 import { verifyMercadoPagoWebhookSignature } from "../utils/mercadopagoWebhookSignature.js";
 
 const webhooks = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -16,15 +17,20 @@ webhooks.post("/mercadopago", async (c) => {
     console.log("[Webhook MP] Received:", JSON.stringify({ type: body.type, dataId: body.data?.id }));
 
     const paymentIdStr = body.data?.id;
+    const dataIdForSignature =
+      paymentIdStr ?? new URL(c.req.url).searchParams.get("data.id") ?? undefined;
+
+    const strict = isRequireMpWebhookSecret(c.env);
     const sigCheck = await verifyMercadoPagoWebhookSignature(
       c.env,
       c.req.raw.headers,
       c.req.url,
-      paymentIdStr ?? new URL(c.req.url).searchParams.get("data.id")
+      dataIdForSignature,
+      { requireSecretAndSignature: strict }
     );
     if (!sigCheck.ok) {
-      console.warn("[Webhook MP] Assinatura inválida:", sigCheck.reason);
-      return c.json({ success: false, error: "Não autorizado" }, 401);
+      console.warn("[Webhook MP] Recusa (assinatura / política):", sigCheck.reason, { strict });
+      return c.json({ success: false, error: "Não autorizado" }, 403);
     }
     if (!paymentIdStr) {
       console.warn("[Webhook MP] Missing data.id");
