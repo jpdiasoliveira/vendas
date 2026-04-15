@@ -4,11 +4,19 @@
  * O mapeamento snake_case <-> camelCase fica na camada database.ts.
  */
 
+import type { StorePublicProfile } from "./storePublicProfile.js";
+
+export type { StorePublicProfile } from "./storePublicProfile.js";
+
 export interface Store {
   id: string;
   slug: string;
   displayName: string;
   status: string;
+  /** Plano SaaS (ex.: free, pro). */
+  planTier?: string | null;
+  /** Metadados livres da loja (JSONB). */
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +27,16 @@ export interface StoreSettings {
   logoUrl?: string | null;
   primaryColor?: string | null;
   minimumOrderValue?: number | null;
+  /** Conteúdo de store_settings.public_profile (JSONB). */
+  publicProfile?: StorePublicProfile;
+  /** Aparência extra (theme JSONB). */
+  theme?: Record<string, unknown> | null;
+  /** Regras de negócio (JSONB). */
+  businessRules?: Record<string, unknown> | null;
+  /** Horários / SLA (JSONB). */
+  operatingHours?: Record<string, unknown> | null;
+  /** Limites de pedido (JSONB). */
+  orderLimits?: Record<string, unknown> | null;
 }
 
 export interface Product {
@@ -41,6 +59,8 @@ export interface Product {
   status?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  /** Metadados do SKU (JSONB). */
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface Category {
@@ -48,26 +68,33 @@ export interface Category {
   storeId: string;
   name: string;
   slug?: string;
+  sortOrder?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface Order {
   /** ID do pedido (UUID no Supabase). */
   id: string;
   storeId: string;
-  userId: string;
+  /** Usuário Supabase; null em pedido checkout visitante. */
+  userId: string | null;
+  /** E-mail usado para validar pagamento/consulta quando userId é null. */
+  guestCheckoutEmail?: string | null;
   /** Nome do cliente (opcional; pode vir do perfil do usuário ou ser preenchido no pedido) */
   customerName?: string | null;
   /** Telefone do cliente (customer_phone no banco) */
   customerPhone?: string | null;
   status: string;
   total: number;
+  currency?: string | null;
   paymentMethod?: string | null;
+  paymentId?: string | null;
   paymentStatus?: string | null;
   /** Endereço completo de entrega (coluna delivery_address no banco) */
   deliveryAddress?: string | null;
-  /** Cidade do endereço de entrega (orders ou delivery_addresses) */
+  /** Cidade do endereço de entrega (coluna orders.shipping_city) */
   shippingCity?: string | null;
   /** UF do endereço de entrega */
   shippingState?: string | null;
@@ -75,12 +102,16 @@ export interface Order {
   trackingCode?: string | null;
   /** Nome/método da transportadora */
   shippingMethod?: string | null;
+  paidAt?: string | null;
+  deliveredAt?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt?: string;
 }
 
 export interface OrderItem {
-  id?: number;
+  id?: string;
   orderId: string;
   storeId: string;
   productId: string;
@@ -88,13 +119,15 @@ export interface OrderItem {
   productImage?: string | null;
   quantity: number;
   price: number;
+  metadata?: Record<string, unknown> | null;
+  createdAt?: string;
 }
 
 /** Pedido com itens (detalhamento completo para admin). */
 export interface OrderDetail {
   id: string;
   storeId: string;
-  userId: string;
+  userId: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
   status: string;
@@ -106,9 +139,24 @@ export interface OrderDetail {
   shippingState?: string | null;
   trackingCode?: string | null;
   shippingMethod?: string | null;
+  guestCheckoutEmail?: string | null;
+  currency?: string | null;
+  paymentId?: string | null;
+  paidAt?: string | null;
+  deliveredAt?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt?: string;
   items: OrderItem[];
+}
+
+/** Membro da loja (Supabase Auth + store_members). */
+export interface StoreMember {
+  id: string;
+  userId: string;
+  storeId: string;
+  role: string;
 }
 
 /** Payload do carrinho enviado pelo frontend (camelCase) */

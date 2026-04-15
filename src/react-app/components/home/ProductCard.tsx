@@ -76,9 +76,9 @@ export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) =
             />
           </div>
           <div className="bg-gradient-to-b from-white/60 to-white/80 px-6 pb-2 pt-2 backdrop-blur-sm">
-            <h4 className="mb-2 font-playfair text-2xl font-bold text-[#1B4332]">{product.name}</h4>
+            <h4 className="mb-2 font-playfair text-xl font-bold text-[#1B4332] sm:text-2xl break-words">{product.name}</h4>
             {description ? (
-              <p className="mb-2 line-clamp-2 font-inter text-sm text-[#6D4C41]">{description}</p>
+              <p className="mb-2 line-clamp-3 font-inter text-base text-[#5a4035] leading-snug">{description}</p>
             ) : null}
             <span className="inline-block font-inter text-sm font-semibold text-[#1B4332] underline decoration-[#1B4332]/30 underline-offset-4 transition-colors group-hover:decoration-[#1B4332]">
               Ver detalhes
@@ -87,13 +87,13 @@ export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) =
         </button>
 
         <div className="flex items-center justify-between bg-gradient-to-b from-white/50 to-white/90 px-6 pb-6 pt-2 backdrop-blur-sm">
-          <span className="bg-gradient-to-r from-[#1B4332] to-[#6D4C41] bg-clip-text font-playfair text-3xl font-bold text-transparent">
+          <span className="min-h-[44px] bg-gradient-to-r from-[#1B4332] to-[#6D4C41] bg-clip-text font-playfair text-2xl font-bold text-transparent sm:text-3xl">
             {formatBRL(product.price)}
           </span>
           <button
             type="button"
             onClick={handleAdd}
-            className="rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-2.5 font-inter font-medium text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#1B4332]/30"
+            className="min-h-[44px] min-w-[44px] shrink-0 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-5 py-3 font-inter text-base font-medium text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-lg hover:shadow-[#1B4332]/30"
           >
             Adicionar
           </button>

@@ -37,6 +37,7 @@ export async function logAction(
       action,
       resource_type: resourceType,
       resource_id: resourceId,
+      resource_label: `${resourceType} #${resourceId}`,
       details: details ?? null,
       created_at: new Date().toISOString(),
     });

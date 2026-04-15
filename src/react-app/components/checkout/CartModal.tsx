@@ -22,6 +22,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
 
   const { createOrder, isProcessing, error } = useCheckout();
   const { settings } = useStoreSettings();
@@ -29,6 +30,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   if (!isOpen) return null;
 
   const minimumOrderValue = settings?.minimumOrderValue ?? null;
+  const requireLoginToCheckout = settings?.publicProfile?.requireLoginToCheckout !== false;
   const belowMinimum =
     minimumOrderValue != null && minimumOrderValue > 0 && total < minimumOrderValue;
   const hasInsufficientStock = items.some(
@@ -36,11 +38,22 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
   );
   const hasRequiredFields =
     customerPhone.trim() !== "" && deliveryAddress.trim() !== "";
-  const canFinalize = !hasInsufficientStock && hasRequiredFields && !belowMinimum;
+  const guestEmailOk = (() => {
+    const t = guestEmail.trim();
+    return t.length > 4 && t.includes("@") && !t.includes(" ");
+  })();
+  const canFinalize =
+    !hasInsufficientStock &&
+    hasRequiredFields &&
+    !belowMinimum &&
+    (requireLoginToCheckout ? !!user : !!user || guestEmailOk);
 
   const handleCheckout = async () => {
-    if (!user) {
+    if (requireLoginToCheckout && !user) {
       setShowLoginModal(true);
+      return;
+    }
+    if (!requireLoginToCheckout && !user && !guestEmailOk) {
       return;
     }
     if (!customerPhone.trim()) {
@@ -69,6 +82,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         deliveryAddress: deliveryAddress.trim() || undefined,
+        guestEmail: !user && guestEmailOk ? guestEmail.trim() : undefined,
       });
       setCurrentOrderId(data.orderId);
       setShowCheckoutModal(true);
@@ -84,9 +98,9 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
         onClick={onClose}
       />
 
-      <div className="fixed right-0 top-0 z-[100] h-full w-full transform bg-white shadow-2xl transition-transform duration-300 ease-out md:w-[480px]">
-        <div className="flex flex-col h-full">
-          <div className="bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white p-6 flex items-center justify-between">
+      <div className="fixed right-0 top-0 z-[100] h-[100dvh] max-h-[100dvh] w-full max-w-full transform bg-white shadow-2xl transition-transform duration-300 ease-out md:w-[min(480px,100%)]">
+        <div className="flex h-full max-h-[inherit] flex-col overflow-hidden">
+          <div className="shrink-0 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white p-4 sm:p-6 flex items-center justify-between gap-3">
             <div className="flex items-center space-x-3">
               <div className="bg-white/20 backdrop-blur-sm p-2 rounded-full">
                 <ShoppingBag className="h-6 w-6" />
@@ -100,13 +114,15 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
             </div>
             <button
               onClick={onClose}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm p-2 rounded-full transition-all duration-300 hover:scale-110"
+              type="button"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors"
+              aria-label="Fechar carrinho"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-[#FAF8F3] to-white">
+          <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 bg-gradient-to-b from-[#FAF8F3] to-white">
             {error && (
               <div className="bg-red-50 text-red-500 p-4 rounded-xl mb-4 font-inter text-sm">
                 {error}
@@ -184,23 +200,27 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                           </div>
                           <div className="flex items-center space-x-3">
                             <button
+                              type="button"
                               onClick={() =>
                                 updateQuantity(item.id, item.quantity - 1)
                               }
-                              className="bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white p-1.5 rounded-lg hover:shadow-lg transition-all duration-300 hover:scale-105"
+                              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white hover:shadow-lg transition-transform active:scale-95"
+                              aria-label="Diminuir quantidade"
                             >
-                              <Minus className="h-4 w-4" />
+                              <Minus className="h-5 w-5" />
                             </button>
-                            <span className="font-bold text-[#1B4332] w-8 text-center font-inter">
+                            <span className="font-bold text-[#1B4332] min-w-[2rem] text-center text-base font-inter">
                               {item.quantity}
                             </span>
                             <button
+                              type="button"
                               onClick={() =>
                                 updateQuantity(item.id, item.quantity + 1)
                               }
-                              className="bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white p-1.5 rounded-lg hover:shadow-lg transition-all duration-300 hover:scale-105"
+                              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white hover:shadow-lg transition-transform active:scale-95"
+                              aria-label="Aumentar quantidade"
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-5 w-5" />
                             </button>
                             <span className="text-sm text-[#6D4C41] font-inter ml-1">
                               = R$ {lineTotal.toFixed(2)}
@@ -216,7 +236,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
           </div>
 
           {items.length > 0 && (
-            <div className="bg-white border-t border-[#1B4332]/10 p-6 space-y-4">
+            <div className="shrink-0 border-t border-[#1B4332]/10 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(27,67,50,0.08)] sm:p-6 space-y-4">
               <div className="space-y-3 font-inter">
                 <label className="block text-sm font-medium text-[#6D4C41]">
                   Nome do cliente
@@ -226,7 +246,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Como devemos chamar você?"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#1B4332]/20 bg-white/80 text-base text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
                   aria-label="Nome do cliente"
                 />
                 <label className="block text-sm font-medium text-[#6D4C41]">
@@ -238,7 +258,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="(00) 00000-0000"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#1B4332]/20 bg-white/80 text-base text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
                   aria-label="Telefone para contato"
                   aria-required="true"
                 />
@@ -251,7 +271,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="Rua, número, bairro, cidade..."
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white/80 text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                  className="w-full px-4 py-3 rounded-xl border border-[#1B4332]/20 bg-white/80 text-base text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
                   aria-label="Endereço de entrega"
                   aria-required="true"
                 />
@@ -266,6 +286,30 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                   Estoque insuficiente em um ou mais itens. Ajuste as quantidades ou remova itens.
                 </p>
               )}
+              {!requireLoginToCheckout && !user && (
+                <div>
+                  <label className="block text-sm font-medium text-[#6D4C41] mb-1">
+                    E-mail para confirmação e pagamento <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    autoComplete="email"
+                    className="w-full px-4 py-3 rounded-xl border border-[#1B4332]/20 bg-white/80 text-base text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]"
+                    aria-label="E-mail (checkout sem login)"
+                  />
+                  <p className="text-xs text-[#6D4C41]/80 mt-1">
+                    Use o mesmo e-mail ao pagar e para consultar o status do pedido.
+                  </p>
+                </div>
+              )}
+              {requireLoginToCheckout && !user && items.length > 0 && (
+                <p className="text-amber-800 text-sm font-inter bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  Faça login para finalizar a compra. Use o botão abaixo: será solicitado e-mail e senha (ou Google).
+                </p>
+              )}
               {!hasRequiredFields && items.length > 0 && (
                 <p className="text-amber-700 text-sm font-inter">
                   Preencha telefone e endereço de entrega para finalizar.
@@ -278,15 +322,21 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={handleCheckout}
                 disabled={isProcessing || !canFinalize}
-                className="w-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] py-4 rounded-full font-bold text-lg hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-300 hover:scale-105 font-inter disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex min-h-[52px] w-full items-center justify-center rounded-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] py-4 text-base font-bold text-[#1B4332] shadow-md hover:shadow-xl hover:shadow-[#FFD166]/40 transition-transform active:scale-[0.99] font-inter disabled:opacity-50 disabled:cursor-not-allowed sm:text-lg"
               >
-                {isProcessing ? "Processando..." : "Finalizar Compra"}
+                {isProcessing
+                  ? "Processando..."
+                  : requireLoginToCheckout && !user
+                    ? "Entrar e finalizar"
+                    : "Finalizar Compra"}
               </button>
               <button
+                type="button"
                 onClick={clearCart}
-                className="w-full text-[#6D4C41] hover:text-red-600 font-medium py-2 transition-colors font-inter"
+                className="flex min-h-[44px] w-full items-center justify-center rounded-xl text-base font-medium text-[#6D4C41] transition-colors hover:bg-red-50 hover:text-red-700 font-inter"
               >
                 Limpar Carrinho
               </button>
@@ -307,6 +357,7 @@ export default function CartModal({ isOpen, onClose }: CartModalProps) {
           }}
           orderId={currentOrderId}
           total={total}
+          guestCheckoutEmail={!user && guestEmail.trim() ? guestEmail.trim() : null}
         />
       )}
     </>

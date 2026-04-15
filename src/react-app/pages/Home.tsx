@@ -26,7 +26,7 @@ export default function HomePage() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]">
       <Navbar
         onOpenCart={() => setIsCartOpen(true)}
         onOpenLogin={() => setShowLoginModal(true)}

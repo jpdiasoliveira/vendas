@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { apiFetch } from "@/react-app/services/api";
+import type { StorePublicProfile } from "@/react-app/types";
 
 export interface StoreSettingsData {
   displayName: string;
   logoUrl?: string | null;
   primaryColor?: string | null;
   minimumOrderValue?: number | null;
+  publicProfile?: StorePublicProfile;
 }
 
 interface StoreSettingsContextType {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Leaf, User, Package, LogOut, ShoppingCart } from "lucide-react";
+import { Leaf, User, Package, LogOut, ShoppingCart, Menu, X } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAuth } from "@/react-app/contexts/AuthContext";
@@ -13,10 +13,13 @@ interface NavbarProps {
   scrollToTop: () => void;
 }
 
-export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop }: NavbarProps) {
+const touchBtn = "min-h-[44px] min-w-[44px] inline-flex items-center justify-center";
+
+export const Navbar = ({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { itemCount } = useCart();
   const { settings } = useStoreSettings();
   const { user, signOut } = useAuth();
@@ -31,8 +34,31 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
   const navItems = ["Início", "Produtos", "Nossa História", "Contato"] as const;
   const navIds = ["#", "#produtos", "#historia", "#contato"] as const;
+
+  const closeMobileNav = () => setMobileNavOpen(false);
+
+  const handleNavClick = (index: number, e: React.MouseEvent) => {
+    if (index === 0) {
+      e.preventDefault();
+      scrollToTop();
+    }
+    if (index === 1) {
+      e.preventDefault();
+      scrollToProducts();
+    }
+    closeMobileNav();
+  };
 
   return (
     <nav
@@ -41,44 +67,54 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          <div className="flex items-center space-x-2 group">
+        <div className="flex justify-between items-center h-20 gap-2 min-w-0">
+          <div className="flex items-center space-x-2 group min-w-0 flex-1">
             <div className="relative flex-shrink-0">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt=""
-                  className="h-8 w-8 object-contain group-hover:scale-105 transition-transform duration-300"
+                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain group-hover:scale-105 transition-transform duration-300"
                 />
               ) : (
                 <>
-                  <Leaf className="h-8 w-8 text-[#1B4332] group-hover:rotate-12 transition-transform duration-300" style={{ color: primaryColor }} />
+                  <Leaf
+                    className="h-9 w-9 sm:h-10 sm:w-10 text-[#1B4332] group-hover:rotate-12 transition-transform duration-300"
+                    style={{ color: primaryColor }}
+                  />
                   <div className="absolute inset-0 bg-[#FFD166]/20 blur-xl rounded-full group-hover:bg-[#FFD166]/30 transition-all" />
                 </>
               )}
             </div>
-            <div className="cursor-pointer" onClick={scrollToTop}>
-              <h1 className="text-2xl font-bold font-playfair" style={{ color: primaryColor }}>{displayName}</h1>
-              <p className="text-xs text-[#6D4C41]/70">Chips da Amazônia</p>
+            <div className="cursor-pointer min-w-0" onClick={scrollToTop}>
+              <h1
+                className="text-lg sm:text-2xl font-bold font-playfair truncate"
+                style={{ color: primaryColor }}
+              >
+                {displayName}
+              </h1>
+              <p className="text-xs text-[#6D4C41]/80 truncate">Chips da Amazônia</p>
             </div>
           </div>
+
+          <button
+            type="button"
+            className={`${touchBtn} md:hidden rounded-xl border border-[#1B4332]/15 bg-white/80 text-[#1B4332] shrink-0`}
+            onClick={() => setMobileNavOpen((o) => !o)}
+            aria-expanded={mobileNavOpen}
+            aria-controls="mobile-nav-menu"
+            aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
 
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item, index) => (
               <a
                 key={item}
                 href={navIds[index]}
-                onClick={(e) => {
-                  if (index === 0) {
-                    e.preventDefault();
-                    scrollToTop();
-                  }
-                  if (index === 1) {
-                    e.preventDefault();
-                    scrollToProducts();
-                  }
-                }}
-                className="text-[#6D4C41] hover:text-[#1B4332] transition-all duration-300 font-inter relative group"
+                onClick={(e) => handleNavClick(index, e)}
+                className="min-h-[44px] inline-flex items-center text-[#6D4C41] hover:text-[#1B4332] transition-all duration-300 font-inter relative group px-1"
               >
                 {item}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#1B4332] to-[#FFD166] group-hover:w-full transition-all duration-300" />
@@ -86,29 +122,29 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
             ))}
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {user ? (
               <>
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm text-[#1B4332] px-4 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium border border-[#1B4332]/10"
+                    className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
                   >
                     <User className="h-5 w-5 shrink-0" />
-                    <span className="hidden max-w-[10rem] truncate md:inline">
+                    <span className="hidden max-w-[10rem] truncate lg:inline">
                       {user.email?.split("@")[0]?.trim() || "Minha conta"}
                     </span>
                   </button>
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
+                    <div className="absolute right-0 mt-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 py-2 z-50">
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
                           navigate("/pedidos");
                         }}
-                        className="w-full flex items-center space-x-2 px-4 py-2.5 text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter"
+                        className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
                       >
-                        <Package className="h-4 w-4" />
+                        <Package className="h-4 w-4 shrink-0" />
                         <span>Meus Pedidos</span>
                       </button>
                       <button
@@ -116,9 +152,9 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
                           setShowUserMenu(false);
                           setShowLogoutModal(true);
                         }}
-                        className="w-full flex items-center space-x-2 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-inter"
+                        className="w-full flex items-center gap-2 px-4 min-h-[44px] text-red-600 hover:bg-red-50 transition-colors font-inter text-left"
                       >
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="h-4 w-4 shrink-0" />
                         <span>Sair</span>
                       </button>
                     </div>
@@ -136,23 +172,23 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
             ) : (
               <button
                 onClick={onOpenLogin}
-                className="flex items-center space-x-2 bg-white/60 backdrop-blur-sm text-[#1B4332] px-4 py-2.5 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium border border-[#1B4332]/10"
+                className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
               >
-                <User className="h-5 w-5" />
-                <span className="hidden md:inline">Entrar</span>
+                <User className="h-5 w-5 shrink-0" />
+                <span className="hidden sm:inline">Entrar</span>
               </button>
             )}
             <div className="relative">
               <button
                 onClick={onOpenCart}
-                className="flex items-center space-x-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-6 py-2.5 rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 hover:scale-105 font-inter font-medium relative overflow-hidden group"
+                className="flex items-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 font-inter font-medium relative overflow-hidden group min-h-[44px] px-4 sm:px-6"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#FFE084] to-[#FFD166] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <ShoppingCart className="h-5 w-5 relative z-10" />
-                <span className="relative z-10">Carrinho</span>
+                <ShoppingCart className="h-5 w-5 relative z-10 shrink-0" />
+                <span className="relative z-10 hidden sm:inline">Carrinho</span>
               </button>
               {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg z-10">
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white text-xs font-bold rounded-full min-h-[22px] min-w-[22px] px-1 flex items-center justify-center shadow-lg z-10">
                   {itemCount}
                 </span>
               )}
@@ -160,6 +196,36 @@ export function Navbar({ onOpenCart, onOpenLogin, scrollToProducts, scrollToTop 
           </div>
         </div>
       </div>
+
+      {mobileNavOpen && (
+        <>
+          <div
+            className="fixed inset-x-0 top-20 bottom-0 z-[35] bg-black/40 md:hidden"
+            aria-hidden
+            onClick={closeMobileNav}
+          />
+          <div
+            id="mobile-nav-menu"
+            className="fixed left-0 right-0 top-20 z-[36] md:hidden border-b border-[#1B4332]/10 bg-white/98 backdrop-blur-xl shadow-xl max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto overscroll-contain"
+            role="navigation"
+            aria-label="Menu principal"
+          >
+            <ul className="py-2 font-inter max-w-7xl mx-auto px-4">
+              {navItems.map((item, index) => (
+                <li key={item}>
+                  <a
+                    href={navIds[index]}
+                    onClick={(e) => handleNavClick(index, e)}
+                    className="flex items-center min-h-[48px] px-3 text-base font-medium text-[#1B4332] hover:bg-[#FAF8F3] active:bg-[#1B4332]/5 rounded-xl"
+                  >
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
     </nav>
   );
-}
+};

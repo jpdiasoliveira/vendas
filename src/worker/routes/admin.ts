@@ -21,6 +21,7 @@ import { productCreateSchema, productUpdateSchema } from "../schemas/product.js"
 import { Variables } from "../types.js";
 import type { AuthUser } from "../middlewares/verifyAuth.js";
 import { logAction } from "../utils/audit.js";
+import { parsePublicProfile } from "../core/storePublicProfile.js";
 
 const admin = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -69,6 +70,7 @@ admin.patch("/settings", async (c) => {
     logoUrl?: string | null;
     primaryColor?: string | null;
     minimumOrderValue?: number | null;
+    publicProfile?: Record<string, unknown> | null;
   };
   try {
     await updateStoreSettingsAndDisplayName(c.env, store.id, {
@@ -77,6 +79,8 @@ admin.patch("/settings", async (c) => {
       primaryColor: body.primaryColor,
       minimumOrderValue:
         body.minimumOrderValue != null ? Number(body.minimumOrderValue) : body.minimumOrderValue,
+      publicProfile:
+        body.publicProfile !== undefined ? parsePublicProfile(body.publicProfile) : undefined,
     });
     const data = await getStoreSettingsWithDisplayName(c.env, store.id);
     return c.json({ success: true, data }, 200);
@@ -320,7 +324,10 @@ admin.patch("/orders/:id/status", async (c) => {
   const newStatus = normalizeOrderStatus(body.status);
   if (!newStatus) {
     return c.json(
-      { success: false, error: "Status inválido. Use: pending, paid, shipped ou cancelled." },
+      {
+        success: false,
+        error: "Status inválido. Use: pending, paid, approved, shipped, delivered ou cancelled.",
+      },
       400
     );
   }

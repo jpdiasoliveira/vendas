@@ -9,12 +9,20 @@ interface PixPaymentModalProps {
     orderId: string;
     qrCode: string;
     qrCodeBase64: string;
+    guestCheckoutEmail?: string | null;
 }
 
 const POLL_INTERVAL_MS = 5000;
 const POLL_MAX_ATTEMPTS = 24;
 
-export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCodeBase64 }: PixPaymentModalProps) {
+export default function PixPaymentModal({
+    isOpen,
+    onClose,
+    orderId,
+    qrCode,
+    qrCodeBase64,
+    guestCheckoutEmail,
+}: PixPaymentModalProps) {
     const [copied, setCopied] = useState(false);
     const [paymentApproved, setPaymentApproved] = useState(false);
     const { checkPaymentStatus, isProcessing } = useCheckout();
@@ -39,7 +47,10 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
                 return;
             }
             try {
-                const order = await apiFetch<{ paymentStatus?: string }>(`/api/orders/${orderId}`);
+                const qs = guestCheckoutEmail?.trim()
+                    ? `?guestEmail=${encodeURIComponent(guestCheckoutEmail.trim())}`
+                    : "";
+                const order = await apiFetch<{ paymentStatus?: string }>(`/api/orders/${orderId}${qs}`);
                 if (order.paymentStatus === 'approved') {
                     setPaymentApproved(true);
                     if (pollIntervalRef.current) {
@@ -59,7 +70,7 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
         };
-    }, [isOpen, orderId]);
+    }, [isOpen, orderId, guestCheckoutEmail]);
 
     if (!isOpen) return null;
 
@@ -75,7 +86,7 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
 
     const verifyStatus = async () => {
         try {
-            const order = await checkPaymentStatus(orderId);
+            const order = await checkPaymentStatus(orderId, guestCheckoutEmail);
             if (order.paymentStatus === 'approved') {
                 setPaymentApproved(true);
             } else {
@@ -87,18 +98,20 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
     };
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-white/50 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[120] flex items-stretch justify-center p-0 sm:items-center sm:p-4">
+            <div className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+            <div className="relative flex h-full max-h-[100dvh] w-full max-w-2xl flex-col overflow-hidden border border-white/50 bg-white/95 shadow-2xl backdrop-blur-xl sm:h-auto sm:max-h-[min(90dvh,720px)] sm:rounded-3xl">
                 <button
+                    type="button"
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-[#6D4C41] hover:text-[#1B4332] transition-colors"
+                    className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full text-[#6D4C41] transition-colors hover:bg-[#1B4332]/10 hover:text-[#1B4332]"
+                    aria-label="Fechar"
                 >
                     <X className="h-6 w-6" />
                 </button>
 
-                <div className="text-center">
-                    <h2 className="text-3xl font-bold text-[#1B4332] font-playfair mb-4">Pague com Pix</h2>
+                <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pt-14 text-center sm:p-8 sm:pt-10">
+                    <h2 className="text-2xl font-bold text-[#1B4332] font-playfair sm:text-3xl mb-4 pr-10">Pague com Pix</h2>
 
                     {paymentApproved ? (
                         <div className="py-6">
@@ -108,68 +121,74 @@ export default function PixPaymentModal({ isOpen, onClose, orderId, qrCode, qrCo
                             <p className="text-xl font-bold text-[#1B4332] font-playfair mb-2">Pagamento aprovado!</p>
                             <p className="text-[#6D4C41] font-inter mb-6">Obrigado pela sua compra.</p>
                             <button
+                                type="button"
                                 onClick={onClose}
-                                className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-6 py-3 rounded-full font-bold font-inter"
+                                className="inline-flex min-h-[48px] min-w-[10rem] items-center justify-center rounded-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-8 py-3 text-base font-bold text-[#1B4332] font-inter shadow-md"
                             >
                                 Fechar
                             </button>
                         </div>
                     ) : (
                         <>
-                            <p className="text-[#6D4C41] mb-6 font-inter">Escaneie o QR Code abaixo ou use o Copia e Cola</p>
+                            <p className="text-base text-[#5a4035] mb-6 font-inter px-1">Escaneie o QR Code abaixo ou use o Copia e Cola</p>
 
                             {qrCodeBase64 && (
-                                <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 inline-block">
+                                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg mb-6 mx-auto inline-block max-w-full">
                                     <img
                                         src={`data:image/png;base64,${qrCodeBase64}`}
                                         alt="QR Code Pix"
-                                        className="w-64 h-64 mx-auto"
+                                        className="mx-auto h-auto w-full max-w-[min(16rem,85vw)] aspect-square object-contain"
                                     />
                                 </div>
                             )}
 
                             {qrCode && (
-                                <div className="bg-[#1B4332]/5 p-4 rounded-2xl mb-6">
-                                    <p className="text-sm text-[#6D4C41] font-inter mb-2">Código Pix Copia e Cola:</p>
-                                    <div className="flex items-center gap-2">
+                                <div className="bg-[#1B4332]/5 p-4 rounded-2xl mb-6 text-left">
+                                    <p className="text-base text-[#5a4035] font-inter mb-2">Código Pix Copia e Cola:</p>
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                                         <input
                                             type="text"
                                             value={qrCode}
                                             readOnly
-                                            className="flex-1 bg-white/60 border border-[#1B4332]/20 rounded-xl px-4 py-2 text-sm text-[#1B4332] font-mono"
+                                            className="min-h-[48px] w-full bg-white/60 border border-[#1B4332]/20 rounded-xl px-4 py-3 text-base text-[#1B4332] font-mono"
                                         />
                                         <button
+                                            type="button"
                                             onClick={() => handleCopy(qrCode)}
-                                            className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-4 py-2 rounded-xl font-bold hover:shadow-lg transition-all duration-300 flex items-center gap-2 shrink-0"
+                                            className="inline-flex min-h-[48px] w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-5 py-3 text-base font-bold text-[#1B4332] hover:shadow-lg transition-shadow sm:min-w-[8rem]"
                                         >
-                                            {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                                            {copied ? <Check className="h-5 w-5 shrink-0" /> : <Copy className="h-5 w-5 shrink-0" />}
                                             <span>{copied ? 'Copiado!' : 'Copiar'}</span>
                                         </button>
                                     </div>
                                 </div>
                             )}
-
-                            <button
-                                onClick={verifyStatus}
-                                disabled={isProcessing}
-                                className="w-full bg-[#1B4332] text-white py-3 rounded-full font-bold hover:bg-[#2d5a4a] transition-all duration-300 font-inter mb-4 flex items-center justify-center gap-2"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        <span>Verificando...</span>
-                                    </>
-                                ) : (
-                                    <span>Já paguei — Verificar status</span>
-                                )}
-                            </button>
-
-                            <p className="text-xs text-[#6D4C41]/70 font-inter">
-                                A confirmação é verificada automaticamente a cada 5s ou ao clicar em &quot;Já paguei&quot;.
-                            </p>
                         </>
                     )}
                 </div>
+
+                {!paymentApproved && (
+                    <div className="shrink-0 border-t border-[#1B4332]/10 bg-white/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(27,67,50,0.06)] sm:px-8">
+                        <button
+                            type="button"
+                            onClick={verifyStatus}
+                            disabled={isProcessing}
+                            className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#1B4332] py-3.5 text-base font-bold text-white transition-colors hover:bg-[#2d5a4a] font-inter disabled:opacity-60"
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+                                    <span>Verificando...</span>
+                                </>
+                            ) : (
+                                <span>Já paguei — Verificar status</span>
+                            )}
+                        </button>
+                        <p className="mt-3 text-center text-xs text-[#6D4C41]/80 font-inter sm:text-sm">
+                            A confirmação é verificada automaticamente a cada 5s ou ao clicar em &quot;Já paguei&quot;.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

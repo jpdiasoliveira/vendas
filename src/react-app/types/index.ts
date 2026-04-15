@@ -2,8 +2,12 @@
  * Tipos do frontend: espelho do schema do Worker (Source of Truth).
  * Re-exporta de src/worker/core/schema para garantir consistência.
  */
+export type { StorePublicProfile } from "@/worker/core/storePublicProfile";
+
 export type {
   Store,
+  StoreSettings,
+  StoreMember,
   Product,
   Order,
   OrderItem,

@@ -46,7 +46,7 @@ export const ProductDetailModal = ({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-[#6D4C41] transition-colors hover:bg-[#1B4332]/10 hover:text-[#1B4332]"
+          className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-[#6D4C41] transition-colors hover:bg-[#1B4332]/10 hover:text-[#1B4332]"
           aria-label="Fechar"
         >
           <X className="h-6 w-6" />
@@ -71,9 +71,9 @@ export const ProductDetailModal = ({
         </h2>
 
         {desc ? (
-          <p className="mb-6 font-inter text-[#6D4C41] leading-relaxed">{desc}</p>
+          <p className="mb-6 font-inter text-base text-[#5a4035] leading-relaxed">{desc}</p>
         ) : (
-          <p className="mb-6 font-inter text-sm italic text-[#6D4C41]/70">
+          <p className="mb-6 font-inter text-base italic text-[#5a4035]">
             Descrição detalhada em breve. Em dúvida, fale com a loja pelo pedido ou redes sociais.
           </p>
         )}
@@ -96,7 +96,7 @@ export const ProductDetailModal = ({
             onAddToCart();
             onClose();
           }}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-3.5 font-inter font-medium text-white shadow-lg transition-all hover:shadow-[#1B4332]/30"
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-3.5 text-base font-inter font-medium text-white shadow-lg transition-all hover:shadow-[#1B4332]/30"
         >
           <ShoppingBag className="h-5 w-5" />
           Adicionar ao carrinho

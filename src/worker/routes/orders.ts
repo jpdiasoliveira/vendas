@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { verifyCustomerAuth } from "../middlewares/verifyCustomerAuth.js";
+import { optionalCustomerAuth } from "../middlewares/optionalCustomerAuth.js";
 import {
   createOrder,
-  getOrderByIdAndStore,
+  getOrderForCustomerAccess,
   getOrdersByUserAndStore,
   getOrderItemsByOrderAndStore,
   updateOrderPayment,
@@ -10,18 +11,21 @@ import {
   getStoreSettingsWithDisplayName,
 } from "../core/database.js";
 import type { CartItemPayload } from "../core/schema.js";
-import { Variables } from "../types.js";
+import type { AuthUser, Variables } from "../types.js";
 import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
 
-orders.use("*", verifyCustomerAuth);
+function isValidGuestEmail(email: string): boolean {
+  const t = email.trim();
+  return t.length > 4 && t.includes("@") && !t.includes(" ");
+}
 
 /**
- * Cria pedido com itens do carrinho (store_id + user_id).
+ * Cria pedido (usuário logado ou visitante, conforme public_profile.requireLoginToCheckout).
  */
-orders.post("/", async (c) => {
-  const user = c.get("user") as { id: string };
+orders.post("/", optionalCustomerAuth, async (c) => {
+  const user = c.get("user") as AuthUser | undefined;
   const store = c.get("store");
   const body = (await c.req.json()) as {
     items?: CartItemPayload[];
@@ -30,6 +34,8 @@ orders.post("/", async (c) => {
     customerPhone?: string | null;
     delivery_address?: string | null;
     deliveryAddress?: string | null;
+    guestEmail?: string | null;
+    guest_email?: string | null;
   };
 
   if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
@@ -48,8 +54,24 @@ orders.post("/", async (c) => {
     return c.json({ success: false, error: "Endereço de entrega é obrigatório" }, 400);
   }
 
-  const orderTotal = body.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const storeSettings = await getStoreSettingsWithDisplayName(c.env, store.id);
+  const requireLogin = storeSettings.publicProfile?.requireLoginToCheckout !== false;
+
+  if (requireLogin && !user?.id) {
+    return c.json({ success: false, error: "Faça login para finalizar o pedido." }, 401);
+  }
+
+  const guestEmailRaw = (body.guestEmail ?? body.guest_email ?? "").trim();
+  if (!requireLogin && !user?.id) {
+    if (!isValidGuestEmail(guestEmailRaw)) {
+      return c.json(
+        { success: false, error: "Informe um e-mail válido para finalizar sem login." },
+        400
+      );
+    }
+  }
+
+  const orderTotal = body.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const minimumOrderValue = storeSettings.minimumOrderValue;
   if (minimumOrderValue != null && minimumOrderValue > 0 && orderTotal < minimumOrderValue) {
     return c.json(
@@ -69,13 +91,16 @@ orders.post("/", async (c) => {
   }
 
   try {
+    const guestCheckoutEmail =
+      !user?.id && guestEmailRaw ? guestEmailRaw.toLowerCase() : null;
     const { orderId, total } = await createOrder(c.env, {
       storeId: store.id,
-      userId: user.id,
+      userId: user?.id ?? null,
       items: body.items,
       customerName: body.customerName ?? null,
       customerPhone: phoneTrim || null,
       deliveryAddress: addressTrim || null,
+      guestCheckoutEmail,
     });
     return c.json(
       { success: true, data: { orderId, status: "pending", total } },
@@ -91,23 +116,34 @@ orders.post("/", async (c) => {
 /**
  * Registra método de pagamento. Para PIX, chama a API do Mercado Pago e retorna QR Code e Copia e Cola.
  */
-orders.post("/:id/payment", async (c) => {
-  const user = c.get("user") as { id: string; email?: string };
+orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
+  const user = c.get("user") as AuthUser | undefined;
   const store = c.get("store");
   const orderId = c.req.param("id");
-  const body = (await c.req.json()) as { payment_method?: string };
+  const body = (await c.req.json()) as {
+    payment_method?: string;
+    guestEmail?: string | null;
+    guest_email?: string | null;
+  };
 
   if (!body.payment_method) {
     return c.json({ success: false, error: "Payment method required" }, 400);
   }
 
-  const order = await getOrderByIdAndStore(c.env, orderId, user.id, store.id);
+  const guestEmail = body.guestEmail ?? body.guest_email ?? null;
+  const order = await getOrderForCustomerAccess(c.env, orderId, store.id, {
+    userId: user?.id,
+    guestEmail: guestEmail ?? undefined,
+  });
   if (!order) {
     return c.json({ success: false, error: "Pedido não encontrado" }, 404);
   }
 
   const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
-  const payerEmail = user.email?.trim() || "comprador@email.com";
+  const payerEmail =
+    order.guestCheckoutEmail?.trim() ||
+    user?.email?.trim() ||
+    "comprador@email.com";
 
   if (!token) {
     return c.json({ success: false, error: "Servidor não configurado (MP Token)" }, 500);
@@ -153,16 +189,14 @@ orders.post("/:id/payment", async (c) => {
 
   if (body.payment_method === "credit_card") {
     try {
-      // Pega os itens do pedido para mandar pro Checkout Pro
       const items = await getOrderItemsByOrderAndStore(c.env, orderId, store.id);
-      
+
       const prefItems = items.map((i) => ({
         title: i.productName,
         quantity: i.quantity,
         unit_price: Number(i.price),
       }));
 
-      // Caso não consiga pegar os itens, envia um item genérico com o total
       if (prefItems.length === 0) {
         prefItems.push({
           title: `Pedido #${orderId}`,
@@ -189,7 +223,7 @@ orders.post("/:id/payment", async (c) => {
           orderId,
           payment_method: "credit_card",
           init_point: pref.init_point,
-        }
+        },
       }, 200);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Falha ao gerar Cartão no Mercado Pago";
@@ -204,8 +238,8 @@ orders.post("/:id/payment", async (c) => {
 /**
  * Histórico de pedidos do usuário na loja.
  */
-orders.get("/", async (c) => {
-  const user = c.get("user") as { id: string };
+orders.get("/", verifyCustomerAuth, async (c) => {
+  const user = c.get("user") as AuthUser;
   const store = c.get("store");
 
   try {
@@ -218,14 +252,18 @@ orders.get("/", async (c) => {
 });
 
 /**
- * Detalhe de um pedido com itens.
+ * Detalhe de um pedido com itens (logado ou visitante com ?guestEmail=).
  */
-orders.get("/:id", async (c) => {
-  const user = c.get("user") as { id: string };
+orders.get("/:id", optionalCustomerAuth, async (c) => {
+  const user = c.get("user") as AuthUser | undefined;
   const store = c.get("store");
   const orderId = c.req.param("id");
+  const guestQ = c.req.query("guestEmail") ?? c.req.query("guest_email");
 
-  const order = await getOrderByIdAndStore(c.env, orderId, user.id, store.id);
+  const order = await getOrderForCustomerAccess(c.env, orderId, store.id, {
+    userId: user?.id,
+    guestEmail: guestQ ?? undefined,
+  });
   if (!order) {
     return c.json({ success: false, error: "Pedido não encontrado" }, 404);
   }

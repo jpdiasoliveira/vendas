@@ -4,7 +4,7 @@ import type { Variables } from "../types.js";
 
 /**
  * Rotas públicas da loja (exigem x-store-slug via storeMiddleware).
- * GET /api/store/settings: configurações para vitrine e carrinho (nome, logo, valor mínimo, cor).
+ * GET /api/store/settings: vitrine e carrinho (nome, logo, cor, valor mínimo, public_profile).
  */
 const store = new Hono<{ Bindings: Env; Variables: Variables }>();
 

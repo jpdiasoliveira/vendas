@@ -15,7 +15,12 @@ export function useCheckout() {
   /** Cria pedido com itens e opcionalmente nome, telefone e endereço. */
   const createOrder = async (
     items: { id: string; name: string; price: number; quantity: number; image?: string; imageUrl?: string }[],
-    options?: { customerName?: string; customerPhone?: string; deliveryAddress?: string }
+    options?: {
+      customerName?: string;
+      customerPhone?: string;
+      deliveryAddress?: string;
+      guestEmail?: string;
+    }
   ) => {
     setIsProcessing(true);
     setError(null);
@@ -24,6 +29,7 @@ export function useCheckout() {
       if (options?.customerName?.trim()) body.customerName = options.customerName.trim();
       if (options?.customerPhone?.trim()) body.customerPhone = options.customerPhone.trim();
       if (options?.deliveryAddress?.trim()) body.deliveryAddress = options.deliveryAddress.trim();
+      if (options?.guestEmail?.trim()) body.guestEmail = options.guestEmail.trim();
       const data = await apiFetch<CreateOrderData>("/api/orders", {
         method: "POST",
         body: JSON.stringify(body),
@@ -42,7 +48,8 @@ export function useCheckout() {
   /** Inicia pagamento (PIX, boleto ou cartão) para um pedido já criado. */
   const processPayment = async (
     orderId: string,
-    paymentMethod: string
+    paymentMethod: string,
+    guestEmail?: string | null
   ): Promise<{
     orderId?: string;
     pixCode?: string;
@@ -67,7 +74,10 @@ export function useCheckout() {
         init_point?: string;
       }>(`/api/orders/${orderId}/payment`, {
         method: "POST",
-        body: JSON.stringify({ payment_method: paymentMethod }),
+        body: JSON.stringify({
+          payment_method: paymentMethod,
+          ...(guestEmail?.trim() ? { guestEmail: guestEmail.trim() } : {}),
+        }),
       });
       return data ?? {};
     } catch (err: unknown) {
@@ -79,11 +89,17 @@ export function useCheckout() {
     }
   };
 
-  const checkPaymentStatus = async (orderId: string): Promise<OrderWithItems> => {
+  const checkPaymentStatus = async (
+    orderId: string,
+    guestEmail?: string | null
+  ): Promise<OrderWithItems> => {
     setIsProcessing(true);
     setError(null);
     try {
-      return await apiFetch<OrderWithItems>(`/api/orders/${orderId}`);
+      const qs = guestEmail?.trim()
+        ? `?guestEmail=${encodeURIComponent(guestEmail.trim())}`
+        : "";
+      return await apiFetch<OrderWithItems>(`/api/orders/${orderId}${qs}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao verificar status. Tente novamente.";
       setError(message);

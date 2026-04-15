@@ -213,8 +213,9 @@ export default function AdminOrdersPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => navigate("/")}
-              className="p-2 bg-white/60 backdrop-blur-sm rounded-full text-[#6D4C41] hover:text-[#1B4332] hover:bg-white transition-all shadow-sm border border-[#1B4332]/10"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1B4332]/10 bg-white/60 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
               aria-label="Voltar"
             >
               <Home className="h-5 w-5" />
@@ -233,7 +234,7 @@ export default function AdminOrdersPage() {
                 type="button"
                 onClick={() => void fetchOrders()}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/20 bg-white/80 px-4 py-2.5 font-medium text-[#1B4332] shadow-sm transition-all hover:bg-white disabled:opacity-60"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#1B4332]/20 bg-white/80 px-4 py-3 text-base font-medium text-[#1B4332] shadow-sm transition-all hover:bg-white disabled:opacity-60"
               >
                 <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
                 Atualizar
@@ -257,11 +258,11 @@ export default function AdminOrdersPage() {
           <>
             {orders.length > 0 && (
               <>
-                <div className="flex flex-wrap items-center gap-2 mb-4 font-inter">
+                <div className="mb-4 flex flex-col gap-3 font-inter sm:flex-row sm:flex-wrap sm:items-center">
                   <div
                     role="tablist"
                     aria-label="Abas de pedidos"
-                    className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1"
+                    className="inline-flex w-full max-w-full rounded-xl border border-slate-200 bg-slate-100 p-1 sm:w-auto"
                   >
                     <button
                       type="button"
@@ -270,7 +271,7 @@ export default function AdminOrdersPage() {
                       aria-controls="orders-tab-ativos"
                       id="tab-ativos"
                       onClick={() => setActiveTab("ativos")}
-                      className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                      className={`min-h-[44px] flex-1 rounded-lg px-4 py-3 text-base font-medium transition-colors sm:flex-none sm:text-sm ${
                         activeTab === "ativos"
                           ? "bg-white text-slate-800 shadow-sm"
                           : "text-slate-600 hover:text-slate-800"
@@ -288,7 +289,7 @@ export default function AdminOrdersPage() {
                       aria-controls="orders-tab-historico"
                       id="tab-historico"
                       onClick={() => setActiveTab("historico")}
-                      className={`rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                      className={`min-h-[44px] flex-1 rounded-lg px-4 py-3 text-base font-medium transition-colors sm:flex-none sm:text-sm ${
                         activeTab === "historico"
                           ? "bg-white text-slate-800 shadow-sm"
                           : "text-slate-600 hover:text-slate-800"
@@ -300,14 +301,14 @@ export default function AdminOrdersPage() {
                       </span>
                     </button>
                   </div>
-                  <div className="relative flex-1 min-w-[180px] max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                       type="search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Buscar por nome do cliente..."
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] focus:outline-none"
+                      className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-base text-slate-800 focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] focus:outline-none"
                       aria-label="Buscar pedidos por nome do cliente"
                     />
                   </div>
@@ -331,7 +332,7 @@ export default function AdminOrdersPage() {
                           key={key}
                           type="button"
                           onClick={() => setHistoryPeriodFilter(key)}
-                          className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                          className={`min-h-[44px] rounded-xl border px-4 py-2.5 text-base font-medium transition-colors sm:text-sm ${
                             historyPeriodFilter === key
                               ? "bg-blue-50 text-blue-700 border border-blue-200"
                               : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
@@ -343,7 +344,7 @@ export default function AdminOrdersPage() {
                       <button
                         type="button"
                         onClick={() => setHistoryPeriodFilter("todos")}
-                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base font-medium text-slate-600 transition-colors hover:bg-slate-50 sm:text-sm"
                       >
                         <X className="h-3.5 w-3.5" />
                         Limpar Filtros
@@ -363,7 +364,7 @@ export default function AdminOrdersPage() {
                             periodLabel: PERIOD_LABELS[historyPeriodFilter],
                           })
                         }
-                        className="inline-flex items-center gap-2 bg-[#EAD7BB] hover:bg-[#EAD7BB]/90 text-[#6D4C41] px-4 py-2.5 rounded-xl font-medium transition-colors border border-[#1B4332]/10 shadow-sm"
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-[#EAD7BB] px-4 py-3 text-base font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-[#EAD7BB]/90"
                         aria-label="Exportar relatório de fechamento em PDF"
                       >
                         <FileDown className="h-5 w-5" />
@@ -390,7 +391,109 @@ export default function AdminOrdersPage() {
                 </p>
               </div>
             ) : (
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 overflow-hidden">
+              <>
+                <div className="space-y-3 md:hidden">
+                  {displayedOrders.map((order) => (
+                    <Fragment key={`m-${order.id}`}>
+                      <article className="overflow-hidden rounded-2xl border border-[#1B4332]/10 bg-white/90 shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => openDetail(order.id)}
+                          className="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#FAF8F3]/80"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-[#6D4C41]">{formatDate(order.createdAt)}</p>
+                              <p className="text-lg font-semibold text-[#1B4332] break-words">
+                                {order.customerName?.trim() || "Cliente"}
+                              </p>
+                              <p className="mt-1 text-base text-[#5a4035]">
+                                {order.shippingCity && order.shippingState
+                                  ? `${order.shippingCity}/${order.shippingState}`
+                                  : "—"}
+                              </p>
+                              <p className="mt-1 truncate text-sm text-[#6D4C41]" title={order.trackingCode ?? undefined}>
+                                Rastreio: {order.trackingCode ?? "—"}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <StatusBadge status={order.paymentStatus ?? order.status ?? "pending"} />
+                              <p className="mt-2 font-playfair text-xl font-bold text-[#1B4332]">
+                                {formatCurrency(order.total)}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                        <div
+                          className="flex flex-col gap-2 border-t border-[#1B4332]/10 bg-slate-50/90 p-3 sm:flex-row sm:flex-wrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {activeTab === "historico" && (
+                            <button
+                              type="button"
+                              onClick={() => setHistoryDetailOrderId(order.id)}
+                              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-base font-medium text-blue-800 ring-1 ring-blue-200/80 transition-colors hover:bg-blue-100 sm:flex-none"
+                            >
+                              <Eye className="h-4 w-4 shrink-0" />
+                              Ver detalhes
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleExpandOrder(order.id)}
+                            disabled={loadingItemsOrderId === order.id}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-base font-medium text-[#6D4C41] ring-1 ring-[#1B4332]/15 transition-colors hover:bg-[#FAF8F3] disabled:opacity-60 sm:flex-none"
+                          >
+                            {loadingItemsOrderId === order.id ? (
+                              <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                            ) : expandedOrderId === order.id ? (
+                              <ChevronDown className="h-4 w-4 shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0" />
+                            )}
+                            Ver Itens
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTrackingOrderId(order.id)}
+                            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#1B4332]/10 px-3 py-2.5 text-base font-medium text-[#1B4332] ring-1 ring-[#1B4332]/20 transition-colors hover:bg-[#1B4332]/15 sm:flex-none"
+                          >
+                            <Package className="h-4 w-4 shrink-0" />
+                            Rastreio
+                          </button>
+                        </div>
+                        {expandedOrderId === order.id && (
+                          <div className="border-t border-slate-200 bg-slate-50 px-3 py-4">
+                            {loadingItemsOrderId === order.id ? (
+                              <div className="flex items-center gap-2 text-base text-slate-600">
+                                <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                                Carregando itens…
+                              </div>
+                            ) : itemsErrorOrderId === order.id ? (
+                              <p className="text-base text-red-600">Erro ao buscar itens. Tente novamente.</p>
+                            ) : orderDetailsCache[order.id]?.items?.length ? (
+                              <ul className="list-none space-y-2 text-base">
+                                {orderDetailsCache[order.id].items.map((item, idx) => (
+                                  <li
+                                    key={item.productId ?? idx}
+                                    className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white/90 px-3 py-3"
+                                  >
+                                    <span className="min-w-0 font-medium text-slate-800 break-words">{item.productName}</span>
+                                    <span className="shrink-0 font-semibold text-slate-600">Qtd: {item.quantity}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span className="text-base text-slate-500">Nenhum item.</span>
+                            )}
+                          </div>
+                        )}
+                      </article>
+                    </Fragment>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-hidden rounded-2xl border border-[#1B4332]/10 bg-white/70 shadow-sm backdrop-blur-sm md:block">
                 <div className="overflow-x-auto">
                   <table className="w-full font-inter" role="table" aria-label={activeTab === "ativos" ? "Pedidos ativos" : "Histórico de pedidos"}>
                     <thead>
@@ -440,7 +543,7 @@ export default function AdminOrdersPage() {
                                   e.stopPropagation();
                                   setHistoryDetailOrderId(order.id);
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100"
                                 title="Ver detalhes do pedido"
                                 aria-label={`Ver detalhes do pedido ${order.id}`}
                               >
@@ -455,7 +558,7 @@ export default function AdminOrdersPage() {
                                 handleExpandOrder(order.id);
                               }}
                               disabled={loadingItemsOrderId === order.id}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#6D4C41]/10 text-[#6D4C41] hover:bg-[#6D4C41]/20 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg bg-[#6D4C41]/10 px-3 py-2 text-sm font-medium text-[#6D4C41] transition-colors hover:bg-[#6D4C41]/20 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {loadingItemsOrderId === order.id ? (
                                 <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -472,7 +575,7 @@ export default function AdminOrdersPage() {
                                 e.stopPropagation();
                                 setTrackingOrderId(order.id);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1B4332]/10 text-[#1B4332] hover:bg-[#1B4332]/20 transition-colors cursor-pointer"
+                              className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg bg-[#1B4332]/10 px-3 py-2 text-sm font-medium text-[#1B4332] transition-colors hover:bg-[#1B4332]/20"
                             >
                               <Package className="h-3.5 w-3.5" />
                               Inserir Rastreio
@@ -511,6 +614,7 @@ export default function AdminOrdersPage() {
               </table>
             </div>
           </div>
+              </>
             )}
           </>
         )}

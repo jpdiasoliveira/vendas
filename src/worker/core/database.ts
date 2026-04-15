@@ -14,8 +14,14 @@ import type {
   Store,
   StoreSettings,
   Category,
+  StoreMember,
 } from "./schema.js";
 import type { AuditLogReport } from "../../shared/types.js";
+import {
+  parsePublicProfile,
+  toPublicProfileJson,
+  type StorePublicProfile,
+} from "./storePublicProfile.js";
 
 // ---- Mapeadores: Supabase (snake_case) -> Schema (camelCase) ----
 
@@ -50,29 +56,34 @@ function rowToProduct(row: Record<string, unknown>): Product {
     status: (row.status as string | null) ?? undefined,
     createdAt: row.created_at as string | undefined,
     updatedAt: row.updated_at as string | undefined,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
   };
 }
 
 function rowToOrder(row: Record<string, unknown>): Order {
-  const addr = Array.isArray(row.delivery_addresses) && row.delivery_addresses[0]
-    ? (row.delivery_addresses[0] as { city?: string; state_code?: string })
-    : null;
   const statusVal = (row.status ?? row.payment_status) as string | null | undefined;
   return {
     id: row.id != null ? String(row.id) : "",
-    storeId: row.store_id as string,
-    userId: row.user_id as string,
+    storeId: String(row.store_id),
+    userId: row.user_id != null ? String(row.user_id) : null,
+    guestCheckoutEmail: (row.guest_checkout_email as string | null) ?? undefined,
     customerName: (row.customer_name as string | null) ?? undefined,
     customerPhone: (row.customer_phone as string | null) ?? undefined,
     status: statusVal ?? "pending",
     total: Number(row.total),
+    currency: (row.currency as string | null) ?? undefined,
     paymentMethod: (row.payment_method as string | null) ?? undefined,
+    paymentId: (row.payment_id as string | null) ?? undefined,
     paymentStatus: statusVal ?? undefined,
     deliveryAddress: (row.delivery_address as string | null) ?? undefined,
-    shippingCity: (row.shipping_city as string | null) ?? addr?.city ?? undefined,
-    shippingState: (row.shipping_state as string | null) ?? addr?.state_code ?? undefined,
+    shippingCity: (row.shipping_city as string | null) ?? undefined,
+    shippingState: (row.shipping_state as string | null) ?? undefined,
     trackingCode: (row.tracking_code as string | null) ?? undefined,
     shippingMethod: (row.shipping_method as string | null) ?? undefined,
+    paidAt: (row.paid_at as string | null) ?? undefined,
+    deliveredAt: (row.delivered_at as string | null) ?? undefined,
+    notes: (row.notes as string | null) ?? undefined,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string | undefined,
   };
@@ -80,23 +91,27 @@ function rowToOrder(row: Record<string, unknown>): Order {
 
 function rowToOrderItem(row: Record<string, unknown>): OrderItem {
   return {
-    id: row.id != null ? Number(row.id) : undefined,
+    id: row.id != null ? String(row.id) : undefined,
     orderId: row.order_id != null ? String(row.order_id) : "",
-    storeId: row.store_id as string,
-    productId: row.product_id as string,
+    storeId: String(row.store_id),
+    productId: row.product_id != null ? String(row.product_id) : "",
     productName: row.product_name as string,
     productImage: (row.product_image as string | null) ?? undefined,
     quantity: Number(row.quantity),
     price: Number(row.price),
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
+    createdAt: row.created_at as string | undefined,
   };
 }
 
 function rowToStore(row: Record<string, unknown>): Store {
   return {
-    id: row.id as string,
+    id: String(row.id),
     slug: row.slug as string,
     displayName: row.display_name as string,
     status: row.status as string,
+    planTier: (row.plan_tier as string | null) ?? undefined,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -142,7 +157,9 @@ export async function getStoreSettingsWithDisplayName(
 
   const { data: settingsRow, error: settingsError } = await supabase
     .from("store_settings")
-    .select("logo_url, primary_color, minimum_order_value")
+    .select(
+      "logo_url, primary_color, minimum_order_value, public_profile, theme, business_rules, operating_hours, order_limits"
+    )
     .eq("store_id", storeId)
     .maybeSingle();
   if (settingsError) throw new Error(settingsError.message);
@@ -153,6 +170,11 @@ export async function getStoreSettingsWithDisplayName(
     primaryColor: settingsRow?.primary_color ?? null,
     minimumOrderValue:
       settingsRow?.minimum_order_value != null ? Number(settingsRow.minimum_order_value) : null,
+    publicProfile: parsePublicProfile(settingsRow?.public_profile),
+    theme: (settingsRow?.theme as Record<string, unknown> | null) ?? null,
+    businessRules: (settingsRow?.business_rules as Record<string, unknown> | null) ?? null,
+    operatingHours: (settingsRow?.operating_hours as Record<string, unknown> | null) ?? null,
+    orderLimits: (settingsRow?.order_limits as Record<string, unknown> | null) ?? null,
   };
 }
 
@@ -168,6 +190,11 @@ export async function updateStoreSettingsAndDisplayName(
     logoUrl?: string | null;
     primaryColor?: string | null;
     minimumOrderValue?: number | null;
+    publicProfile?: StorePublicProfile | null;
+    theme?: Record<string, unknown> | null;
+    businessRules?: Record<string, unknown> | null;
+    operatingHours?: Record<string, unknown> | null;
+    orderLimits?: Record<string, unknown> | null;
   }
 ): Promise<void> {
   const supabase = getSupabase(env);
@@ -184,7 +211,12 @@ export async function updateStoreSettingsAndDisplayName(
   if (
     payload.logoUrl !== undefined ||
     payload.primaryColor !== undefined ||
-    payload.minimumOrderValue !== undefined
+    payload.minimumOrderValue !== undefined ||
+    payload.publicProfile !== undefined ||
+    payload.theme !== undefined ||
+    payload.businessRules !== undefined ||
+    payload.operatingHours !== undefined ||
+    payload.orderLimits !== undefined
   ) {
     const { data: existing } = await supabase
       .from("store_settings")
@@ -198,6 +230,15 @@ export async function updateStoreSettingsAndDisplayName(
     if (payload.primaryColor !== undefined) updatePayload.primary_color = payload.primaryColor ?? null;
     if (payload.minimumOrderValue !== undefined)
       updatePayload.minimum_order_value = payload.minimumOrderValue ?? null;
+    if (payload.publicProfile !== undefined) {
+      updatePayload.public_profile = toPublicProfileJson(
+        parsePublicProfile(payload.publicProfile)
+      );
+    }
+    if (payload.theme !== undefined) updatePayload.theme = payload.theme ?? {};
+    if (payload.businessRules !== undefined) updatePayload.business_rules = payload.businessRules ?? {};
+    if (payload.operatingHours !== undefined) updatePayload.operating_hours = payload.operatingHours ?? {};
+    if (payload.orderLimits !== undefined) updatePayload.order_limits = payload.orderLimits ?? {};
 
     if (existing) {
       const { error: updErr } = await supabase
@@ -211,6 +252,14 @@ export async function updateStoreSettingsAndDisplayName(
         logo_url: payload.logoUrl ?? null,
         primary_color: payload.primaryColor ?? null,
         minimum_order_value: payload.minimumOrderValue ?? null,
+        public_profile:
+          payload.publicProfile !== undefined
+            ? toPublicProfileJson(parsePublicProfile(payload.publicProfile))
+            : {},
+        theme: payload.theme ?? {},
+        business_rules: payload.businessRules ?? {},
+        operating_hours: payload.operatingHours ?? {},
+        order_limits: payload.orderLimits ?? {},
         updated_at: new Date().toISOString(),
       });
       if (insErr) throw new Error(insErr.message);
@@ -222,11 +271,14 @@ export async function updateStoreSettingsAndDisplayName(
 
 function rowToCategory(row: Record<string, unknown>): Category {
   return {
-    id: row.id as string,
-    storeId: row.store_id as string,
+    id: String(row.id),
+    storeId: String(row.store_id),
     name: row.name as string,
     slug: (row.slug as string | null) ?? undefined,
+    sortOrder: row.sort_order != null ? Number(row.sort_order) : undefined,
     createdAt: row.created_at as string | undefined,
+    updatedAt: row.updated_at as string | undefined,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
   };
 }
 
@@ -234,8 +286,9 @@ export async function getCategoriesByStore(env: Env, storeId: string): Promise<C
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("categories")
-    .select("id, store_id, name, slug, created_at")
+    .select("id, store_id, name, slug, sort_order, created_at, updated_at, metadata")
     .eq("store_id", storeId)
+    .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -356,6 +409,7 @@ export async function createProduct(
     stock,
     status: data.status ?? "active",
     slug: slug + "-" + Date.now(),
+    metadata: {},
   };
   if (category_id != null) payload.category_id = category_id;
   if (data.priceWholesale != null) payload.price_wholesale = Number(data.priceWholesale);
@@ -469,31 +523,32 @@ export async function createOrder(
   env: Env,
   params: {
     storeId: string;
-    userId: string;
+    userId: string | null;
     items: CartItemPayload[];
     customerName?: string | null;
     customerPhone?: string | null;
     deliveryAddress?: string | null;
+    guestCheckoutEmail?: string | null;
   }
 ): Promise<{ orderId: string; total: number }> {
   const supabase = getSupabase(env);
   const total = params.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  const itemsJson = params.items.map((item) => ({
-    product_id: item.id,
-    name: item.name || "Produto",
-    quantity: item.quantity,
-    price: item.price,
-  }));
-
   const orderPayload: Record<string, unknown> = {
     store_id: params.storeId,
     user_id: params.userId,
     total,
+    currency: "BRL",
     payment_method: null,
     status: "pending",
-    items: itemsJson,
   };
+  if (params.userId == null) {
+    const guestEmailTrim =
+      params.guestCheckoutEmail != null ? String(params.guestCheckoutEmail).trim() : "";
+    if (guestEmailTrim !== "") {
+      orderPayload.guest_checkout_email = guestEmailTrim.toLowerCase();
+    }
+  }
   if (params.customerName != null && String(params.customerName).trim() !== "")
     orderPayload.customer_name = String(params.customerName).trim();
   if (params.customerPhone != null && String(params.customerPhone).trim() !== "")
@@ -517,6 +572,7 @@ export async function createOrder(
     product_image: item.image ?? item.imageUrl ?? null,
     quantity: item.quantity,
     price: item.price,
+    metadata: {},
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(mappedItems);
@@ -525,23 +581,43 @@ export async function createOrder(
   return { orderId: String(order.id), total };
 }
 
-export async function getOrderByIdAndStore(
+/**
+ * Pedido do cliente: dono autenticado (user_id) ou visitante (user_id null + guest_checkout_email).
+ */
+export async function getOrderForCustomerAccess(
   env: Env,
   orderId: string,
-  userId: string,
-  storeId: string
+  storeId: string,
+  ctx: { userId?: string; guestEmail?: string | null }
 ): Promise<Order | null> {
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
     .from("orders")
     .select("*")
     .eq("id", orderId)
-    .eq("user_id", userId)
     .eq("store_id", storeId)
-    .single();
+    .maybeSingle();
 
   if (error || !row) return null;
-  return rowToOrder(row);
+  const r = row as Record<string, unknown>;
+  const uid = r.user_id != null ? String(r.user_id) : null;
+  if (uid != null) {
+    if (!ctx.userId || ctx.userId !== uid) return null;
+    return rowToOrder(r);
+  }
+  const ge = (ctx.guestEmail ?? "").trim().toLowerCase();
+  const stored = String(r.guest_checkout_email ?? "").trim().toLowerCase();
+  if (!ge || !stored || ge !== stored) return null;
+  return rowToOrder(r);
+}
+
+export async function getOrderByIdAndStore(
+  env: Env,
+  orderId: string,
+  userId: string,
+  storeId: string
+): Promise<Order | null> {
+  return getOrderForCustomerAccess(env, orderId, storeId, { userId });
 }
 
 export async function getOrdersByUserAndStore(
@@ -562,26 +638,17 @@ export async function getOrdersByUserAndStore(
 }
 
 /**
- * Lista todos os pedidos da loja (para painel admin).
- * Inclui cidade/UF via join com delivery_addresses (se a relação existir) e tracking_code/shipping_method.
+ * Lista todos os pedidos da loja (para painel admin). Isolamento: store_id obrigatório.
  */
 export async function getAllOrdersByStore(env: Env, storeId: string): Promise<Order[]> {
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("orders")
-    .select("*, delivery_addresses(city, state_code)")
+    .select("*")
     .eq("store_id", storeId)
     .order("created_at", { ascending: false });
-  if (error) {
-    const fallback = await supabase
-      .from("orders")
-      .select("*")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: false });
-    if (fallback.error) throw new Error(fallback.error.message);
-    return (fallback.data ?? []).map(rowToOrder);
-  }
-  return (rows ?? []).map(rowToOrder);
+  if (error) throw new Error(error.message);
+  return (rows ?? []).map((r) => rowToOrder(r as Record<string, unknown>));
 }
 
 export async function getOrderItemsByOrderAndStore(
@@ -611,7 +678,7 @@ export async function getOrderWithItems(
   const order = await getOrderByIdForStore(env, orderId, storeId);
   if (!order) return null;
   const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
-  return { ...order, items };
+  return { ...order, items } satisfies OrderDetail;
 }
 
 async function getOrderByIdForStore(
@@ -647,7 +714,14 @@ export async function getOrderById(env: Env, orderId: string): Promise<Order | n
  * Usar exatamente: 'pending' | 'paid' | 'shipped' | 'cancelled'
  * Atenção: cancelado no banco é 'cancelled' (dois L), não 'canceled'.
  */
-const ORDER_STATUS_EN = ["pending", "paid", "shipped", "cancelled"] as const;
+const ORDER_STATUS_EN = [
+  "pending",
+  "paid",
+  "approved",
+  "shipped",
+  "delivered",
+  "cancelled",
+] as const;
 
 /** Mapeia PT ou variantes para o valor em inglês salvo no banco. Retorna null se inválido. */
 export function normalizeOrderStatus(raw: string | null | undefined): (typeof ORDER_STATUS_EN)[number] | null {
@@ -658,9 +732,11 @@ export function normalizeOrderStatus(raw: string | null | undefined): (typeof OR
     pending: "pending",
     pago: "paid",
     paid: "paid",
-    approved: "paid",
+    approved: "approved",
     enviado: "shipped",
     shipped: "shipped",
+    entregue: "delivered",
+    delivered: "delivered",
     cancelado: "cancelled",
     cancelled: "cancelled",
     canceled: "cancelled",
@@ -675,6 +751,13 @@ function isPaidStatus(s: string | null | undefined): boolean {
   return !!s && PAID_STATUSES.includes(s.toLowerCase());
 }
 
+/** Pedidos em que a baixa de estoque já foi aplicada (pago em diante). */
+function inventoryCommittedStatus(s: string | null | undefined): boolean {
+  if (!s) return false;
+  const t = s.toLowerCase();
+  return t === "paid" || t === "approved" || t === "shipped" || t === "delivered";
+}
+
 /**
  * Baixa estoque: subtrai as quantidades dos itens do pedido dos produtos.
  * Chamado quando o pedido passa a status pago.
@@ -687,6 +770,7 @@ export async function decreaseStockForOrder(
 ): Promise<void> {
   const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
   for (const item of items) {
+    if (!item.productId) continue;
     try {
       const current = await getProductStock(env, item.productId, storeId);
       if (current === null) {
@@ -723,6 +807,7 @@ export async function increaseStockForOrder(
 ): Promise<void> {
   const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
   for (const item of items) {
+    if (!item.productId) continue;
     try {
       const current = await getProductStock(env, item.productId, storeId);
       if (current === null) {
@@ -764,9 +849,9 @@ export async function updateOrderStatus(
   const isCanceled = statusLower === "cancelled" || statusLower === "canceled";
 
   try {
-    if (isPaidStatus(oldStatus) && isCanceled) {
+    if (inventoryCommittedStatus(oldStatus) && isCanceled) {
       await increaseStockForOrder(env, idStr, storeId);
-    } else if (isPaidStatus(newStatus) && !isPaidStatus(oldStatus)) {
+    } else if (isPaidStatus(newStatus) && !inventoryCommittedStatus(oldStatus)) {
       await decreaseStockForOrder(env, idStr, storeId);
     }
   } catch (stockErr) {
@@ -780,16 +865,19 @@ export async function updateOrderStatus(
     });
   }
 
-  console.log("--- EXECUTANDO UPDATE ---", { id: idStr, status: newStatus });
-
   const supabase = getSupabase(env);
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    })
-    .match({ id: idStr, store_id: storeId });
+  const updateRow: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+  if (statusLower === "paid" || statusLower === "approved") {
+    updateRow.paid_at = new Date().toISOString();
+  }
+  if (statusLower === "delivered") {
+    updateRow.delivered_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase.from("orders").update(updateRow).match({ id: idStr, store_id: storeId });
   if (error) throw new Error(error.message);
 }
 
@@ -851,7 +939,8 @@ export async function updateOrderPaymentStatus(
   const idStr = String(orderId);
   const order = await getOrderById(env, idStr);
   try {
-    if (order && isPaidStatus(status) && !isPaidStatus(order.paymentStatus ?? order.status)) {
+    const prev = order?.paymentStatus ?? order?.status ?? null;
+    if (order && isPaidStatus(status) && !inventoryCommittedStatus(prev)) {
       await decreaseStockForOrder(env, idStr, order.storeId);
     }
   } catch (stockErr) {
@@ -862,25 +951,21 @@ export async function updateOrderPaymentStatus(
   }
 
   const supabase = getSupabase(env);
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", idStr);
+  const st = status.trim().toLowerCase();
+  const updateRow: Record<string, unknown> = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (st === "paid" || st === "approved") {
+    updateRow.paid_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase.from("orders").update(updateRow).eq("id", idStr);
 
   if (error) throw new Error(error.message);
 }
 
 // ---- Store members (SaaS auth) ----
-
-export interface StoreMember {
-  id: string;
-  userId: string;
-  storeId: string;
-  role: string;
-}
 
 /**
  * Verifica se o usuário é membro da loja (store_members).

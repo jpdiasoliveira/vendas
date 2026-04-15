@@ -33,9 +33,17 @@
   }
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling + mobile: evita arrastar layout horizontal (Padrão Ktech / mobile-first) */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+@layer base {
+  body {
+    @apply font-inter text-base antialiased text-[#6D4C41];
+    overflow-x: hidden;
+  }
 }
 
 /* Custom scrollbar */

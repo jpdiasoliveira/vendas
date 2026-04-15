@@ -2,7 +2,7 @@ import { Leaf, MapPin } from 'lucide-react';
 
 export function Story() {
     return (
-        <section id="historia" className="py-24 relative overflow-hidden">
+        <section id="historia" className="py-16 sm:py-24 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-[#FAF8F3]/50 backdrop-blur-3xl"></div>
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="absolute top-20 left-20 w-64 h-64 bg-[#1B4332]/5 rounded-full blur-3xl"></div>
@@ -19,14 +19,14 @@ export function Story() {
                             <h3 className="text-4xl md:text-5xl font-bold text-[#1B4332] mb-6 font-playfair">
                                 Nossa História
                             </h3>
-                            <div className="space-y-4 text-[#6D4C41] font-inter leading-relaxed">
-                                <p className="text-lg">
+                            <div className="space-y-4 text-[#5a4035] font-inter leading-relaxed">
+                                <p className="text-base sm:text-lg">
                                     Na Natfoods, acreditamos que a melhor forma de criar um snack saudável é respeitar a natureza desde o início. Nossos chips de banana vêm diretamente das plantações orgânicas certificadas na Amazônia.
                                 </p>
-                                <p className="text-lg">
+                                <p className="text-base sm:text-lg">
                                     Trabalhamos lado a lado com agricultores locais, garantindo práticas sustentáveis e comércio justo. Cada pacote que você abre é resultado de um processo cuidadoso: da colheita manual à secagem natural, tudo é feito pensando na qualidade e no meio ambiente.
                                 </p>
-                                <p className="text-lg font-medium text-[#1B4332]">
+                                <p className="text-base sm:text-lg font-medium text-[#1B4332]">
                                     Do campo até sua mesa, sem intermediários, sem conservantes — apenas o sabor puro da Amazônia.
                                 </p>
                             </div>
@@ -47,7 +47,7 @@ export function Story() {
                         <img
                             src="https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/farmers-story.png"
                             alt="Agricultores na plantação"
-                            className="relative w-full h-[500px] object-cover rounded-3xl shadow-2xl border-4 border-white/50 group-hover:border-white/70 transition-all duration-500 group-hover:scale-[1.02]"
+                            className="relative w-full max-h-[min(520px,55vh)] min-h-[240px] h-[min(500px,50vh)] sm:h-[500px] object-cover rounded-3xl shadow-2xl border-4 border-white/50 group-hover:border-white/70 transition-all duration-500 sm:group-hover:scale-[1.02]"
                         />
                     </div>
                 </div>

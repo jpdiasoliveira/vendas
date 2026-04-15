@@ -46,7 +46,7 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
     }
 
     return (
-        <section id="produtos" className="py-24 px-4 max-w-7xl mx-auto relative">
+        <section id="produtos" className="py-16 sm:py-24 px-4 sm:px-6 max-w-7xl mx-auto relative">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#FFD166]/10 to-transparent rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#1B4332]/10 to-transparent rounded-full blur-3xl"></div>
 
@@ -54,15 +54,15 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
                 <div className="inline-block bg-white/60 backdrop-blur-sm px-6 py-2 rounded-full mb-4 border border-[#1B4332]/10">
                     <span className="text-sm font-medium text-[#1B4332] font-inter">Explore Nossa Linha</span>
                 </div>
-                <h3 className="text-4xl md:text-6xl font-bold text-[#1B4332] mb-4 font-playfair">
+                <h3 className="text-3xl sm:text-4xl md:text-6xl font-bold text-[#1B4332] mb-4 font-playfair px-1">
                     Nossos Produtos
                 </h3>
-                <p className="text-lg text-[#6D4C41] max-w-2xl mx-auto font-inter">
+                <p className="text-base sm:text-lg text-[#5a4035] max-w-2xl mx-auto font-inter px-2">
                     Selecione os melhores chips de banana, crocantes e naturais
                 </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 relative z-10">
                 {products.map((product) => (
                     <ProductCard
                         key={product.id}
