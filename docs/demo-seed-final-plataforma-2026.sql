@@ -233,6 +233,26 @@ BEGIN
     unit_type = EXCLUDED.unit_type,
     metadata = EXCLUDED.metadata,
     updated_at = now();
+
+  -- Frete demo (CEP 8 dígitos; faixa única) e cupom de teste (requer docs SQL de frete/cupom aplicados)
+  DELETE FROM public.store_shipping_fare_bands WHERE store_id = v_store_id;
+  INSERT INTO public.store_shipping_fare_bands (store_id, cep_from, cep_to, amount_brl, label, created_at, updated_at)
+  VALUES (v_store_id, 1000000, 99999999, 12.90, 'Demo — faixa nacional', now(), now());
+
+  DELETE FROM public.store_coupons WHERE store_id = v_store_id;
+  INSERT INTO public.store_coupons (
+    store_id, code, discount_type, discount_value, valid_from, valid_until, active, created_at, updated_at
+  ) VALUES (
+    v_store_id,
+    'bemvindo10',
+    'percent',
+    10,
+    now() - interval '1 day',
+    now() + interval '365 days',
+    true,
+    now(),
+    now()
+  );
 END;
 $$;
 

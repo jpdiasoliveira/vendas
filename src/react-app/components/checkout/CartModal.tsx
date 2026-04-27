@@ -79,6 +79,20 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
               guestEmail={m.guestEmail}
               setGuestEmail={m.setGuestEmail}
               total={m.total}
+              shippingCep={m.shippingCep}
+              setShippingCep={m.setShippingCep}
+              onQuoteShipping={m.handleQuoteShipping}
+              shippingLoading={m.shippingLoading}
+              shippingError={m.shippingError}
+              shippingFee={m.shippingFee}
+              shippingReady={m.shippingReady != null && !m.shippingError}
+              couponInput={m.couponInput}
+              setCouponInput={m.setCouponInput}
+              onApplyCoupon={m.handleApplyCoupon}
+              couponLoading={m.couponLoading}
+              couponError={m.couponError}
+              couponDiscount={m.couponDiscount}
+              grandTotal={m.grandTotal}
               minimumOrderValue={m.minimumOrderValue}
               belowMinimum={m.belowMinimum}
               hasInsufficientStock={m.hasInsufficientStock}
@@ -100,7 +114,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
           isOpen={m.showCheckoutModal}
           onClose={m.closeCheckoutSuccess}
           orderId={m.currentOrderId}
-          total={m.total}
+          total={m.placedOrderTotal ?? m.grandTotal}
           guestCheckoutEmail={!m.user && m.guestEmail.trim() ? m.guestEmail.trim() : null}
         />
       )}

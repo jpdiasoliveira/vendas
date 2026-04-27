@@ -20,6 +20,8 @@ export function useCheckout() {
       customerPhone?: string;
       deliveryAddress?: string;
       guestEmail?: string;
+      shippingPostalCode?: string;
+      couponCode?: string;
     }
   ) => {
     setIsProcessing(true);
@@ -30,6 +32,8 @@ export function useCheckout() {
       if (options?.customerPhone?.trim()) body.customerPhone = options.customerPhone.trim();
       if (options?.deliveryAddress?.trim()) body.deliveryAddress = options.deliveryAddress.trim();
       if (options?.guestEmail?.trim()) body.guestEmail = options.guestEmail.trim();
+      if (options?.shippingPostalCode?.trim()) body.shippingPostalCode = options.shippingPostalCode.trim();
+      if (options?.couponCode?.trim()) body.couponCode = options.couponCode.trim();
       const data = await apiFetch<CreateOrderData>("/api/orders", {
         method: "POST",
         body: JSON.stringify(body),

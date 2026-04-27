@@ -10,12 +10,13 @@ import { formatBRL, parseBRL } from "@/react-app/utils/adminSettingsBrl";
 
 const emptyProfile = (): StorePublicProfile => parsePublicProfile({});
 
-export function useAdminSettings() {
+export const useAdminSettings = () => {
   const navigate = useNavigate();
   const { refetch: refetchStoreSettings } = useStoreSettings();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -23,6 +24,9 @@ export function useAdminSettings() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [minimumOrderValue, setMinimumOrderValue] = useState("");
   const [primaryColor, setPrimaryColor] = useState("#1B4332");
   const [publicProfile, setPublicProfile] = useState<StorePublicProfile>(emptyProfile);
@@ -36,6 +40,7 @@ export function useAdminSettings() {
         if (!mounted) return;
         setDisplayName(data?.displayName ?? "");
         setLogoUrl(data?.logoUrl ?? "");
+        setBannerUrl(data?.bannerUrl ?? "");
         setMinimumOrderValue(data?.minimumOrderValue != null ? formatBRL(data.minimumOrderValue) : "");
         setPrimaryColor(
           data?.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(data.primaryColor) ? data.primaryColor : "#1B4332"
@@ -85,6 +90,15 @@ export function useAdminSettings() {
     setImageFile(file ?? null);
   }, []);
 
+  const handleBannerFile = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setBannerPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+    setBannerFile(file ?? null);
+  }, []);
+
   const inputCls =
     "w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]";
 
@@ -105,11 +119,23 @@ export function useAdminSettings() {
           }
         }
 
+        let bannerUrlFinal = bannerUrl.trim();
+        if (bannerFile) {
+          setUploadingBanner(true);
+          try {
+            const { publicUrl } = await adminUploadImage(bannerFile);
+            bannerUrlFinal = publicUrl;
+          } finally {
+            setUploadingBanner(false);
+          }
+        }
+
         await adminApiFetch("/api/admin/settings", {
           method: "PATCH",
           body: JSON.stringify({
             displayName: displayName.trim() || null,
             logoUrl: logoUrlFinal || null,
+            bannerUrl: bannerUrlFinal || null,
             minimumOrderValue: parseBRL(minimumOrderValue),
             primaryColor: primaryColor.trim() || null,
             publicProfile: {
@@ -124,7 +150,13 @@ export function useAdminSettings() {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
+        setBannerFile(null);
+        setBannerPreview((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
         if (logoUrlFinal) setLogoUrl(logoUrlFinal);
+        if (bannerUrlFinal) setBannerUrl(bannerUrlFinal);
         setCheckoutLoginAck(null);
         setSuccess(true);
         await refetchStoreSettings({ silent: true });
@@ -138,6 +170,8 @@ export function useAdminSettings() {
       displayName,
       imageFile,
       logoUrl,
+      bannerUrl,
+      bannerFile,
       minimumOrderValue,
       primaryColor,
       publicProfile,
@@ -150,6 +184,7 @@ export function useAdminSettings() {
     loading,
     saving,
     uploadingImage,
+    uploadingBanner,
     error,
     success,
     displayName,
@@ -159,6 +194,9 @@ export function useAdminSettings() {
     imagePreview,
     logoPreviewFailed,
     setLogoPreviewFailed,
+    bannerUrl,
+    setBannerUrl,
+    bannerPreview,
     minimumOrderValue,
     setMinimumOrderValue,
     primaryColor,
@@ -168,10 +206,11 @@ export function useAdminSettings() {
     checkoutLoginAck,
     setCheckoutLoginAck,
     handleLogoFile,
+    handleBannerFile,
     handleSubmit,
     inputCls,
     saveSuccessRef,
   };
-}
+};
 
 export type AdminSettingsViewModel = ReturnType<typeof useAdminSettings>;

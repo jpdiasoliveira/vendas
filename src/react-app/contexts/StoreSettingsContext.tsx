@@ -1,10 +1,19 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { apiFetch } from "@/react-app/services/api";
 import type { StorePublicProfile } from "@/react-app/types";
+import { normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
 
 export interface StoreSettingsData {
   displayName: string;
   logoUrl?: string | null;
+  bannerUrl?: string | null;
   primaryColor?: string | null;
   minimumOrderValue?: number | null;
   publicProfile?: StorePublicProfile;
@@ -19,7 +28,7 @@ interface StoreSettingsContextType {
 
 const StoreSettingsContext = createContext<StoreSettingsContextType | undefined>(undefined);
 
-export function StoreSettingsProvider({ children }: { children: ReactNode }) {
+export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<StoreSettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +57,15 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
     void fetchSettings();
   }, [fetchSettings]);
 
-  /** Ao voltar para a aba, atualiza em segundo plano (ex.: salvou no admin em outra aba). */
+  useEffect(() => {
+    const root = document.documentElement;
+    const primary = normalizeStorePrimaryColor(settings?.primaryColor ?? undefined);
+    root.style.setProperty("--brand-primary", primary);
+    return () => {
+      root.style.setProperty("--brand-primary", "#1B4332");
+    };
+  }, [settings?.primaryColor]);
+
   useEffect(() => {
     let tid: ReturnType<typeof setTimeout> | undefined;
     const onVis = () => {
@@ -68,12 +85,12 @@ export function StoreSettingsProvider({ children }: { children: ReactNode }) {
       {children}
     </StoreSettingsContext.Provider>
   );
-}
+};
 
-export function useStoreSettings() {
+export const useStoreSettings = () => {
   const ctx = useContext(StoreSettingsContext);
   if (ctx === undefined) {
     throw new Error("useStoreSettings must be used within a StoreSettingsProvider");
   }
   return ctx;
-}
+};

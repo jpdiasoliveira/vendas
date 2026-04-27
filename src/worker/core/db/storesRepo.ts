@@ -44,7 +44,7 @@ export async function getStoreSettingsWithDisplayName(
   const { data: settingsRow, error: settingsError } = await supabase
     .from("store_settings")
     .select(
-      "logo_url, primary_color, minimum_order_value, public_profile, theme, business_rules, operating_hours, order_limits"
+      "logo_url, banner_url, primary_color, minimum_order_value, public_profile, theme, business_rules, operating_hours, order_limits"
     )
     .eq("store_id", storeId)
     .maybeSingle();
@@ -53,6 +53,10 @@ export async function getStoreSettingsWithDisplayName(
   return {
     displayName: (storeRow?.display_name as string) ?? "",
     logoUrl: settingsRow?.logo_url ?? null,
+    bannerUrl: (() => {
+      const br = (settingsRow as Record<string, unknown> | null)?.banner_url;
+      return typeof br === "string" && br.trim() !== "" ? br.trim() : null;
+    })(),
     primaryColor: settingsRow?.primary_color ?? null,
     minimumOrderValue:
       settingsRow?.minimum_order_value != null ? Number(settingsRow.minimum_order_value) : null,
@@ -71,6 +75,7 @@ export async function updateStoreSettingsAndDisplayName(
   payload: {
     displayName?: string | null;
     logoUrl?: string | null;
+    bannerUrl?: string | null;
     primaryColor?: string | null;
     minimumOrderValue?: number | null;
     publicProfile?: StorePublicProfile | null;
@@ -93,6 +98,7 @@ export async function updateStoreSettingsAndDisplayName(
   }
   if (
     payload.logoUrl !== undefined ||
+    payload.bannerUrl !== undefined ||
     payload.primaryColor !== undefined ||
     payload.minimumOrderValue !== undefined ||
     payload.publicProfile !== undefined ||
@@ -110,6 +116,7 @@ export async function updateStoreSettingsAndDisplayName(
       updated_at: new Date().toISOString(),
     };
     if (payload.logoUrl !== undefined) updatePayload.logo_url = payload.logoUrl ?? null;
+    if (payload.bannerUrl !== undefined) updatePayload.banner_url = payload.bannerUrl ?? null;
     if (payload.primaryColor !== undefined) updatePayload.primary_color = payload.primaryColor ?? null;
     if (payload.minimumOrderValue !== undefined)
       updatePayload.minimum_order_value = payload.minimumOrderValue ?? null;
@@ -133,6 +140,7 @@ export async function updateStoreSettingsAndDisplayName(
       const { error: insErr } = await supabase.from("store_settings").insert({
         store_id: storeId,
         logo_url: payload.logoUrl ?? null,
+        banner_url: payload.bannerUrl ?? null,
         primary_color: payload.primaryColor ?? null,
         minimum_order_value: payload.minimumOrderValue ?? null,
         public_profile:

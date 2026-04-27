@@ -246,6 +246,15 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                     Nossa História
                   </a>
                 </li>
+                <li>
+                  <Link
+                    to="/pedido/acompanhar"
+                    className="inline-flex items-center gap-1.5 text-white/80 transition-colors duration-300 hover:text-[#FFD166]"
+                  >
+                    <Search className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                    Acompanhar pedido
+                  </Link>
+                </li>
                 {onConsultOrder ? (
                   <li>
                     <button
@@ -253,8 +262,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                       onClick={onConsultOrder}
                       className="inline-flex items-center gap-1.5 text-left text-white/80 transition-colors duration-300 hover:text-[#FFD166]"
                     >
-                      <Search className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                      Consultar pedido
+                      Consultar pedido (rápido)
                     </button>
                   </li>
                 ) : null}

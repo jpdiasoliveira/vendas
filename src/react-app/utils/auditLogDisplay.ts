@@ -6,8 +6,17 @@ export const ACTION_OPTIONS = [
   { value: "CREATE_PRODUCT", label: "Criar" },
   { value: "UPDATE_PRODUCT", label: "Editar" },
   { value: "DELETE_PRODUCT", label: "Excluir" },
+  { value: "CREATE_CATEGORY", label: "Criar categoria" },
+  { value: "UPDATE_CATEGORY", label: "Editar categoria" },
+  { value: "DELETE_CATEGORY", label: "Excluir categoria" },
   { value: "UPDATE_ORDER_STATUS", label: "Pedido" },
   { value: "UPDATE_ORDER_TRACKING", label: "Rastreio" },
+  { value: "SYNC_ORDER_MP_PAYMENT", label: "Sync MP" },
+  { value: "MP_WEBHOOK_PAYMENT_NOTIFICATION", label: "Webhook MP" },
+  { value: "ORDER_EMAIL_HOOK_CREATED", label: "E-mail (pedido criado)" },
+  { value: "ORDER_EMAIL_HOOK_PAID", label: "E-mail (pedido pago)" },
+  { value: "ORDER_EMAIL_HOOK_SHIPPED", label: "E-mail (pedido enviado)" },
+  { value: "ORDER_MANUAL_REFUND_ALERT", label: "Estorno manual" },
 ] as const;
 
 export const CHANGE_LABELS: Record<string, string> = {
@@ -28,6 +37,10 @@ export const getResourceDisplayName = (entry: AuditLogReport): string => {
     if (customer && String(customer).trim()) return String(customer).trim();
     const orderNum = (d.order_number ?? d.order_id) as string | number | undefined;
     if (orderNum != null) return String(orderNum);
+  }
+  if (entry.tipo === "category") {
+    const nm = d.name as string | undefined;
+    if (nm && String(nm).trim()) return String(nm).trim();
   }
   const rid = entry.resource_id;
   if (rid && typeof rid === "string" && rid.length > 0) return `ID: ${rid.slice(0, 4)}${rid.length > 4 ? "…" : ""}`;
@@ -56,6 +69,32 @@ export const getFriendlyActionMessage = (entry: AuditLogReport): string => {
         "";
       const trimmed = String(code).trim();
       return `Rastreio atualizado para: ${trimmed || "—"}`;
+    }
+    case "CREATE_CATEGORY":
+      return `Criou a categoria ${nameOrId}`;
+    case "UPDATE_CATEGORY":
+      return `Atualizou a categoria ${nameOrId}`;
+    case "DELETE_CATEGORY":
+      return `Excluiu a categoria ${nameOrId}`;
+    case "SYNC_ORDER_MP_PAYMENT": {
+      const pid = d.mp_payment_id != null ? String(d.mp_payment_id) : "";
+      const rid = entry.resource_id?.trim() ?? "";
+      return `Sincronizou pagamento MP${rid ? ` — pedido #${rid.slice(0, 8)}${rid.length > 8 ? "…" : ""}` : ""}${pid ? ` · pag. ${pid}` : ""}`;
+    }
+    case "MP_WEBHOOK_PAYMENT_NOTIFICATION": {
+      const pid = d.mp_payment_id != null ? String(d.mp_payment_id) : "";
+      const rid = entry.resource_id?.trim() ?? "";
+      return `Webhook MP${pid ? ` pag. ${pid}` : ""}${rid ? ` — pedido #${rid.slice(0, 8)}${rid.length > 8 ? "…" : ""}` : ""}`;
+    }
+    case "ORDER_EMAIL_HOOK_CREATED":
+      return `Fila de e-mail: pedido criado (#${entry.resource_id?.slice(0, 8) ?? "?"})`;
+    case "ORDER_EMAIL_HOOK_PAID":
+      return `Fila de e-mail: pedido pago (#${entry.resource_id?.slice(0, 8) ?? "?"})`;
+    case "ORDER_EMAIL_HOOK_SHIPPED":
+      return `Fila de e-mail: pedido enviado (#${entry.resource_id?.slice(0, 8) ?? "?"})`;
+    case "ORDER_MANUAL_REFUND_ALERT": {
+      const r = (d.reason as string | undefined) ?? "";
+      return `Cancelamento com possível estorno manual no gateway${r ? `: ${r.slice(0, 120)}` : ""}`;
     }
     default:
       return (

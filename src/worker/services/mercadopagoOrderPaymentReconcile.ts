@@ -9,7 +9,9 @@ import {
   mapMpPaymentStatusToWebhookAction,
 } from "./mercadopagoPaymentStatusMap.js";
 import { getOrderById, updateOrderPaymentStatus, updateOrderStatus } from "../core/database.js";
-import type { UpdateOrderPaymentStatusOutcome } from "../core/db/ordersRepo.js";
+import type { UpdateOrderPaymentStatusOutcome } from "../core/db/orders/orderPayment.js";
+import { redactSecrets } from "../utils/safeApiError.js";
+import { notifyOrderPaid } from "./notificationHooks.js";
 
 export type ApplyMercadoPagoPaymentSnapshotResult =
   | {
@@ -65,6 +67,18 @@ export const applyMercadoPagoPaymentSnapshotToOrder = async (
     const outcome = await updateOrderPaymentStatus(env, oid, "approved", {
       paymentId: params.payment.id,
     });
+    if (outcome === "paid") {
+      const paidOrder = await getOrderById(env, oid);
+      if (paidOrder) {
+        await notifyOrderPaid(env, {
+          storeId: paidOrder.storeId,
+          orderId: oid,
+          userId: paidOrder.userId,
+          mpPaymentId: params.payment.id,
+          recipientEmail: paidOrder.guestCheckoutEmail?.trim() || null,
+        });
+      }
+    }
     return { kind: "approval", outcome, userMessage: userMessageForApproval(outcome) };
   }
 
@@ -100,7 +114,7 @@ export const applyMercadoPagoPaymentSnapshotToOrder = async (
  * Mensagem amigável para falha ao chamar a API do Mercado Pago (rede, 404, credencial).
  */
 export const formatMercadoPagoFetchError = (err: unknown): string => {
-  const raw = err instanceof Error ? err.message : String(err);
+  const raw = redactSecrets(err instanceof Error ? err.message : String(err));
   const lower = raw.toLowerCase();
   if (lower.includes("(404)") || lower.includes(" not found") || raw.includes("404")) {
     return "Não encontramos este pagamento no Mercado Pago. O ID pode estar incorreto ou o pagamento foi removido.";

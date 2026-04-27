@@ -3,10 +3,9 @@ import { getStoreBySlug } from "../core/database.js";
 import type { Variables } from "../types.js";
 
 /**
- * Middleware SaaS de isolamento dinâmico (Tenant Id).
- * Valida o slug no Supabase (stores com status = 'active') e injeta a loja no contexto.
+ * Middleware de isolamento por loja (tenant): lê `x-store-slug`, busca a loja ativa no Supabase
+ * e coloca o registo em `c.set("store", ...)`.
  */
-/** Rotas que não exigem loja (auth Mocha, webhooks, login admin). */
 const SKIP_STORE_PATHS = [
   "/api/webhooks",
   "/api/oauth",

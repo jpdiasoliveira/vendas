@@ -8,21 +8,20 @@ Este documento descreve como o **tenant** é identificado e como os **dados flue
 
 O sistema é **multi-tenant**: um único código atende várias lojas. Cada request precisa saber **de qual loja** é.
 
-### Fluxo: Slug → D1 → UUID
+### Fluxo: Slug → Supabase → UUID
 
 1. **Slug**  
    O frontend envia em toda requisição o header **`x-store-slug`** (ex.: `natfoods`). O valor vem de `VITE_STORE_SLUG` (build/deploy por loja).
 
-2. **D1 (Edge)**  
-   O **storeMiddleware** (`src/worker/middleware/store.ts`) recebe o request, lê o slug e consulta o **D1** (SQLite na borda):
-   - Query: `SELECT * FROM stores WHERE slug = ? AND status = 'active'`
+2. **Supabase (stores)**  
+   O **storeMiddleware** (`src/worker/middlewares/storeFromSlug.ts`) recebe o request, lê o slug e consulta a tabela **`stores`** no Supabase (loja ativa):
    - Se não achar → responde `404` (loja não encontrada ou inativa).
-   - Se achar → transforma a linha (snake_case) em objeto **Store** (camelCase) e faz `c.set("store", store)`.
+   - Se achar → monta o objeto **Store** (camelCase) e faz `c.set("store", store)`.
 
 3. **UUID da loja**  
-   O objeto `store` no contexto tem `store.id` (UUID no D1, usado como chave estrangeira no Supabase). Todas as operações no **Supabase** usam esse `store.id` para filtrar dados (**isolamento por `store_id`**).
+   O objeto `store` no contexto tem `store.id` (UUID). Todas as operações no **Supabase** usam esse `store.id` para filtrar dados (**isolamento por `store_id`**).
 
-Resumo: **Slug (header) → validação no D1 → Store no contexto → `store.id` em todas as queries Supabase.**
+Resumo: **Slug (header) → validação em `stores` → Store no contexto → `store.id` em todas as queries.**
 
 ---
 

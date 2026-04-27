@@ -13,6 +13,8 @@ import AdminSettingsPage from "@/react-app/pages/AdminSettings";
 import AuditLogsPage from "@/react-app/pages/admin/AuditLogs";
 import PlatformPage from "@/react-app/pages/admin/PlatformPage";
 import OrderConfirmationPage from "@/react-app/pages/OrderConfirmation";
+import OrderPublicTrackPage from "@/react-app/pages/OrderPublicTrackPage";
+import AdminCategoriesPage from "@/react-app/pages/AdminCategories";
 import { CartProvider } from "@/react-app/contexts/CartContext";
 import { StoreSettingsProvider } from "@/react-app/contexts/StoreSettingsContext";
 import { AuthProvider } from "@/react-app/contexts/AuthContext";
@@ -31,10 +33,12 @@ export default function App() {
                 <Route path="/auth/callback" element={<AuthCallbackPage />} />
                 <Route path="/pedidos" element={<OrdersPage />} />
                 <Route path="/order/:orderId/confirmation" element={<OrderConfirmationPage />} />
+                <Route path="/pedido/acompanhar" element={<OrderPublicTrackPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/admin" element={<AdminGuard />}>
                   <Route path="pedidos" element={<AdminOrdersPage />} />
                   <Route path="produtos" element={<AdminProductsPage />} />
+                  <Route path="categorias" element={<AdminCategoriesPage />} />
                   <Route path="configuracoes" element={<AdminSettingsPage />} />
                   <Route path="historico" element={<AuditLogsPage />} />
                   <Route path="plataforma" element={<PlatformPage />} />

@@ -33,4 +33,8 @@ interface Env {
   PLATFORM_OPERATOR_EMAILS?: string;
   /** Se definido, POST /api/platform/stores exige header x-platform-create-store-secret com o mesmo valor. */
   PLATFORM_CREATE_STORE_SECRET?: string;
+  /** API key Resend (https://resend.com). Sem ela, e-mails transacionais são ignorados silenciosamente. */
+  RESEND_API_KEY?: string;
+  /** Remetente verificado no Resend, ex.: `Natfoods <pedidos@seudominio.com>`. */
+  RESEND_FROM_EMAIL?: string;
 }

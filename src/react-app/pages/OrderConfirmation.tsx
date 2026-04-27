@@ -93,6 +93,11 @@ export default function OrderConfirmationPage() {
         ? "Pagamento em análise. Esta página atualiza automaticamente."
         : null;
 
+  const mpSuccessBanner =
+    mpResult === "success"
+      ? "Você voltou do Mercado Pago. Estamos confirmando o pagamento — a página atualiza sozinha em alguns segundos."
+      : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-16 pt-24">
       <div className="mx-auto max-w-lg">
@@ -107,6 +112,11 @@ export default function OrderConfirmationPage() {
           <h1 className="font-playfair text-2xl font-bold text-[#1B4332]">Pedido</h1>
         </div>
 
+        {mpSuccessBanner ? (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {mpSuccessBanner}
+          </div>
+        ) : null}
         {mpBanner ? (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {mpBanner}

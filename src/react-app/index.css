@@ -56,12 +56,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #1B4332, #2D5F4A);
+  background: linear-gradient(180deg, var(--brand-primary, #1B4332), #2D5F4A);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #2D5F4A, #1B4332);
+  background: linear-gradient(180deg, #2D5F4A, var(--brand-primary, #1B4332));
 }
 
 /* Rolagem discreta em modais (evita o thumb grosso/verde do estilo global em painéis estreitos) */

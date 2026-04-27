@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { Variables } from "./types.js";
-import { storeMiddleware } from "./middleware/store.js";
+import { storeMiddleware } from "./middlewares/storeFromSlug.js";
 import { verifyAuth } from "./middlewares/verifyAuth.js";
 import products from "./routes/products.js";
 import orders from "./routes/orders.js";
+import shipping from "./routes/shipping.js";
+import coupons from "./routes/coupons.js";
 import webhooks from "./routes/webhooks.js";
 import auth from "./routes/auth.js";
 import admin from "./routes/admin.js";
@@ -46,6 +48,8 @@ app.use('/api/admin/*', verifyAuth);
 // --- 2. ROTEADORES MODULARES (BUSINESS RULES) ---
 app.route('/api/products', products);
 app.route('/api/orders', orders);
+app.route("/api/shipping", shipping);
+app.route("/api/coupons", coupons);
 app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curtas ex: '/api/users/me'
 app.route("/api/webhooks", webhooks);
 app.route("/api/admin", admin);

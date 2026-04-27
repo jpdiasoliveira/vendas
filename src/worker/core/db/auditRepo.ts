@@ -48,6 +48,13 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE_PRODUCT: "Excluir produto",
   UPDATE_ORDER_STATUS: "Atualizar status do pedido",
   UPDATE_ORDER_TRACKING: "Atualizar rastreio do pedido",
+  PAYMENT_INTENT_PIX: "Tentativa de pagamento PIX (Mercado Pago)",
+  PAYMENT_INTENT_CHECKOUT_PRO: "Tentativa de checkout (preferência Mercado Pago)",
+  MP_WEBHOOK_PAYMENT_NOTIFICATION: "Notificação Mercado Pago (webhook)",
+  SYNC_ORDER_MP_PAYMENT: "Sincronizar pagamento com Mercado Pago (manual)",
+  CREATE_CATEGORY: "Criar categoria",
+  UPDATE_CATEGORY: "Atualizar categoria",
+  DELETE_CATEGORY: "Excluir categoria",
 };
 
 export interface GetAuditLogsOptions {

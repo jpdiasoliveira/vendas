@@ -10,6 +10,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     success,
     saving,
     uploadingImage,
+    uploadingBanner,
     displayName,
     setDisplayName,
     logoUrl,
@@ -25,7 +26,11 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     setPublicProfile,
     checkoutLoginAck,
     setCheckoutLoginAck,
+    bannerUrl,
+    setBannerUrl,
+    bannerPreview,
     handleLogoFile,
+    handleBannerFile,
     handleSubmit,
     inputCls,
     saveSuccessRef,
@@ -202,6 +207,38 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   className={`flex-1 font-mono text-sm ${inputCls}`}
                 />
               </div>
+              <p className="text-xs text-[#6D4C41]/80 mt-1">
+                Botões e detalhes da vitrine usam esta cor; se estiver vazia ou inválida, o site usa o verde padrão.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-[#6D4C41]">Banner da página inicial</label>
+              <p className="text-xs text-[#6D4C41]/80 -mt-1">
+                Imagem larga atrás do texto principal (hero). Envie arquivo ou cole a URL pública.
+              </p>
+              <label className="flex w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white">
+                <input type="file" accept="image/*" className="sr-only" onChange={handleBannerFile} />
+                <ImagePlus className="h-5 w-5 shrink-0 text-[#6D4C41]" />
+                <span className="text-sm font-medium text-[#6D4C41]">Enviar imagem do banner</span>
+              </label>
+              {(bannerPreview ?? bannerUrl.trim()) ? (
+                <div className="max-h-40 w-full max-w-xl overflow-hidden rounded-xl border border-[#1B4332]/15">
+                  <img
+                    src={bannerPreview ?? bannerUrl}
+                    alt=""
+                    className="h-40 w-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <input
+                id="bannerUrl"
+                type="url"
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+                placeholder="https://… (opcional)"
+                className={inputCls}
+              />
             </div>
 
             <div>
@@ -422,15 +459,21 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
 
           <button
             type="submit"
-            disabled={saving || uploadingImage}
+            disabled={saving || uploadingImage || uploadingBanner}
             className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white py-3.5 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving || uploadingImage ? (
+            {saving || uploadingImage || uploadingBanner ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Save className="h-5 w-5" />
             )}
-            {uploadingImage ? "Enviando logo..." : saving ? "Salvando..." : "Salvar configurações"}
+            {uploadingImage
+              ? "Enviando logo..."
+              : uploadingBanner
+                ? "Enviando banner..."
+                : saving
+                  ? "Salvando..."
+                  : "Salvar configurações"}
           </button>
 
           {success ? (

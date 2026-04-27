@@ -5,6 +5,7 @@
 import { getSupabase } from "../supabase.js";
 import type { CartItemPayload, Product } from "../schema.js";
 import { rowToProduct } from "./mappers.js";
+import { OrderBusinessError } from "../orderErrors.js";
 
 const PRODUCT_SELECT_WITH_CATEGORY = "*, categories(name)";
 
@@ -203,6 +204,56 @@ export async function validateOrderStock(
       throw new Error(`Estoque insuficiente para o item: ${name}`);
     }
   }
+}
+
+/** Linha do pedido com preço unitário vindo do catálogo (não confiar no preço enviado pelo cliente). */
+export type ResolvedCheckoutLine = {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  image?: string | null;
+};
+
+/**
+ * Resolve itens, estoque e preços a partir do catálogo. Falha se preço do cliente divergir do servidor.
+ */
+export async function resolveOrderLinesForCheckout(
+  env: Env,
+  storeId: string,
+  items: CartItemPayload[]
+): Promise<ResolvedCheckoutLine[]> {
+  const lines: ResolvedCheckoutLine[] = [];
+  for (const item of items) {
+    const p = await getProductById(env, item.id, storeId);
+    const label = item.name?.trim() || "Produto";
+    if (!p) {
+      throw new OrderBusinessError(`Produto não encontrado: ${label}`);
+    }
+    const required = Math.floor(Number(item.quantity));
+    if (!Number.isFinite(required) || required <= 0) {
+      throw new OrderBusinessError(`Quantidade inválida para: ${p.name || label}`);
+    }
+    const stock = p.stock ?? 0;
+    if (stock < required) {
+      throw new Error(`Estoque insuficiente para o item: ${p.name || label}`);
+    }
+    const unit = Number(p.price);
+    const clientUnit = Number(item.price);
+    if (Number.isFinite(clientUnit) && Math.abs(clientUnit - unit) > 0.02) {
+      throw new OrderBusinessError(
+        "Os preços do carrinho mudaram. Atualize a página e tente novamente."
+      );
+    }
+    lines.push({
+      id: item.id,
+      name: (p.name || item.name || "Produto").trim() || "Produto",
+      quantity: required,
+      unitPrice: unit,
+      image: p.imageUrl ?? item.image ?? item.imageUrl ?? null,
+    });
+  }
+  return lines;
 }
 
 export async function deleteProduct(env: Env, productId: string, storeId: string): Promise<void> {

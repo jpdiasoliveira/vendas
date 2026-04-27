@@ -6,6 +6,6 @@
 export * from "./db/storesRepo.js";
 export * from "./db/categoriesRepo.js";
 export * from "./db/productsRepo.js";
-export * from "./db/ordersRepo.js";
+export * from "./db/orders/index.js";
 export * from "./db/membersRepo.js";
 export * from "./db/auditRepo.js";

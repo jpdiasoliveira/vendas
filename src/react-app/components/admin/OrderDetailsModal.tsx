@@ -1,154 +1,42 @@
-import { useState, useEffect } from "react";
 import { X, Loader2, Send, MessageCircle, RefreshCw } from "lucide-react";
-import { adminApiFetch } from "@/react-app/services/api";
-import type { OrderDetail } from "@/react-app/types";
+import { useOrderDetailsModal } from "@/react-app/hooks/useOrderDetailsModal";
 import { StatusBadge } from "./StatusBadge";
-
 import { formatCurrency, formatDate } from "@/react-app/utils/format";
+import {
+  STATUS_OPTIONS,
+  buildWhatsAppUrl,
+  orderNeedsCancellationMotive,
+} from "./orderDetailsModalHelpers";
 
-/**
- * Valores de status enviados ao banco (sempre em inglês).
- * Nomes corretos: pending | paid | shipped | cancelled (cancelado = 'cancelled' com dois L).
- * Labels em PT só para exibição na UI.
- */
-const STATUS_OPTIONS = [
-  { value: "pending", label: "Pendente" },
-  { value: "paid", label: "Pago" },
-  { value: "shipped", label: "Enviado" },
-  { value: "cancelled", label: "Cancelado" },
-] as const;
-
-/** Normaliza status vindo da API para um value do select (sempre inglês). */
-function statusToSelectValue(apiStatus: string | null | undefined): string {
-  const s = (apiStatus ?? "").trim().toLowerCase();
-  if (s === "approved") return "paid";
-  if (s === "canceled") return "cancelled";
-  if (["pending", "paid", "shipped", "cancelled"].includes(s)) return s;
-  return "pending";
-}
-
-/** Abre conversa no app WhatsApp Web/mobile (DDI 55 quando faltar). */
-function buildWhatsAppUrl(raw: string | null | undefined): string | null {
-  const t = raw?.trim();
-  if (!t) return null;
-  const digits = t.replace(/\D/g, "");
-  if (digits.length < 10) return null;
-  const intl = digits.startsWith("55") ? digits : `55${digits}`;
-  return `https://wa.me/${intl}`;
-}
-
-interface OrderDetailsModalProps {
+export interface OrderDetailsModalProps {
   isOpen: boolean;
   orderId: string | null;
   onClose: () => void;
   onStatusUpdated: () => void;
 }
 
-export function OrderDetailsModal({
+export const OrderDetailsModal = ({
   isOpen,
   orderId,
   onClose,
   onStatusUpdated,
-}: OrderDetailsModalProps) {
-  const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [statusSuccessMessage, setStatusSuccessMessage] = useState<string | null>(null);
-  const [syncPaymentLoading, setSyncPaymentLoading] = useState(false);
-  const [syncPaymentMessage, setSyncPaymentMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen || !orderId) {
-      setOrder(null);
-      setError(null);
-      setStatusSuccessMessage(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setStatusSuccessMessage(null);
-    setSyncPaymentMessage(null);
-    adminApiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
-      .then((data) => {
-        const normalized: OrderDetail = {
-          ...data,
-          items: Array.isArray(data.items) ? data.items : [],
-        };
-        setOrder(normalized);
-        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Erro ao carregar pedido");
-      })
-      .finally(() => setLoading(false));
-  }, [isOpen, orderId]);
-
-  const handleSyncPayment = async () => {
-    if (!orderId) return;
-    setSyncPaymentLoading(true);
-    setError(null);
-    setSyncPaymentMessage(null);
-    setStatusSuccessMessage(null);
-    try {
-      type SyncPaymentData = {
-        message: string;
-        mpStatus: string;
-        resultKind: string;
-        outcome?: string;
-        order: OrderDetail | null;
-      };
-      const res = await adminApiFetch<SyncPaymentData>(`/api/admin/orders/${orderId}/sync-payment`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      setSyncPaymentMessage(res.message);
-      if (res.order) {
-        const normalized: OrderDetail = {
-          ...res.order,
-          items: Array.isArray(res.order.items) ? res.order.items : [],
-        };
-        setOrder(normalized);
-        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
-      }
-      onStatusUpdated();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao sincronizar pagamento");
-    } finally {
-      setSyncPaymentLoading(false);
-    }
-  };
-
-  const handleSubmitStatus = async () => {
-    if (!orderId || !selectedStatus) return;
-    setUpdating(true);
-    setError(null);
-    setStatusSuccessMessage(null);
-    try {
-      await adminApiFetch(`/api/admin/orders/${orderId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: selectedStatus }),
-      });
-      const label =
-        STATUS_OPTIONS.find((o) => o.value === selectedStatus)?.label ?? selectedStatus;
-      setStatusSuccessMessage(`Status alterado para «${label}».`);
-      setOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: selectedStatus,
-              paymentStatus: selectedStatus,
-            }
-          : null
-      );
-      onStatusUpdated();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar status");
-    } finally {
-      setUpdating(false);
-    }
-  };
+}: OrderDetailsModalProps) => {
+  const {
+    order,
+    loading,
+    updating,
+    error,
+    selectedStatus,
+    setSelectedStatus,
+    statusSuccessMessage,
+    setStatusSuccessMessage,
+    syncPaymentLoading,
+    syncPaymentMessage,
+    cancellationReason,
+    setCancellationReason,
+    handleSyncPayment,
+    handleSubmitStatus,
+  } = useOrderDetailsModal({ isOpen, orderId, onStatusUpdated });
 
   if (!isOpen) return null;
 
@@ -198,7 +86,9 @@ export function OrderDetailsModal({
                   </div>
                   <div>
                     <p className="text-[#6D4C41]">Cliente</p>
-                    <p className="font-medium text-[#1B4332] break-words">{order.customerName?.trim() || "Cliente"}</p>
+                    <p className="font-medium text-[#1B4332] break-words">
+                      {order.customerName?.trim() || "Cliente"}
+                    </p>
                   </div>
                   {order.customerPhone?.trim() ? (
                     <div>
@@ -210,6 +100,29 @@ export function OrderDetailsModal({
                     <p className="text-[#6D4C41]">Total</p>
                     <p className="font-bold text-[#1B4332]">{formatCurrency(order.total)}</p>
                   </div>
+                  {order.shippingPostalCode?.trim() ? (
+                    <div>
+                      <p className="text-[#6D4C41]">CEP (frete)</p>
+                      <p className="font-medium text-[#1B4332]">{order.shippingPostalCode.trim()}</p>
+                    </div>
+                  ) : null}
+                  {order.shippingFee != null && order.shippingFee > 0 ? (
+                    <div>
+                      <p className="text-[#6D4C41]">Frete</p>
+                      <p className="font-medium text-[#1B4332]">{formatCurrency(order.shippingFee)}</p>
+                    </div>
+                  ) : null}
+                  {order.couponCode?.trim() ? (
+                    <div>
+                      <p className="text-[#6D4C41]">Cupom</p>
+                      <p className="font-medium text-[#1B4332]">
+                        {order.couponCode.trim()}
+                        {order.couponDiscount != null && order.couponDiscount > 0
+                          ? ` (−${formatCurrency(order.couponDiscount)})`
+                          : ""}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="sm:col-span-2">
                     <p className="text-[#6D4C41]">Status</p>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -230,7 +143,8 @@ export function OrderDetailsModal({
                         </button>
                       ) : (
                         <p className="text-sm text-[#6D4C41]">
-                          Gere o PIX ou o checkout para aparecer o ID do pagamento; aí você poderá sincronizar com o Mercado Pago.
+                          Gere o PIX ou o checkout para aparecer o ID do pagamento; aí você poderá
+                          sincronizar com o Mercado Pago.
                         </p>
                       )}
                     </div>
@@ -246,7 +160,9 @@ export function OrderDetailsModal({
                   {order.deliveryAddress?.trim() ? (
                     <div className="sm:col-span-2">
                       <p className="text-[#6D4C41]">Endereço de entrega</p>
-                      <p className="font-medium text-[#1B4332] whitespace-pre-wrap break-words">{order.deliveryAddress.trim()}</p>
+                      <p className="font-medium text-[#1B4332] whitespace-pre-wrap break-words">
+                        {order.deliveryAddress.trim()}
+                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -277,12 +193,18 @@ export function OrderDetailsModal({
                           className="rounded-xl border border-[#1B4332]/10 bg-[#FAF8F3]/50 px-3 py-3"
                         >
                           <div className="flex justify-between gap-2">
-                            <span className="font-medium text-[#1B4332] break-words">{item.productName}</span>
-                            <span className="shrink-0 font-semibold text-[#1B4332]">×{item.quantity}</span>
+                            <span className="font-medium text-[#1B4332] break-words">
+                              {item.productName}
+                            </span>
+                            <span className="shrink-0 font-semibold text-[#1B4332]">
+                              ×{item.quantity}
+                            </span>
                           </div>
                           <div className="mt-2 flex justify-between gap-2 text-base text-[#5a4035]">
                             <span>{formatCurrency(item.price)} / un.</span>
-                            <span className="font-semibold text-[#1B4332]">{formatCurrency(item.price * item.quantity)}</span>
+                            <span className="font-semibold text-[#1B4332]">
+                              {formatCurrency(item.price * item.quantity)}
+                            </span>
                           </div>
                         </li>
                       ))}
@@ -299,10 +221,15 @@ export function OrderDetailsModal({
                         </thead>
                         <tbody>
                           {list.map((item, idx) => (
-                            <tr key={item.id ?? item.productId ?? idx} className="border-t border-[#1B4332]/5">
+                            <tr
+                              key={item.id ?? item.productId ?? idx}
+                              className="border-t border-[#1B4332]/5"
+                            >
                               <td className="px-3 py-2 text-[#5a4035]">{item.productName}</td>
                               <td className="px-3 py-2 text-right text-[#1B4332]">{item.quantity}</td>
-                              <td className="px-3 py-2 text-right text-[#1B4332]">{formatCurrency(item.price)}</td>
+                              <td className="px-3 py-2 text-right text-[#1B4332]">
+                                {formatCurrency(item.price)}
+                              </td>
                               <td className="px-3 py-2 text-right font-medium text-[#1B4332]">
                                 {formatCurrency(item.price * item.quantity)}
                               </td>
@@ -321,6 +248,37 @@ export function OrderDetailsModal({
                     role="status"
                   >
                     {statusSuccessMessage}
+                  </div>
+                ) : null}
+                {selectedStatus === "cancelled" && orderNeedsCancellationMotive(order) ? (
+                  <div
+                    className="mb-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+                    role="alert"
+                  >
+                    <p className="font-semibold">Estorno manual pode ser necessário</p>
+                    <p className="mt-1">
+                      Este pedido já consta como pago ou em etapa avançada. Ao cancelar no sistema,
+                      confira o Mercado Pago (ou outro gateway) e faça o estorno manual se o dinheiro
+                      já tiver sido capturado.
+                    </p>
+                  </div>
+                ) : null}
+                {selectedStatus === "cancelled" ? (
+                  <div className="mb-3 font-inter">
+                    <label htmlFor="order-cancel-reason" className="mb-1 block text-sm font-medium text-[#6D4C41]">
+                      Motivo do cancelamento
+                      {orderNeedsCancellationMotive(order) ? (
+                        <span className="text-red-500"> *</span>
+                      ) : null}
+                    </label>
+                    <textarea
+                      id="order-cancel-reason"
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      rows={3}
+                      placeholder="Ex.: cliente desistiu; duplicidade; falha na entrega…"
+                      className="w-full rounded-xl border border-[#1B4332]/20 bg-white px-4 py-3 text-base text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:border-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30"
+                    />
                   </div>
                 ) : null}
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
@@ -359,4 +317,4 @@ export function OrderDetailsModal({
       </div>
     </div>
   );
-}
+};

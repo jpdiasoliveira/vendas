@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, Activity, LogOut, Settings, Building2 } from "lucide-react";
+import { Package, ShoppingBag, Activity, LogOut, Settings, Building2, FolderTree } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 import { adminApiFetch } from "@/react-app/services/api";
@@ -32,8 +32,9 @@ export const AdminNav = ({ children }: AdminNavProps) => {
   const links = [
     { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
     ...(isAdminOrOwner ? [{ to: "/admin/configuracoes", label: "Configurações", icon: Settings }] : []),
-    ...(role === "admin" ? [{ to: "/admin/historico", label: "Histórico", icon: Activity }] : []),
+    ...(isAdminOrOwner ? [{ to: "/admin/historico", label: "Histórico", icon: Activity }] : []),
     { to: "/admin/produtos", label: "Produtos", icon: Package },
+    { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
     ...(showPlatform ? [{ to: "/admin/plataforma", label: "Plataforma", icon: Building2 }] : []),
   ];
 

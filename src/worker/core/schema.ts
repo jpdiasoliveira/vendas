@@ -25,6 +25,8 @@ export interface Store {
 export interface StoreSettings {
   displayName: string;
   logoUrl?: string | null;
+  /** Imagem larga do hero na vitrine (URL pública). */
+  bannerUrl?: string | null;
   primaryColor?: string | null;
   minimumOrderValue?: number | null;
   /** Conteúdo de store_settings.public_profile (JSONB). */
@@ -101,6 +103,14 @@ export interface Order {
   paymentStatus?: string | null;
   /** Endereço completo de entrega (coluna delivery_address no banco) */
   deliveryAddress?: string | null;
+  /** CEP (8 dígitos) usado no cálculo de frete */
+  shippingPostalCode?: string | null;
+  /** Valor do frete em R$ (servidor) */
+  shippingFee?: number | null;
+  /** Cupom aplicado (normalizado em minúsculas) */
+  couponCode?: string | null;
+  /** Desconto do cupom em R$ (servidor) */
+  couponDiscount?: number | null;
   /** Cidade do endereço de entrega (coluna orders.shipping_city) */
   shippingCity?: string | null;
   /** UF do endereço de entrega */
@@ -143,6 +153,10 @@ export interface OrderDetail {
   paymentProvider?: string | null;
   paymentStatus?: string | null;
   deliveryAddress?: string | null;
+  shippingPostalCode?: string | null;
+  shippingFee?: number | null;
+  couponCode?: string | null;
+  couponDiscount?: number | null;
   shippingCity?: string | null;
   shippingState?: string | null;
   trackingCode?: string | null;

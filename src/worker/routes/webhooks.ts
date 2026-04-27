@@ -2,19 +2,21 @@ import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { getPayment } from "../services/mercadopago.js";
 import { applyMercadoPagoPaymentSnapshotToOrder } from "../services/mercadopagoOrderPaymentReconcile.js";
+import { getOrderById } from "../core/database.js";
 import { isRequireMpWebhookSecret } from "../core/config.js";
+import { logAuditEvent } from "../utils/audit.js";
+import { logServerError } from "../utils/safeApiError.js";
 import { verifyMercadoPagoWebhookSignature } from "../utils/mercadopagoWebhookSignature.js";
 
 const webhooks = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 /**
  * Webhook do Mercado Pago (IPN).
- * Recebe a notificação, busca o status do pagamento na API e, se aprovado, atualiza o pedido.
+ * Valida assinatura, consulta GET /v1/payments/:id e reconcilia o pedido (mesma tranca que o admin).
  */
 webhooks.post("/mercadopago", async (c) => {
   try {
     const body = (await c.req.json()) as { type?: string; data?: { id?: string } };
-    console.log("[Webhook MP] Received:", JSON.stringify({ type: body.type, dataId: body.data?.id }));
 
     const paymentIdStr = body.data?.id;
     const dataIdForSignature =
@@ -63,33 +65,35 @@ webhooks.post("/mercadopago", async (c) => {
       payment,
     });
 
-    if (applied.kind === "approval") {
-      const { outcome } = applied;
-      if (outcome === "paid") {
-        console.log("[Webhook MP] Order updated to paid:", orderId);
-      } else if (outcome === "idempotent_skip") {
-        console.log("[Webhook MP] Idempotente (notificação repetida), sem nova baixa:", orderId);
-      } else if (outcome === "payment_id_conflict") {
-        console.warn("[Webhook MP] Conflito payment_id vs pedido já pago — revisar manualmente:", orderId);
-      } else if (outcome === "stock_conflict_cancelled") {
-        console.warn(
-          "[Webhook MP] Pedido cancelado por estoque insuficiente após aprovação no MP (estorno manual):",
-          orderId
-        );
+    const orderRow = await getOrderById(c.env, String(orderId).trim());
+    if (orderRow) {
+      const details: Record<string, unknown> = {
+        actor: "mercadopago_ipn",
+        mp_payment_id: payment.id,
+        mp_status: payment.status,
+        reconcile_kind: applied.kind,
+      };
+      if (applied.kind === "approval") {
+        details.approval_outcome = applied.outcome;
+        if (applied.outcome === "payment_id_conflict" || applied.outcome === "stock_conflict_cancelled") {
+          logServerError("webhooks.mercadopago.payment_anomaly", details);
+        }
+      } else if (applied.kind === "ignored") {
+        details.ignored_reason = applied.reason;
       }
-    } else if (applied.kind === "cancelled") {
-      console.log("[Webhook MP] Order cancelled (status from MP):", payment.status, orderId);
-    } else if (applied.reason === "pending_like") {
-      console.log("[Webhook MP] Aguardando confirmação (status MP):", payment.status, orderId);
-    } else if (applied.reason === "reference_mismatch") {
-      console.warn("[Webhook MP] external_reference não bate com pedido; ignorado:", orderId, payment.id);
-    } else {
-      console.log("[Webhook MP] Payment status (no action):", payment.status);
+      await logAuditEvent(c.env, {
+        storeId: orderRow.storeId,
+        userId: null,
+        action: "MP_WEBHOOK_PAYMENT_NOTIFICATION",
+        resourceType: "order",
+        resourceId: String(orderId).trim(),
+        details,
+      });
     }
 
     return c.json({ success: true, data: { received: true } }, 200);
   } catch (err: unknown) {
-    console.error("[Webhook MP] Error:", err);
+    logServerError("webhooks.mercadopago", err);
     return c.json({ success: false, error: "Erro ao processar notificação" }, 500);
   }
 });
