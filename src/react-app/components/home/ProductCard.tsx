@@ -8,6 +8,11 @@ import {
   catalogCardImageInnerClass,
   catalogCardImageImgClass,
 } from "@/react-app/utils/productCatalogImageLayout";
+import {
+  CATALOG_PRODUCT_IMAGE_SIZES,
+  getCatalogProductImageSrc,
+  getCatalogProductImageSrcSet,
+} from "@/react-app/utils/catalogProductImageUrl";
 
 type ProductCardProps = {
   product: Product;
@@ -17,7 +22,7 @@ type ProductCardProps = {
   isHomeFeatured?: boolean;
 };
 
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300";
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/800x1000/e2e8f0/1B4332?text=Natfoods";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
@@ -26,8 +31,10 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
   const { addItem } = useCart();
   const [detailOpen, setDetailOpen] = useState(false);
   const isSpotlight = isTrending || isHomeFeatured;
-  const imageUrl =
+  const rawImageUrl =
     (product.imageUrl ?? (product as { image_url?: string }).image_url ?? "").trim() || PLACEHOLDER_IMAGE;
+  const imageSrc = getCatalogProductImageSrc(rawImageUrl);
+  const imageSrcSet = getCatalogProductImageSrcSet(rawImageUrl);
   const description = product.description?.trim();
 
   const handleAdd = () => {
@@ -35,7 +42,7 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
       id: product.id,
       name: product.name,
       price: product.price,
-      image: imageUrl,
+      image: imageSrc,
       priceWholesale: product.priceWholesale ?? undefined,
       minQuantityWholesale: product.minQuantityWholesale ?? undefined,
       stock: product.stock ?? undefined,
@@ -76,10 +83,13 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
             <div className={catalogCardImageGlowClass(isSpotlight)} aria-hidden />
             <div className={catalogCardImageInnerClass}>
               <img
-                src={imageUrl}
+                src={imageSrc}
+                srcSet={imageSrcSet}
+                sizes={imageSrcSet ? CATALOG_PRODUCT_IMAGE_SIZES : undefined}
                 alt=""
                 loading="lazy"
                 decoding="async"
+                fetchPriority="low"
                 className={catalogCardImageImgClass}
               />
             </div>
@@ -111,7 +121,7 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
 
       <ProductDetailModal
         product={product}
-        imageUrl={imageUrl}
+        imageUrl={imageSrc}
         isOpen={detailOpen}
         onClose={() => setDetailOpen(false)}
         onAddToCart={handleAdd}

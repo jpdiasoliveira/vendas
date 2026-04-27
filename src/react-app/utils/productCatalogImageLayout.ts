@@ -15,7 +15,7 @@
 export const CATALOG_IMAGE_INNER_INSET = "inset-[6%] sm:inset-[7%]";
 
 /** Zoom suave no hover (1 = sem zoom). */
-export const CATALOG_IMAGE_SCALE_HOVER = "group-hover:scale-[1.03]";
+export const CATALOG_IMAGE_SCALE_HOVER = "group-hover:scale-[1.01]";
 
 /** Proporção do quadro de foto. */
 export const CATALOG_IMAGE_ASPECT = "aspect-[4/5]";
@@ -49,6 +49,8 @@ export const catalogCardImageImgClass = [
   "transition-transform duration-700 ease-out",
   CATALOG_IMAGE_SCALE_HOVER,
   "select-none",
+  /** Evita “soft blur” comum em `transform` + fotos no Chrome/Safari. */
+  "backface-hidden [transform:translateZ(0)]",
 ].join(" ");
 
 export const catalogModalImageFrameClass = () =>
@@ -60,4 +62,8 @@ export const catalogModalImageFrameClass = () =>
 
 export const catalogModalImageInnerClass = ["absolute z-10 overflow-hidden", CATALOG_IMAGE_INNER_INSET].join(" ");
 
-export const catalogModalImageImgClass = ["h-full w-full object-cover object-center", "select-none"].join(" ");
+export const catalogModalImageImgClass = [
+  "h-full w-full object-cover object-center",
+  "select-none",
+  "backface-hidden [transform:translateZ(0)]",
+].join(" ");
