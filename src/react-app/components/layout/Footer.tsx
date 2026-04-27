@@ -1,5 +1,6 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search } from "lucide-react";
+import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search, X } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import type { StorePublicProfile } from "@/react-app/types";
@@ -24,6 +25,8 @@ function externalHttpUrl(raw: string | null | undefined): string | null {
 type FooterProps = {
   onConsultOrder?: () => void;
 };
+
+type PolicyKey = "delivery" | "returns" | "privacy";
 
 type ContactBlockProps = {
   p?: StorePublicProfile;
@@ -102,6 +105,7 @@ const ContactDetailsBlock = ({ p, wa, ig, fb, igHref, fbHref, mail, phone }: Con
 
 export const Footer = ({ onConsultOrder }: FooterProps) => {
   const { settings } = useStoreSettings();
+  const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   const p = settings?.publicProfile;
   const displayName = settings?.displayName?.trim() || "Natfoods";
@@ -117,6 +121,24 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
   const hasLegal =
     !!(p?.deliveryPolicy?.trim() || p?.returnsPolicy?.trim() || p?.privacyPolicy?.trim());
   const hasContactChannel = !!(wa || mail || phone || igHref || fbHref);
+  const policyByKey = useMemo(
+    () => ({
+      delivery: {
+        title: "Política de entrega",
+        content: p?.deliveryPolicy?.trim() ?? "",
+      },
+      returns: {
+        title: "Trocas e devoluções",
+        content: p?.returnsPolicy?.trim() ?? "",
+      },
+      privacy: {
+        title: "Privacidade",
+        content: p?.privacyPolicy?.trim() ?? "",
+      },
+    }),
+    [p?.deliveryPolicy, p?.returnsPolicy, p?.privacyPolicy]
+  );
+  const activePolicyData = activePolicy ? policyByKey[activePolicy] : null;
 
   return (
     <footer id="contato" className="relative overflow-hidden">
@@ -275,23 +297,35 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
               <ul className="space-y-2 font-inter">
                 {p?.deliveryPolicy?.trim() ? (
                   <li>
-                    <a href="#politica-entrega" className="text-white/80 hover:text-[#FFD166] transition-colors duration-300">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy("delivery")}
+                      className="text-white/80 hover:text-[#FFD166] transition-colors duration-300"
+                    >
                       Entrega
-                    </a>
+                    </button>
                   </li>
                 ) : null}
                 {p?.returnsPolicy?.trim() ? (
                   <li>
-                    <a href="#politica-trocas" className="text-white/80 hover:text-[#FFD166] transition-colors duration-300">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy("returns")}
+                      className="text-white/80 hover:text-[#FFD166] transition-colors duration-300"
+                    >
                       Trocas e devoluções
-                    </a>
+                    </button>
                   </li>
                 ) : null}
                 {p?.privacyPolicy?.trim() ? (
                   <li>
-                    <a href="#politica-privacidade" className="text-white/80 hover:text-[#FFD166] transition-colors duration-300">
+                    <button
+                      type="button"
+                      onClick={() => setActivePolicy("privacy")}
+                      className="text-white/80 hover:text-[#FFD166] transition-colors duration-300"
+                    >
                       Privacidade
-                    </a>
+                    </button>
                   </li>
                 ) : null}
                 {!hasLegal ? (
@@ -327,6 +361,38 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
               ) : null}
             </div>
           )}
+
+          {activePolicyData?.content ? (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <button
+                type="button"
+                aria-label="Fechar política"
+                onClick={() => setActivePolicy(null)}
+                className="absolute inset-0 bg-[#1B4332]/70 backdrop-blur-sm"
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="footer-policy-title"
+                className="relative z-[1] max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/20 bg-[#0f2e24] p-6 shadow-2xl"
+              >
+                <button
+                  type="button"
+                  onClick={() => setActivePolicy(null)}
+                  className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <h3 id="footer-policy-title" className="mb-3 pr-10 font-playfair text-2xl font-bold text-white">
+                  {activePolicyData.title}
+                </h3>
+                <p className="whitespace-pre-line font-inter text-sm leading-relaxed text-white/90">
+                  {activePolicyData.content}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div className="border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm">
             <p>

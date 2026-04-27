@@ -16,6 +16,11 @@ import {
   getStoreSettingsWithDisplayName,
   updateStoreSettingsAndDisplayName,
 } from "../core/database.js";
+import { getPayment } from "../services/mercadopago.js";
+import {
+  applyMercadoPagoPaymentSnapshotToOrder,
+  formatMercadoPagoFetchError,
+} from "../services/mercadopagoOrderPaymentReconcile.js";
 import { getSupabase } from "../core/supabase.js";
 import { productCreateSchema, productUpdateSchema } from "../schemas/product.js";
 import { Variables } from "../types.js";
@@ -378,6 +383,93 @@ admin.patch("/orders/:id/tracking", async (c) => {
     return c.json({ success: true, data: { ok: true } }, 200);
   } catch (err: unknown) {
     logServerError("admin.patch /orders/:id/tracking", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+/**
+ * Sincronização proativa: consulta o Mercado Pago pelo payment_id do pedido e aplica o mesmo fluxo do webhook (tranca + idempotência).
+ */
+admin.post("/orders/:id/sync-payment", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
+  const orderId = String(c.req.param("id")).trim();
+  const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!token) {
+    return c.json(
+      {
+        success: false,
+        error: "Pagamentos não configurados: falta MERCADO_PAGO_ACCESS_TOKEN no servidor.",
+      },
+      500
+    );
+  }
+
+  try {
+    const row = await getOrderWithItems(c.env, orderId, store.id);
+    if (!row) {
+      return c.json({ success: false, error: "Pedido não encontrado nesta loja." }, 404);
+    }
+
+    const rawPid = row.paymentId != null ? String(row.paymentId).trim() : "";
+    if (!rawPid) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Este pedido ainda não tem um ID de pagamento no Mercado Pago. Gere o PIX ou conclua o checkout para criar o pagamento; depois use «Sincronizar».",
+        },
+        400
+      );
+    }
+
+    const mpNumericId = Number(rawPid);
+    if (!Number.isFinite(mpNumericId) || mpNumericId <= 0) {
+      return c.json(
+        {
+          success: false,
+          error: "O payment_id salvo no pedido não é um número válido do Mercado Pago.",
+        },
+        400
+      );
+    }
+
+    let payment;
+    try {
+      payment = await getPayment(token, mpNumericId);
+    } catch (e: unknown) {
+      return c.json({ success: false, error: formatMercadoPagoFetchError(e) }, 502);
+    }
+
+    const reconcile = await applyMercadoPagoPaymentSnapshotToOrder(c.env, { orderId, payment });
+
+    await logAction(c, "SYNC_ORDER_MP_PAYMENT", "order", orderId, {
+      mp_payment_id: payment.id,
+      mp_status: payment.status,
+      reconcile_kind: reconcile.kind,
+      ...(reconcile.kind === "approval" ? { outcome: reconcile.outcome } : {}),
+    });
+
+    const refreshed = await getOrderWithItems(c.env, orderId, store.id);
+    const orderPayload = refreshed
+      ? { ...refreshed, items: Array.isArray(refreshed.items) ? refreshed.items : [] }
+      : null;
+
+    return c.json(
+      {
+        success: true,
+        data: {
+          message: reconcile.userMessage,
+          mpStatus: payment.status,
+          resultKind: reconcile.kind,
+          ...(reconcile.kind === "approval" ? { outcome: reconcile.outcome } : {}),
+          order: orderPayload,
+        },
+      },
+      200
+    );
+  } catch (err: unknown) {
+    logServerError("admin.post /orders/:id/sync-payment", err);
     return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });

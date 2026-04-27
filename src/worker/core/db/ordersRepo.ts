@@ -230,6 +230,13 @@ function isPaidStatus(s: string | null | undefined): boolean {
   return !!s && PAID_STATUSES.includes(s.toLowerCase());
 }
 
+/** ID de pagamento MP normalizado para comparação segura (webhook idempotente). */
+function normalizeMpPaymentIdRef(id: number | string | null | undefined): string | null {
+  if (id == null) return null;
+  const s = String(id).trim();
+  return s === "" ? null : s;
+}
+
 function inventoryCommittedStatus(s: string | null | undefined): boolean {
   if (!s) return false;
   const t = s.toLowerCase();
@@ -408,16 +415,26 @@ export async function updateOrderPayment(
   orderId: string,
   storeId: string,
   paymentMethod: string,
-  options?: { paymentId?: number; paymentStatus?: string }
+  options?: {
+    paymentId?: number;
+    paymentStatus?: string;
+    paymentPreferenceId?: string | null;
+  }
 ): Promise<void> {
   const supabase = getSupabase(env);
   const payload: Record<string, unknown> = {
     payment_method: paymentMethod,
     status: options?.paymentStatus ?? "pending",
     updated_at: new Date().toISOString(),
+    payment_provider: "mercadopago",
   };
   if (options?.paymentId != null) {
     payload.payment_id = String(options.paymentId);
+  }
+  if (options?.paymentPreferenceId !== undefined) {
+    const raw = options.paymentPreferenceId;
+    payload.payment_preference_id =
+      raw == null || String(raw).trim() === "" ? null : String(raw).trim();
   }
   const { error } = await supabase
     .from("orders")
@@ -431,7 +448,18 @@ export type UpdateOrderPaymentStatusOutcome =
   | "paid"
   | "stock_conflict_cancelled"
   | "skipped_not_found"
-  | "updated_non_paid";
+  | "updated_non_paid"
+  | "idempotent_skip"
+  | "payment_id_conflict";
+
+const MP_APPROVAL_RPC_OUTCOMES: ReadonlySet<UpdateOrderPaymentStatusOutcome> = new Set([
+  "paid",
+  "skipped_not_found",
+  "idempotent_skip",
+  "payment_id_conflict",
+  "stock_conflict_cancelled",
+  "updated_non_paid",
+]);
 
 export async function updateOrderPaymentStatus(
   env: Env,
@@ -440,6 +468,36 @@ export async function updateOrderPaymentStatus(
   paymentInfo?: { paymentId?: number }
 ): Promise<UpdateOrderPaymentStatusOutcome> {
   const idStr = String(orderId);
+  const incomingId = normalizeMpPaymentIdRef(paymentInfo?.paymentId);
+
+  /**
+   * História do dado (aprovação MP com ID): o pedido entra na fila do Postgres, pede a linha
+   * com FOR UPDATE (tranca a porta), só então lê o status e baixa estoque — o segundo webhook
+   * espera na porta até o primeiro terminar e já vê `approved` (idempotência).
+   */
+  if (isPaidStatus(status) && incomingId) {
+    const supabase = getSupabase(env);
+    const { data, error } = await supabase.rpc("apply_mp_approval_with_order_lock", {
+      p_order_id: idStr,
+      p_mp_payment_id: incomingId,
+    });
+    if (error) throw new Error(error.message);
+    const outcome = String(data ?? "").trim() as UpdateOrderPaymentStatusOutcome;
+    if (!MP_APPROVAL_RPC_OUTCOMES.has(outcome)) {
+      throw new Error(`apply_mp_approval_with_order_lock retorno inesperado: ${String(data)}`);
+    }
+    if (outcome === "stock_conflict_cancelled") {
+      console.error("[updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED]", {
+        reason: "INSUFFICIENT_STOCK_AT_MP_APPROVAL",
+        orderId: idStr,
+        mpPaymentId: paymentInfo?.paymentId ?? null,
+        message:
+          "Pedido cancelado no sistema: pagamento aprovado no Mercado Pago mas estoque insuficiente. Efetue estorno manual no MP.",
+      });
+    }
+    return outcome;
+  }
+
   const order = await getOrderById(env, idStr);
   if (!order) {
     console.warn("[updateOrderPaymentStatus] Pedido não encontrado, update ignorado:", idStr);
@@ -474,6 +532,10 @@ export async function updateOrderPaymentStatus(
     status,
     updated_at: new Date().toISOString(),
   };
+  if (incomingId) {
+    updateRow.payment_id = incomingId;
+    updateRow.payment_provider = "mercadopago";
+  }
   if (st === "paid" || st === "approved") {
     updateRow.paid_at = new Date().toISOString();
   }

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { getPayment } from "../services/mercadopago.js";
-import { updateOrderPaymentStatus, updateOrderStatus, getOrderById } from "../core/database.js";
+import { applyMercadoPagoPaymentSnapshotToOrder } from "../services/mercadopagoOrderPaymentReconcile.js";
 import { isRequireMpWebhookSecret } from "../core/config.js";
 import { verifyMercadoPagoWebhookSignature } from "../utils/mercadopagoWebhookSignature.js";
 
@@ -58,30 +58,31 @@ webhooks.post("/mercadopago", async (c) => {
       return c.json({ success: true, data: { received: true } }, 200);
     }
 
-    if (payment.status === "approved") {
-      const outcome = await updateOrderPaymentStatus(c.env, orderId, "approved", {
-        paymentId: payment.id,
-      });
+    const applied = await applyMercadoPagoPaymentSnapshotToOrder(c.env, {
+      orderId,
+      payment,
+    });
+
+    if (applied.kind === "approval") {
+      const { outcome } = applied;
       if (outcome === "paid") {
         console.log("[Webhook MP] Order updated to paid:", orderId);
+      } else if (outcome === "idempotent_skip") {
+        console.log("[Webhook MP] Idempotente (notificação repetida), sem nova baixa:", orderId);
+      } else if (outcome === "payment_id_conflict") {
+        console.warn("[Webhook MP] Conflito payment_id vs pedido já pago — revisar manualmente:", orderId);
       } else if (outcome === "stock_conflict_cancelled") {
         console.warn(
           "[Webhook MP] Pedido cancelado por estoque insuficiente após aprovação no MP (estorno manual):",
           orderId
         );
       }
-    } else if (
-      payment.status === "rejected" ||
-      payment.status === "cancelled" ||
-      payment.status === "refunded"
-    ) {
-      const order = await getOrderById(c.env, orderId);
-      if (order) {
-        await updateOrderStatus(c.env, orderId, order.storeId, "cancelled");
-        console.log("[Webhook MP] Order cancelled (status from MP):", payment.status, orderId);
-      } else {
-        console.warn("[Webhook MP] Order not found for cancel/refund:", orderId);
-      }
+    } else if (applied.kind === "cancelled") {
+      console.log("[Webhook MP] Order cancelled (status from MP):", payment.status, orderId);
+    } else if (applied.reason === "pending_like") {
+      console.log("[Webhook MP] Aguardando confirmação (status MP):", payment.status, orderId);
+    } else if (applied.reason === "reference_mismatch") {
+      console.warn("[Webhook MP] external_reference não bate com pedido; ignorado:", orderId, payment.id);
     } else {
       console.log("[Webhook MP] Payment status (no action):", payment.status);
     }

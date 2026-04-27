@@ -93,7 +93,11 @@ export interface Order {
   total: number;
   currency?: string | null;
   paymentMethod?: string | null;
+  /** Gateway (ex.: mercadopago); alinhado a payment_id no índice único parcial. */
+  paymentProvider?: string | null;
   paymentId?: string | null;
+  /** ID da preferência Checkout Pro (Mercado Pago). */
+  paymentPreferenceId?: string | null;
   paymentStatus?: string | null;
   /** Endereço completo de entrega (coluna delivery_address no banco) */
   deliveryAddress?: string | null;
@@ -136,6 +140,7 @@ export interface OrderDetail {
   status: string;
   total: number;
   paymentMethod?: string | null;
+  paymentProvider?: string | null;
   paymentStatus?: string | null;
   deliveryAddress?: string | null;
   shippingCity?: string | null;
@@ -144,6 +149,7 @@ export interface OrderDetail {
   shippingMethod?: string | null;
   guestCheckoutEmail?: string | null;
   currency?: string | null;
+  paymentPreferenceId?: string | null;
   paymentId?: string | null;
   paidAt?: string | null;
   deliveredAt?: string | null;

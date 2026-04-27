@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Send, MessageCircle } from "lucide-react";
+import { X, Loader2, Send, MessageCircle, RefreshCw } from "lucide-react";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { OrderDetail } from "@/react-app/types";
 import { StatusBadge } from "./StatusBadge";
@@ -56,6 +56,8 @@ export function OrderDetailsModal({
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [statusSuccessMessage, setStatusSuccessMessage] = useState<string | null>(null);
+  const [syncPaymentLoading, setSyncPaymentLoading] = useState(false);
+  const [syncPaymentMessage, setSyncPaymentMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !orderId) {
@@ -67,6 +69,7 @@ export function OrderDetailsModal({
     setLoading(true);
     setError(null);
     setStatusSuccessMessage(null);
+    setSyncPaymentMessage(null);
     adminApiFetch<OrderDetail>(`/api/admin/orders/${orderId}`)
       .then((data) => {
         const normalized: OrderDetail = {
@@ -81,6 +84,41 @@ export function OrderDetailsModal({
       })
       .finally(() => setLoading(false));
   }, [isOpen, orderId]);
+
+  const handleSyncPayment = async () => {
+    if (!orderId) return;
+    setSyncPaymentLoading(true);
+    setError(null);
+    setSyncPaymentMessage(null);
+    setStatusSuccessMessage(null);
+    try {
+      type SyncPaymentData = {
+        message: string;
+        mpStatus: string;
+        resultKind: string;
+        outcome?: string;
+        order: OrderDetail | null;
+      };
+      const res = await adminApiFetch<SyncPaymentData>(`/api/admin/orders/${orderId}/sync-payment`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setSyncPaymentMessage(res.message);
+      if (res.order) {
+        const normalized: OrderDetail = {
+          ...res.order,
+          items: Array.isArray(res.order.items) ? res.order.items : [],
+        };
+        setOrder(normalized);
+        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
+      }
+      onStatusUpdated();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao sincronizar pagamento");
+    } finally {
+      setSyncPaymentLoading(false);
+    }
+  };
 
   const handleSubmitStatus = async () => {
     if (!orderId || !selectedStatus) return;
@@ -174,7 +212,36 @@ export function OrderDetailsModal({
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-[#6D4C41]">Status</p>
-                    <StatusBadge status={order.paymentStatus ?? order.status ?? "pending"} />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                      <StatusBadge status={order.paymentStatus ?? order.status ?? "pending"} />
+                      {order.paymentId?.trim() ? (
+                        <button
+                          type="button"
+                          onClick={handleSyncPayment}
+                          disabled={syncPaymentLoading}
+                          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1B4332]/25 bg-[#FAF8F3] px-4 py-2.5 text-sm font-semibold text-[#1B4332] transition-colors hover:bg-[#1B4332]/10 disabled:opacity-60"
+                        >
+                          {syncPaymentLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 shrink-0" aria-hidden />
+                          )}
+                          {syncPaymentLoading ? "Sincronizando…" : "Sincronizar pagamento"}
+                        </button>
+                      ) : (
+                        <p className="text-sm text-[#6D4C41]">
+                          Gere o PIX ou o checkout para aparecer o ID do pagamento; aí você poderá sincronizar com o Mercado Pago.
+                        </p>
+                      )}
+                    </div>
+                    {syncPaymentMessage ? (
+                      <div
+                        className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+                        role="status"
+                      >
+                        {syncPaymentMessage}
+                      </div>
+                    ) : null}
                   </div>
                   {order.deliveryAddress?.trim() ? (
                     <div className="sm:col-span-2">

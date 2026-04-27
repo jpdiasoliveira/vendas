@@ -232,6 +232,7 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
 
       await updateOrderPayment(c.env, orderId, store.id, "credit_card", {
         paymentStatus: "pending",
+        paymentPreferenceId: pref.id,
       });
 
       return c.json({

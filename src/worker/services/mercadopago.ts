@@ -189,11 +189,12 @@ export async function getPayment(
     },
   });
 
-  const data = (await res.json()) as GetPaymentResult & { message?: string };
+  const data = (await res.json()) as GetPaymentResult & { message?: string; error?: string };
 
   if (!res.ok) {
-    const msg = data.message ?? `MP API error: ${res.status}`;
-    throw new Error(msg);
+    const detail = data.message ?? data.error ?? "";
+    const suffix = detail ? `: ${detail}` : "";
+    throw new Error(`Mercado Pago (${res.status})${suffix}`);
   }
 
   return {
