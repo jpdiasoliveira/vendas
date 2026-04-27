@@ -1,6 +1,6 @@
 /**
- * Repositório: pedidos e itens (order_items). Multi-tenant: store_id em toda mutação e leitura sensível.
- * Webhook (updateOrderPaymentStatus) usa getOrderById sem slug — confiança no payment provider + id único.
+ * Repositório: pedidos e itens (`order_items`, com `store_id`). Leituras e mutações na loja filtram por `store_id`.
+ * Fluxos de webhook usam `getOrderById` (ver JSDoc na função) após validar origem do gateway.
  */
 
 import { getSupabase } from "../supabase.js";
@@ -177,6 +177,10 @@ async function getOrderByIdForStore(
   return rowToOrder(row as Record<string, unknown>);
 }
 
+/**
+ * Pedido por id sem filtro de loja. Uso restrito a fluxos que já amarram o id de forma segura
+ * (ex.: `external_reference` do Mercado Pago + assinatura de webhook); demais leituras devem usar `store_id`.
+ */
 export async function getOrderById(env: Env, orderId: string): Promise<Order | null> {
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
@@ -375,9 +379,23 @@ export async function updateOrderTracking(
   payload: { trackingCode?: string | null; shippingMethod?: string | null }
 ): Promise<void> {
   const supabase = getSupabase(env);
+  const order = await getOrderByIdForStore(env, orderId, storeId);
+  if (!order) throw new Error("Pedido não encontrado");
+
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (payload.trackingCode !== undefined) update.tracking_code = payload.trackingCode ?? null;
   if (payload.shippingMethod !== undefined) update.shipping_method = payload.shippingMethod ?? null;
+
+  const trackingTrim =
+    payload.trackingCode !== undefined ? String(payload.trackingCode ?? "").trim() : "";
+  if (trackingTrim.length > 0) {
+    const prev = (order.status ?? "").toLowerCase();
+    const terminal = prev === "shipped" || prev === "delivered" || prev === "cancelled" || prev === "canceled";
+    if (isPaidStatus(order.status) && !terminal) {
+      update.status = "shipped";
+    }
+  }
+
   const { error } = await supabase
     .from("orders")
     .update(update)

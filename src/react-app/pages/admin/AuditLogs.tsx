@@ -1,219 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import {
-  RefreshCw,
-  Home,
-  History,
-  PlusCircle,
-  Pencil,
-  Trash2,
-  Search,
-  ArrowRight,
-  type LucideIcon,
-} from "lucide-react";
-import { adminApiFetch } from "@/react-app/services/api";
+import { RefreshCw, Home, History } from "lucide-react";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
-import type { AuditLogReport } from "@/shared/types";
+import { AuditLogsFilters } from "@/react-app/components/admin/AuditLogsFilters";
+import { AuditLogsSkeleton } from "@/react-app/components/admin/AuditLogsSkeleton";
+import { AuditLogsList } from "@/react-app/components/admin/AuditLogsList";
+import { useAuditLogs } from "@/react-app/hooks/useAuditLogs";
 
-/** Valores de action na API (query param). */
-const ACTION_OPTIONS = [
-  { value: "", label: "Todas as ações" },
-  { value: "CREATE_PRODUCT", label: "Criar" },
-  { value: "UPDATE_PRODUCT", label: "Editar" },
-  { value: "DELETE_PRODUCT", label: "Excluir" },
-  { value: "UPDATE_ORDER_STATUS", label: "Pedido" },
-] as const;
-
-import { formatDateTime } from "@/react-app/utils/format";
-
-/** Extrai o nome real do recurso a partir de details; fallback: resource_id encurtado. */
-const getResourceDisplayName = (entry: AuditLogReport): string => {
-  const d = (entry.detalhes ?? {}) as Record<string, unknown>;
-  if (entry.tipo === "product") {
-    const name = (d.product_name ?? d.name) as string | undefined;
-    if (name && String(name).trim()) return String(name).trim();
-  }
-  if (entry.tipo === "order") {
-    const customer = d.customer_name as string | undefined;
-    if (customer && String(customer).trim()) return String(customer).trim();
-    const orderNum = (d.order_number ?? d.order_id) as string | number | undefined;
-    if (orderNum != null) return String(orderNum);
-  }
-  const rid = entry.resource_id;
-  if (rid && typeof rid === "string" && rid.length > 0)
-    return `ID: ${rid.slice(0, 4)}${rid.length > 4 ? "…" : ""}`;
-  return entry.tipo === "order" ? "um pedido" : "um produto";
-};
-
-/** Frase amigável da ação usando action_key e nome do recurso. */
-const getFriendlyActionMessage = (entry: AuditLogReport): string => {
-  const nameOrId = getResourceDisplayName(entry);
-  const key = entry.action_key ?? "";
-  const d = (entry.detalhes ?? {}) as Record<string, unknown>;
-  switch (key) {
-    case "CREATE_PRODUCT":
-      return `Criou o produto ${nameOrId}`;
-    case "UPDATE_PRODUCT":
-      return `Editou o produto ${nameOrId}`;
-    case "DELETE_PRODUCT":
-      return `Excluiu o produto ${nameOrId}`;
-    case "UPDATE_ORDER_STATUS": {
-      const status = (d.status as string) ?? "?";
-      return `Mudou o status do pedido #${nameOrId} para ${status}`;
-    }
-    default:
-      return (entry.acao_descricao ?? "")
-        .replace(/\bproduct\b/gi, "Produto")
-        .replace(/\border\b/gi, "Pedido") || "Ação registrada";
-  }
-};
-
-/** Traduz valor do campo active/status para exibição. */
-const formatActiveValue = (v: unknown): string => {
-  const s = String(v ?? "").toLowerCase();
-  if (s === "active" || s === "true" || s === "1") return "Ativo";
-  if (s === "inactive" || s === "false" || s === "0") return "Inativo";
-  return s || "n/d";
-};
-
-/** Formata valor para exibição no diff (preço, estoque, active). */
-const formatChangeValue = (
-  key: string,
-  value: unknown
-): string => {
-  if (key === "price" || key === "price_wholesale") {
-    const n = Number(value);
-    if (Number.isNaN(n)) return String(value);
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-  }
-  if (key === "active") return formatActiveValue(value);
-  return String(value ?? "n/d");
-};
-
-/** Label amigável do campo no diff. */
-const CHANGE_LABELS: Record<string, string> = {
-  price: "Preço",
-  price_wholesale: "Preço atacado",
-  stock: "Estoque",
-  active: "Status",
-};
-
-/** Exibe detalhes de forma legível (ex: status do pedido). */
-const formatDetalhes = (detalhes: unknown): string => {
-  if (detalhes == null) return "";
-  if (typeof detalhes === "object" && detalhes !== null && "status" in detalhes) {
-    return String((detalhes as { status: unknown }).status);
-  }
-  if (typeof detalhes === "object") {
-    const entries = Object.entries(detalhes as Record<string, unknown>).filter(
-      ([, v]) => v != null
-    );
-    if (entries.length === 0) return "";
-    return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" ");
-  }
-  return String(detalhes);
-};
-
-/** Ícone e estilo por tipo de ação: verde (criação), amarelo (edição), neutro (exclusão). */
-const getActionStyle = (
-  acaoDescricao: string
-): { Icon: LucideIcon; iconBg: string; iconColor: string; borderColor: string } => {
-  if (acaoDescricao.includes("Criar")) {
-    return {
-      Icon: PlusCircle,
-      iconBg: "bg-[#1B4332]/15",
-      iconColor: "text-[#1B4332]",
-      borderColor: "border-[#1B4332]/30",
-    };
-  }
-  if (acaoDescricao.includes("Excluir")) {
-    return {
-      Icon: Trash2,
-      iconBg: "bg-[#6D4C41]/15",
-      iconColor: "text-[#6D4C41]",
-      borderColor: "border-[#6D4C41]/30",
-    };
-  }
-  return {
-    Icon: Pencil,
-    iconBg: "bg-[#FFD166]/40",
-    iconColor: "text-[#B8860B]",
-    borderColor: "border-[#FFD166]/60",
-  };
-};
-
-/** Skeleton no estilo dos cards de log. */
-const TimelineSkeleton = () => (
-  <div className="divide-y divide-[#1B4332]/10">
-    {[...Array(5)].map((_, i) => (
-      <div key={i} className="flex gap-3 px-5 py-4 animate-pulse">
-        <div className="h-9 w-9 rounded-xl bg-[#1B4332]/15 shrink-0" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-48 bg-[#1B4332]/10 rounded" />
-          <div className="h-3 w-32 bg-[#1B4332]/10 rounded" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-const DEBOUNCE_MS = 500;
-
-export default function AuditLogsPage() {
+const AuditLogsPage = () => {
   const navigate = useNavigate();
-  const [logs, setLogs] = useState<AuditLogReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [forbidden, setForbidden] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchDebounced, setSearchDebounced] = useState("");
-  const [actionFilter, setActionFilter] = useState("");
+  const m = useAuditLogs();
 
-  useEffect(() => {
-    const t = setTimeout(() => setSearchDebounced(searchInput.trim()), DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [searchInput]);
-
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setForbidden(false);
-    const params = new URLSearchParams();
-    if (searchDebounced) params.set("search", searchDebounced);
-    if (actionFilter) params.set("action", actionFilter);
-    const qs = params.toString();
-    const url = `/api/admin/audit-logs${qs ? `?${qs}` : ""}`;
-    try {
-      const data = await adminApiFetch<AuditLogReport[]>(url);
-      setLogs(Array.isArray(data) ? data : []);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao carregar logs";
-      setError(msg);
-      setForbidden(msg.includes("restrito") || msg.includes("403"));
-    } finally {
-      setLoading(false);
-    }
-  }, [searchDebounced, actionFilter]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  if (forbidden) {
+  if (m.forbidden) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-12 pt-24 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-7xl">
           <div className="mx-auto max-w-md text-center">
-            <History className="h-16 w-16 text-[#1B4332]/50 mx-auto mb-4" />
-            <h1 className="text-xl font-bold text-[#1B4332] font-playfair mb-2">
-              Acesso restrito
-            </h1>
-            <p className="text-[#6D4C41] font-inter">
-              Apenas administradores podem visualizar o histórico de atividades.
-            </p>
+            <History className="mx-auto mb-4 h-16 w-16 text-[#1B4332]/50" />
+            <h1 className="mb-2 font-playfair text-xl font-bold text-[#1B4332]">Acesso restrito</h1>
+            <p className="font-inter text-[#6D4C41]">Apenas administradores podem visualizar o histórico de atividades.</p>
             <button
+              type="button"
               onClick={() => navigate("/admin/pedidos")}
-              className="mt-6 px-4 py-2 bg-[#1B4332] text-white rounded-xl font-medium hover:bg-[#1B4332]/90 transition-colors"
+              className="mt-6 rounded-xl bg-[#1B4332] px-4 py-2 font-medium text-white transition-colors hover:bg-[#1B4332]/90"
             >
               Voltar ao painel
             </button>
@@ -224,13 +32,14 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-12 pt-24 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => navigate("/")}
-              className="p-2 bg-white/60 backdrop-blur-sm rounded-full text-[#6D4C41] hover:text-[#1B4332] hover:bg-white transition-all shadow-sm border border-[#1B4332]/10"
+              className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
               aria-label="Voltar"
             >
               <Home className="h-5 w-5" />
@@ -238,12 +47,8 @@ export default function AuditLogsPage() {
             <div className="flex items-center gap-2">
               <History className="h-8 w-8 text-[#1B4332]" />
               <div>
-                <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">
-                  Histórico de Atividades
-                </h1>
-                <p className="text-sm text-[#6D4C41] font-inter">
-                  Alterações em produtos e pedidos
-                </p>
+                <h1 className="font-playfair text-2xl font-bold text-[#1B4332]">Histórico de Atividades</h1>
+                <p className="font-inter text-sm text-[#6D4C41]">Alterações em produtos e pedidos</p>
               </div>
             </div>
           </div>
@@ -251,132 +56,42 @@ export default function AuditLogsPage() {
             <AdminNav>
               <button
                 type="button"
-                onClick={() => void fetchLogs()}
-                disabled={loading}
+                onClick={() => void m.fetchLogs()}
+                disabled={m.loading}
                 className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/20 bg-white/80 px-4 py-2.5 font-medium text-[#1B4332] shadow-sm transition-all hover:bg-white disabled:opacity-60"
               >
-                <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
                 Atualizar
               </button>
             </AdminNav>
           </div>
         </div>
 
-        {error && !forbidden && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-inter text-sm">
-            {error}
-          </div>
+        {m.error && !m.forbidden && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 font-inter text-sm text-amber-800">{m.error}</div>
         )}
 
-        {/* Barra de filtros — estilo alinhado ao topo do painel (Ktech) */}
-        <div className="mb-6 p-4 bg-[#FAF8F3]/90 border border-[#1B4332]/15 rounded-2xl shadow-sm font-inter">
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6D4C41]/70 pointer-events-none" />
-              <input
-                type="search"
-                placeholder="Buscar por nome do produto ou pedido..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-[#1B4332]/20 rounded-xl text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition-colors"
-                aria-label="Busca por recurso"
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {ACTION_OPTIONS.map((opt) => {
-                const isActive = actionFilter === opt.value;
-                return (
-                  <button
-                    key={opt.value || "all"}
-                    type="button"
-                    onClick={() => setActionFilter(opt.value)}
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#1B4332] text-white"
-                        : "bg-white/60 text-[#6D4C41] hover:bg-white hover:text-[#1B4332] border border-[#1B4332]/10"
-                    }`}
-                    aria-pressed={isActive}
-                    aria-label={opt.label}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <AuditLogsFilters
+          searchInput={m.searchInput}
+          setSearchInput={m.setSearchInput}
+          actionFilter={m.actionFilter}
+          setActionFilter={m.setActionFilter}
+        />
 
-        {loading ? (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-6 shadow-sm">
-            <TimelineSkeleton />
+        {m.loading ? (
+          <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-6 shadow-sm backdrop-blur-sm">
+            <AuditLogsSkeleton />
           </div>
-        ) : logs.length === 0 ? (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 p-12 text-center text-[#6D4C41] font-inter">
+        ) : m.logs.length === 0 ? (
+          <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center font-inter text-[#6D4C41] backdrop-blur-sm">
             Nenhum registro de atividade ainda.
           </div>
         ) : (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-[#1B4332]/10 overflow-hidden shadow-sm">
-            {logs.map((entry) => {
-              const { Icon, iconBg, iconColor, borderColor } = getActionStyle(
-                entry.acao_descricao
-              );
-              const detalhes = (entry.detalhes ?? {}) as Record<string, unknown>;
-              const changes = detalhes.changes as Record<string, { from: unknown; to: unknown }> | undefined;
-              const detalhesStr = !changes ? formatDetalhes(entry.detalhes) : "";
-              const categoryLabel = entry.tipo === "product" ? "Produto" : "Pedido";
-              const badgeClass =
-                entry.tipo === "order"
-                  ? "inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-800"
-                  : "inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-orange-100 text-orange-800";
-
-              return (
-                <div
-                  key={entry.id}
-                  className="flex gap-3 px-5 py-4 border-b border-[#1B4332]/10 last:border-b-0 font-inter"
-                >
-                  <div
-                    className={`h-9 w-9 shrink-0 rounded-xl border flex items-center justify-center ${iconBg} ${iconColor} ${borderColor}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#1B4332] text-[15px] leading-snug">
-                      <span className={badgeClass}>{categoryLabel}</span>{" "}
-                      <span>{getFriendlyActionMessage(entry)}</span>
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {formatDateTime(entry.data_hora)}
-                      {entry.usuario_email ? (
-                        <>
-                          <span className="text-slate-400 mx-1.5">|</span>
-                          {entry.usuario_email}
-                        </>
-                      ) : null}
-                    </p>
-                    {changes && Object.keys(changes).length > 0 && (
-                      <ul className="mt-2 pl-4 space-y-1 text-xs text-slate-500 list-disc">
-                        {Object.entries(changes).map(([key, { from, to }]) => (
-                          <li key={key} className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-slate-600">
-                              {CHANGE_LABELS[key] ?? key}:
-                            </span>
-                            <span>{formatChangeValue(key, from)}</span>
-                            <ArrowRight className="h-3.5 w-3.5 text-slate-400 shrink-0" aria-hidden />
-                            <span>{formatChangeValue(key, to)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {detalhesStr && (
-                      <p className="text-xs text-slate-500 mt-1">{detalhesStr}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <AuditLogsList logs={m.logs} />
         )}
       </div>
     </div>
   );
-}
+};
+
+export default AuditLogsPage;

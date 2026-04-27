@@ -15,6 +15,7 @@ const SKIP_STORE_PATHS = [
   "/api/logout",
   "/api/login",
   "/api/health",
+  "/api/platform",
 ];
 
 export const storeMiddleware = async (

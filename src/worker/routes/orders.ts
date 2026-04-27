@@ -14,41 +14,22 @@ import type { CartItemPayload } from "../core/schema.js";
 import type { AuthUser, Variables } from "../types.js";
 import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
+import { requireStoreContext } from "../utils/requireStoreContext.js";
+import {
+  buildOrderConfirmationUrl,
+  isValidGuestEmail,
+  resolveStorefrontBaseUrl,
+} from "../utils/orderCheckoutUrls.js";
 
 const orders = new Hono<{ Bindings: Env; Variables: Variables }>();
-
-function resolveStorefrontBaseUrl(env: Env, request: Request): string {
-  const fromEnv = env.STOREFRONT_BASE_URL?.trim().replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-  const origin = request.headers.get("Origin")?.trim().replace(/\/$/, "");
-  if (origin) return origin;
-  return "http://localhost:5173";
-}
-
-function buildOrderConfirmationUrl(
-  storefrontBase: string,
-  orderId: string,
-  guestEmail: string | null | undefined,
-  mpResult: "success" | "failure" | "pending"
-): string {
-  const u = new URL(`${storefrontBase.replace(/\/$/, "")}/order/${encodeURIComponent(orderId)}/confirmation`);
-  const ge = guestEmail?.trim();
-  if (ge) u.searchParams.set("guestEmail", ge);
-  u.searchParams.set("mp_result", mpResult);
-  return u.toString();
-}
-
-function isValidGuestEmail(email: string): boolean {
-  const t = email.trim();
-  return t.length > 4 && t.includes("@") && !t.includes(" ");
-}
 
 /**
  * Cria pedido (usuário logado ou visitante, conforme public_profile.requireLoginToCheckout).
  */
 orders.post("/", optionalCustomerAuth, async (c) => {
   const user = c.get("user") as AuthUser | undefined;
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const body = (await c.req.json()) as {
     items?: CartItemPayload[];
     customerName?: string | null;
@@ -61,7 +42,7 @@ orders.post("/", optionalCustomerAuth, async (c) => {
   };
 
   if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
-    return c.json({ success: false, error: "Items array is required" }, 400);
+    return c.json({ success: false, error: "Informe ao menos um item no pedido." }, 400);
   }
   const MAX_ITEMS = 100;
   if (body.items.length > MAX_ITEMS) {
@@ -146,7 +127,8 @@ orders.post("/", optionalCustomerAuth, async (c) => {
  */
 orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
   const user = c.get("user") as AuthUser | undefined;
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const orderId = c.req.param("id");
   const body = (await c.req.json()) as {
     payment_method?: string;
@@ -155,7 +137,7 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
   };
 
   if (!body.payment_method) {
-    return c.json({ success: false, error: "Payment method required" }, 400);
+    return c.json({ success: false, error: "Forma de pagamento obrigatória." }, 400);
   }
 
   const guestEmail = body.guestEmail ?? body.guest_email ?? null;
@@ -209,9 +191,8 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
         },
       }, 200);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Falha ao gerar PIX no Mercado Pago";
-      console.error("Mercado Pago PIX error:", err);
-      return c.json({ success: false, error: message }, 500);
+      logServerError("orders.post /:id/payment pix", err);
+      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
   }
 
@@ -262,9 +243,8 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
         },
       }, 200);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Falha ao gerar Cartão no Mercado Pago";
-      console.error("Mercado Pago Cartão error:", err);
-      return c.json({ success: false, error: message }, 500);
+      logServerError("orders.post /:id/payment credit_card", err);
+      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
   }
 
@@ -276,14 +256,15 @@ orders.post("/:id/payment", optionalCustomerAuth, async (c) => {
  */
 orders.get("/", verifyCustomerAuth, async (c) => {
   const user = c.get("user") as AuthUser;
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
 
   try {
     const data = await getOrdersByUserAndStore(c.env, user.id, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar pedidos";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("orders.get /", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 
@@ -292,7 +273,8 @@ orders.get("/", verifyCustomerAuth, async (c) => {
  */
 orders.get("/:id", optionalCustomerAuth, async (c) => {
   const user = c.get("user") as AuthUser | undefined;
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const orderId = c.req.param("id");
   const guestQ = c.req.query("guestEmail") ?? c.req.query("guest_email");
 
@@ -308,8 +290,8 @@ orders.get("/:id", optionalCustomerAuth, async (c) => {
     const items = await getOrderItemsByOrderAndStore(c.env, orderId, store.id);
     return c.json({ success: true, data: { ...order, items } }, 200);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erro ao buscar itens do pedido";
-    return c.json({ success: false, error: message }, 500);
+    logServerError("orders.get /:id items", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
 

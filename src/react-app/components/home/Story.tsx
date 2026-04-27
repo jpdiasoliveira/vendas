@@ -45,11 +45,13 @@ export function Story() {
                     </div>
                     <div className="order-1 md:order-2 relative group">
                         <div className="absolute inset-0 bg-gradient-to-br from-[#FFD166]/20 to-[#1B4332]/20 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                        <img
-                            src="https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/farmers-story.png"
-                            alt="Agricultores na plantação"
-                            className="relative w-full max-h-[min(520px,55vh)] min-h-[240px] h-[min(500px,50vh)] sm:h-[500px] object-cover rounded-3xl shadow-2xl border-4 border-white/50 group-hover:border-white/70 transition-all duration-500 sm:group-hover:scale-[1.02]"
-                        />
+                        <div className="relative aspect-[4/3] w-full max-h-[min(520px,55vh)] min-h-[240px] overflow-hidden rounded-3xl sm:max-h-[500px]">
+                            <img
+                                src="https://images.unsplash.com/photo-1762512216852-bdd25885dbbf?w=1400&q=80&auto=format&fit=crop"
+                                alt="Agricultores em plantação de bananeiras"
+                                className="absolute inset-0 h-full w-full rounded-3xl border-4 border-white/50 object-cover object-center shadow-2xl transition-all duration-500 group-hover:border-white/70 sm:group-hover:scale-[1.02]"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

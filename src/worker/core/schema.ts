@@ -59,7 +59,10 @@ export interface Product {
   status?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  /** Metadados do SKU (JSONB). */
+  /**
+   * Metadados do SKU (JSONB). Chaves conhecidas:
+   * - `featured_on_home` (boolean): destaque visual na vitrine (admin).
+   */
   metadata?: Record<string, unknown> | null;
 }
 

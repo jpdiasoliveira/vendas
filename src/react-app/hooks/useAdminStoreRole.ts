@@ -38,7 +38,7 @@ export function useAdminStoreRole() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user]);
 
   return { role, ready, isStaff: isStoreStaffRole(role) };
 }

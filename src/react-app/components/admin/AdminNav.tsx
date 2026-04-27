@@ -1,7 +1,8 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, Activity, LogOut, Settings } from "lucide-react";
+import { Package, ShoppingBag, Activity, LogOut, Settings, Building2 } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 import { adminApiFetch } from "@/react-app/services/api";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
@@ -14,7 +15,7 @@ type AdminNavProps = {
 export const AdminNav = ({ children }: AdminNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { settings } = useStoreSettings();
   const [role, setRole] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -27,11 +28,13 @@ export const AdminNav = ({ children }: AdminNavProps) => {
   }, []);
 
   const isAdminOrOwner = role === "admin" || role === "owner";
+  const showPlatform = isPlatformOperatorEmail(user?.email);
   const links = [
     { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
     ...(isAdminOrOwner ? [{ to: "/admin/configuracoes", label: "Configurações", icon: Settings }] : []),
     ...(role === "admin" ? [{ to: "/admin/historico", label: "Histórico", icon: Activity }] : []),
     { to: "/admin/produtos", label: "Produtos", icon: Package },
+    ...(showPlatform ? [{ to: "/admin/plataforma", label: "Plataforma", icon: Building2 }] : []),
   ];
 
   const handleLogout = async () => {

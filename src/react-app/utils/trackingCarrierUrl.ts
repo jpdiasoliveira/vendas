@@ -5,9 +5,11 @@
 export const buildTrackingExternalUrl = (rawCode: string): string => {
   const code = rawCode.trim();
   if (!code) return "";
-  const correios = /^[A-Z]{2}\d{9}BR$/i;
-  if (correios.test(code)) {
-    return `https://rastreio.correios.com.br/app/index.php?objeto=${encodeURIComponent(code.toUpperCase())}`;
+  const upper = code.toUpperCase();
+  /** Objeto nacional dos Correios (ex.: AA123456789BR). */
+  const correiosObjeto = /^[A-Z]{2}\d{9}BR$/;
+  if (correiosObjeto.test(upper)) {
+    return `https://rastreio.correios.com.br/app/index.php?objeto=${encodeURIComponent(upper)}`;
   }
   return `https://www.google.com/search?q=${encodeURIComponent(`rastreio ${code}`)}`;
 };

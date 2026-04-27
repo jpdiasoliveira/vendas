@@ -26,4 +26,11 @@ interface Env {
    * Usada em back_urls do Checkout Pro e, em dev, como fallback se Origin não for enviado.
    */
   STOREFRONT_BASE_URL?: string;
+  /**
+   * E-mails (separados por vírgula) autorizados a POST /api/platform/stores.
+   * Ex.: operador@empresa.com,joao@empresa.com — comparação case-insensitive com o e-mail do JWT.
+   */
+  PLATFORM_OPERATOR_EMAILS?: string;
+  /** Se definido, POST /api/platform/stores exige header x-platform-create-store-secret com o mesmo valor. */
+  PLATFORM_CREATE_STORE_SECRET?: string;
 }

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getStoreSettingsWithDisplayName } from "../core/database.js";
 import type { Variables } from "../types.js";
+import { requireStoreContext } from "../utils/requireStoreContext.js";
 
 /**
  * Rotas públicas da loja (exigem x-store-slug via storeMiddleware).
@@ -9,7 +10,8 @@ import type { Variables } from "../types.js";
 const store = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 store.get("/settings", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
     const data = await getStoreSettingsWithDisplayName(c.env, store.id);
     return c.json({ success: true, data }, 200);

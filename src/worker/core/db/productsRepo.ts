@@ -136,6 +136,8 @@ export interface ProductUpdatePayload {
   description?: string | null;
   imageUrl?: string | null;
   status?: string | null;
+  /** Merge em metadata.featured_on_home (lê o JSON atual antes de gravar). */
+  featuredOnHome?: boolean;
 }
 
 export async function updateProduct(
@@ -154,6 +156,14 @@ export async function updateProduct(
   if (data.description !== undefined) payload.description = data.description;
   if (data.imageUrl !== undefined) payload.image_url = data.imageUrl;
   if (data.status !== undefined) payload.status = data.status ?? "active";
+  if (data.featuredOnHome !== undefined) {
+    const current = await getProductById(env, productId, storeId);
+    const prev =
+      current?.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+        ? { ...current.metadata }
+        : {};
+    payload.metadata = { ...prev, featured_on_home: data.featuredOnHome };
+  }
 
   const { error } = await supabase
     .from("products")

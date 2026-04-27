@@ -1,115 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Loader2, Save, ImagePlus } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
+import { useCurrencyMask } from "@/react-app/hooks/useCurrencyMask";
+import { wholesaleCopy } from "@/react-app/utils/wholesaleCopy";
+
 const UNITS = [
   { value: "Un", label: "Un" },
   { value: "Kg", label: "Kg" },
   { value: "Pacote", label: "Pacote" },
   { value: "Fardo", label: "Fardo" },
 ];
-
-/** Alinha texto do bloco atacado com a unidade de medida do produto (mesma base do estoque/preço). */
-function wholesaleCopy(unitValue: string): {
-  pricePer: string;
-  minQtyLabel: string;
-  minQtyHint: string;
-} {
-  const v = unitValue.trim();
-  if (!v) {
-    return {
-      pricePer: "unidade de venda",
-      minQtyLabel: "Quantidade mínima no pedido",
-      minQtyHint:
-        "Escolha primeiro a «Unidade de medida» acima (Un, Kg, Pacote ou Fardo). O número aqui será nessa mesma base — ex.: com «Un», 20 = 20 peças; com «Pacote», 20 = 20 pacotes.",
-    };
-  }
-  if (v === "Un") {
-    return {
-      pricePer: "unidade (cada peça/item)",
-      minQtyLabel: "Mínimo de unidades no pedido",
-      minQtyHint:
-        "Conta em unidades: cada 1 = uma peça vendida. Ex.: 20 = o preço atacado vale quando o cliente leva 20 ou mais unidades.",
-    };
-  }
-  if (v === "Kg") {
-    return {
-      pricePer: "quilograma",
-      minQtyLabel: "Mínimo de quilogramas no pedido",
-      minQtyHint:
-        "Conta em kg totais do produto no pedido. Ex.: 20 = preço atacado a partir de 20 kg.",
-    };
-  }
-  if (v === "Pacote") {
-    return {
-      pricePer: "pacote",
-      minQtyLabel: "Mínimo de pacotes no pedido",
-      minQtyHint: "Conta em pacotes. Ex.: 20 = preço atacado a partir de 20 pacotes.",
-    };
-  }
-  if (v === "Fardo") {
-    return {
-      pricePer: "fardo",
-      minQtyLabel: "Mínimo de fardos no pedido",
-      minQtyHint: "Conta em fardos. Ex.: 20 = preço atacado a partir de 20 fardos.",
-    };
-  }
-  return {
-    pricePer: "unidade de venda",
-    minQtyLabel: "Quantidade mínima no pedido",
-    minQtyHint: "Use o mesmo critério da unidade de medida selecionada para o produto.",
-  };
-}
-
-/** Extrai apenas dígitos da string (para máscara). */
-function digitsOnly(s: string): string {
-  return s.replace(/\D/g, "");
-}
-
-/** Converte string com máscara BRL (ex: "R$ 1.234,56" ou "1234,56") para number. */
-function parseBRLToFloat(s: string): number {
-  const cleaned = s.replace(/\s/g, "").replace(/R\$/g, "").trim();
-  const normalized = cleaned.replace(/\./g, "").replace(",", ".");
-  const n = Number.parseFloat(normalized);
-  return Number.isNaN(n) ? 0 : n;
-}
-
-/** Aplica máscara: usuário digita números, estado guarda "R$ X,XX". */
-function useCurrencyMask(initial = "R$ 0,00") {
-  const [display, setDisplay] = useState(initial);
-  const setFromDigits = useCallback((digits: string) => {
-    const stripped = digits.replace(/^0+/, "");
-    if (stripped === "") {
-      setDisplay("R$ 0,00");
-      return;
-    }
-    const padded = stripped.padStart(3, "0");
-    const cents = padded.slice(-2);
-    const intPart = padded.slice(0, -2);
-    const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    setDisplay(`R$ ${formatted},${cents}`);
-  }, []);
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const d = digitsOnly(raw);
-      if (d.length > 14) return;
-      setFromDigits(d);
-    },
-    [setFromDigits]
-  );
-  const setValue = useCallback((value: number) => {
-    if (value <= 0) {
-      setDisplay("R$ 0,00");
-      return;
-    }
-    const fixed = value.toFixed(2);
-    const [intPart, decPart] = fixed.split(".");
-    const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    setDisplay(`R$ ${formatted},${decPart}`);
-  }, []);
-  return { display, handleChange, setValue, parse: () => parseBRLToFloat(display) };
-}
 
 interface AddProductModalProps {
   isOpen: boolean;

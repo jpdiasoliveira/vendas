@@ -22,6 +22,7 @@ import { Variables } from "../types.js";
 import type { AuthUser } from "../middlewares/verifyAuth.js";
 import { logAction } from "../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
+import { requireStoreContext } from "../utils/requireStoreContext.js";
 import { parsePublicProfile } from "../core/storePublicProfile.js";
 
 const admin = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -51,7 +52,8 @@ admin.get("/settings", async (c) => {
   if (!requireAdminOrOwner(c)) {
     return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
   }
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
     const data = await getStoreSettingsWithDisplayName(c.env, store.id);
     return c.json({ success: true, data }, 200);
@@ -65,7 +67,8 @@ admin.patch("/settings", async (c) => {
   if (!requireAdminOrOwner(c)) {
     return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
   }
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const body = (await c.req.json()) as {
     displayName?: string | null;
     logoUrl?: string | null;
@@ -96,8 +99,9 @@ admin.get("/audit-logs", async (c) => {
   if (user?.role !== "admin") {
     return c.json({ success: false, error: "Acesso restrito a administradores" }, 403);
   }
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const search = c.req.query("search");
     const action = c.req.query("action");
     const data = await getAuditLogs(c.env, store.id, {
@@ -130,7 +134,8 @@ function uniqueFileName(originalName: string): string {
  * Apenas administradores logados (verifyAuth). Retorna publicUrl.
  */
 admin.post("/upload", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
     const contentType = c.req.header("content-type") || "";
     if (!contentType.includes("multipart/form-data")) {
@@ -164,8 +169,9 @@ admin.post("/upload", async (c) => {
 
 /** Lista categorias da loja (para selects no admin). */
 admin.get("/categories", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const data = await getCategoriesByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
@@ -176,8 +182,9 @@ admin.get("/categories", async (c) => {
 
 /** Lista produtos da loja do admin (filtro por store_id — segurança multi-tenant). */
 admin.get("/products", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const data = await getProductsByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
@@ -194,7 +201,8 @@ admin.post(
     }
   }),
   async (c) => {
-    const store = c.get("store");
+    const store = requireStoreContext(c);
+    if (store instanceof Response) return store;
     const body = c.req.valid("json");
     try {
       const product = await createProduct(c.env, store.id, {
@@ -226,7 +234,8 @@ admin.put(
     }
   }),
   async (c) => {
-    const store = c.get("store");
+    const store = requireStoreContext(c);
+    if (store instanceof Response) return store;
     const productId = c.req.param("id");
     const body = c.req.valid("json");
     try {
@@ -240,6 +249,7 @@ admin.put(
         ...(body.description !== undefined && { description: body.description }),
         ...(body.image_url !== undefined && { imageUrl: body.image_url || null }),
         ...(body.status !== undefined && { status: body.status }),
+        ...(body.featured_on_home !== undefined && { featuredOnHome: body.featured_on_home }),
       };
       await updateProduct(c.env, productId, store.id, updatePayload);
 
@@ -262,6 +272,11 @@ admin.put(
         const newVal = body.status ?? "active";
         if (String(oldVal) !== String(newVal)) changes.active = { from: oldVal, to: newVal };
       }
+      if (body.featured_on_home !== undefined && oldProduct != null) {
+        const oldMeta = oldProduct.metadata?.featured_on_home === true;
+        const newVal = body.featured_on_home === true;
+        if (oldMeta !== newVal) changes.featured_on_home = { from: oldMeta, to: newVal };
+      }
 
       const details: Record<string, unknown> = {};
       if (oldProduct?.name) details.product_name = oldProduct.name;
@@ -276,7 +291,8 @@ admin.put(
 );
 
 admin.delete("/products/:id", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const productId = c.req.param("id");
   try {
     await deleteProduct(c.env, productId, store.id);
@@ -289,8 +305,9 @@ admin.delete("/products/:id", async (c) => {
 });
 
 admin.get("/orders", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const data = await getAllOrdersByStore(c.env, store.id);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
@@ -300,7 +317,8 @@ admin.get("/orders", async (c) => {
 });
 
 admin.get("/orders/:id", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const orderId = c.req.param("id");
   try {
     const data = await getOrderWithItems(c.env, orderId, store.id);
@@ -314,7 +332,8 @@ admin.get("/orders/:id", async (c) => {
 });
 
 admin.patch("/orders/:id/status", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const orderId = String(c.req.param("id"));
   const body = (await c.req.json()) as { status?: string };
   const newStatus = normalizeOrderStatus(body.status);
@@ -343,7 +362,8 @@ admin.patch("/orders/:id/status", async (c) => {
 });
 
 admin.patch("/orders/:id/tracking", async (c) => {
-  const store = c.get("store");
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   const orderId = c.req.param("id");
   const body = (await c.req.json()) as { trackingCode?: string | null; shippingMethod?: string | null };
   try {

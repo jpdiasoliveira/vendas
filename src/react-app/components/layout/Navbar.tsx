@@ -35,6 +35,7 @@ export const Navbar = ({
   const { ready: adminRoleReady, isStaff } = useAdminStoreRole();
   const navigate = useNavigate();
   const displayName = settings?.displayName?.trim() || "Natfoods";
+  const tagline = settings?.publicProfile?.tagline?.trim();
   const logoUrl = settings?.logoUrl?.trim();
   const primaryColor = settings?.primaryColor || "#1B4332";
 
@@ -103,7 +104,9 @@ export const Navbar = ({
               >
                 {displayName}
               </h1>
-              <p className="text-xs text-[#6D4C41]/80 truncate">Chips da Amazônia</p>
+              {tagline ? (
+                <p className="text-xs text-[#6D4C41]/80 truncate">{tagline}</p>
+              ) : null}
             </div>
           </div>
 

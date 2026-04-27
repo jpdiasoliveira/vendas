@@ -20,8 +20,8 @@ const logistics = (status: string) => {
   const s = status.toLowerCase();
   return {
     cancelled: s === "cancelled" || s === "canceled",
-    shipped: s === "shipped" || s === "delivered",
-    delivered: s === "delivered",
+    shipped: s === "shipped" || s === "delivered" || s === "enviado",
+    delivered: s === "delivered" || s === "entregue",
   };
 };
 
@@ -79,9 +79,12 @@ export default function OrderConfirmationPage() {
     (order.metadata as Record<string, unknown>).insufficient_stock_at_payment === true;
 
   const paymentApproved = order?.paymentStatus === "approved";
-  const log = order ? logistics(order.status) : { cancelled: false, shipped: false, delivered: false };
-  const trackingUrl =
-    order?.trackingCode?.trim() && buildTrackingExternalUrl(order.trackingCode.trim());
+  const log = order ? logistics(order.status ?? "") : { cancelled: false, shipped: false, delivered: false };
+  const rawTracking = order?.trackingCode?.trim() ?? "";
+  const trackingUrl = rawTracking ? buildTrackingExternalUrl(rawTracking) : "";
+  const statusLower = (order?.status ?? "").toLowerCase();
+  const isShippedStatus =
+    statusLower === "shipped" || statusLower === "enviado" || statusLower === "delivered" || statusLower === "entregue";
 
   const mpBanner =
     mpResult === "failure"
@@ -201,7 +204,11 @@ export default function OrderConfirmationPage() {
                     >
                       Enviado
                     </p>
-                    {!log.shipped ? <p className="text-xs text-[#6D4C41]">Em preparação.</p> : null}
+                    {!log.shipped ? (
+                      <p className="text-xs text-[#6D4C41]">Em preparação.</p>
+                    ) : !rawTracking ? (
+                      <p className="text-xs text-amber-800">Enviado — código de rastreio em breve.</p>
+                    ) : null}
                   </div>
                   <Truck className="ml-auto h-4 w-4 text-[#6D4C41]/35" aria-hidden />
                 </li>
@@ -222,24 +229,28 @@ export default function OrderConfirmationPage() {
               </ol>
             </div>
 
-            {log.shipped && order.trackingCode?.trim() ? (
-              <div className="rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#6D4C41]">Rastreio</p>
-                <p className="mt-1 font-mono text-sm text-[#1B4332]">{order.trackingCode.trim()}</p>
+            {isShippedStatus && rawTracking ? (
+              <div className="rounded-2xl border-2 border-emerald-400/80 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-md ring-1 ring-emerald-200/60">
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">Seu pedido foi enviado</p>
+                <p className="mt-2 font-mono text-lg font-bold tracking-tight text-[#1B4332] sm:text-xl">{rawTracking}</p>
                 {order.shippingMethod?.trim() ? (
-                  <p className="mt-1 text-xs text-[#6D4C41]">{order.shippingMethod.trim()}</p>
+                  <p className="mt-2 text-sm font-medium text-[#6D4C41]">{order.shippingMethod.trim()}</p>
                 ) : null}
                 {trackingUrl ? (
                   <a
                     href={trackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#1B4332] underline-offset-2 hover:underline"
+                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#1B4332] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2D5F4A]"
                   >
-                    Rastrear envio
-                    <ExternalLink className="h-4 w-4" />
+                    Abrir rastreio (Correios ou busca)
+                    <ExternalLink className="h-4 w-4 shrink-0" />
                   </a>
                 ) : null}
+                <p className="mt-3 text-xs text-emerald-900/80">
+                  Códigos no formato dos Correios (ex.: AA123456789BR) abrem direto no rastreador oficial; demais abrem
+                  uma busca segura pelo código.
+                </p>
               </div>
             ) : null}
 

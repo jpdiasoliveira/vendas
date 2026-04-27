@@ -1,6 +1,11 @@
 import { createPortal } from "react-dom";
 import { X, ShoppingBag } from "lucide-react";
 import type { Product } from "@/react-app/types";
+import {
+  catalogModalImageFrameClass,
+  catalogModalImageInnerClass,
+  catalogModalImageImgClass,
+} from "@/react-app/utils/productCatalogImageLayout";
 
 type ProductDetailModalProps = {
   product: Product | null;
@@ -52,12 +57,16 @@ export const ProductDetailModal = ({
           <X className="h-6 w-6" />
         </button>
 
-        <div className="relative mb-5 flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#FAF8F3] via-white to-[#FFD166]/10">
-          <img
-            src={imageUrl}
-            alt=""
-            className="max-h-full max-w-full object-contain"
-          />
+        <div className={catalogModalImageFrameClass()}>
+          <div className={catalogModalImageInnerClass}>
+            <img
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className={catalogModalImageImgClass}
+            />
+          </div>
         </div>
 
         <p className="mb-1 font-inter text-xs font-medium uppercase tracking-wide text-[#6D4C41]/80">

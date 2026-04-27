@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router";
 import CartModal from "@/react-app/components/checkout/CartModal";
 import GuestOrderLookupModal from "@/react-app/components/checkout/GuestOrderLookupModal";
 import LoginModal from "@/react-app/components/LoginModal";
@@ -14,11 +15,21 @@ import { useProducts } from "@/react-app/hooks/useProducts";
 import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 
 export default function HomePage() {
+  const location = useLocation();
+  const prevPathRef = useRef<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [guestOrderLookupOpen, setGuestOrderLookupOpen] = useState(false);
-  const { products, loading, error } = useProducts();
+  const { products, loading, error, refetch } = useProducts();
   const trendingProductIds = useTrendingProductIds();
+
+  /** Ao voltar do admin (ou outra rota), recarrega catálogo — evita lista antiga em memória. */
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = location.pathname;
+    if (location.pathname !== "/") return;
+    if (prev !== null && prev !== "/") void refetch();
+  }, [location.pathname, refetch]);
 
   const scrollToProducts = () => {
     const el = document.getElementById("produtos");

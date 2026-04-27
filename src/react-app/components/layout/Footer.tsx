@@ -105,7 +105,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   const p = settings?.publicProfile;
   const displayName = settings?.displayName?.trim() || "Natfoods";
-  const subtitle = "Chips da Amazônia";
+  const tagline = p?.tagline?.trim();
   const logoSrc = settings?.logoUrl?.trim() || null;
   const wa = whatsappHref(p?.contactWhatsapp);
   const ig = p?.instagramUrl?.trim();
@@ -142,7 +142,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                 )}
                 <div>
                   <h1 className="text-3xl font-bold font-playfair">{displayName}</h1>
-                  <p className="text-sm text-white/70">{subtitle}</p>
+                  {tagline ? <p className="text-sm text-white/70">{tagline}</p> : null}
                 </div>
               </div>
               <p className="text-white/80 mb-4 max-w-md font-inter text-sm leading-relaxed whitespace-pre-line">

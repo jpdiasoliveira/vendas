@@ -99,6 +99,14 @@ export interface CreatePreferenceResult {
   id: string;
 }
 
+/** Corpo JSON da API de preferências (sucesso ou erro). */
+interface MPPreferenceApiBody {
+  init_point?: string;
+  id?: string | number;
+  message?: string;
+  error?: string;
+}
+
 /**
  * Cria uma preferência de pagamento (Checkout Pro) no Mercado Pago.
  * Retorna a URL de redirecionamento (init_point) e o ID da preferência.
@@ -141,16 +149,22 @@ export async function createPreference(
     body: JSON.stringify(body),
   });
 
-  const data = (await res.json()) as any;
+  const data = (await res.json()) as MPPreferenceApiBody;
 
   if (!res.ok) {
     const msg = data.message ?? data.error ?? `MP API error: ${res.status}`;
     throw new Error(msg);
   }
 
+  const initPoint = data.init_point?.trim();
+  const prefId = data.id;
+  if (!initPoint || prefId == null || String(prefId).trim() === "") {
+    throw new Error("Resposta inválida do Mercado Pago: faltam init_point ou id.");
+  }
+
   return {
-    init_point: data.init_point,
-    id: data.id,
+    init_point: initPoint,
+    id: String(prefId),
   };
 }
 

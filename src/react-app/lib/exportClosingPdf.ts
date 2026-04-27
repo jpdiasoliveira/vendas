@@ -67,12 +67,13 @@ export function exportClosingPdf({ orders, periodLabel, storeName = STORE_NAME }
 
   const totalFaturado = orders.reduce((acc, o) => acc + (o.total ?? 0), 0);
   const totalPedidos = orders.length;
+  const contentWidth = doc.internal.pageSize.getWidth() - margin * 2;
 
   doc.setFillColor(...LIGHT_GRAY);
-  doc.rect(margin, y - 4, doc.getPageWidth() - margin * 2, 18, "F");
+  doc.rect(margin, y - 4, contentWidth, 18, "F");
   doc.setDrawColor(...GREEN);
   doc.setLineWidth(0.3);
-  doc.rect(margin, y - 4, doc.getPageWidth() - margin * 2, 18, "S");
+  doc.rect(margin, y - 4, contentWidth, 18, "S");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...GREEN);

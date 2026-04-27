@@ -4,10 +4,26 @@
  * Usado por hooks e componentes para chamadas à API do Worker.
  */
 
+import { getAccessToken } from "@/react-app/services/authSession";
+
 const STORE_SLUG = import.meta.env.VITE_STORE_SLUG;
+const PLATFORM_CREATE_SECRET = import.meta.env.VITE_PLATFORM_CREATE_STORE_SECRET ?? "";
 const API_BASE = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+
+/** Slug da vitrine/admin: `localStorage.saas_store_slug_override` tem prioridade na demo. */
+export function getEffectiveStoreSlug(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const o = localStorage.getItem("saas_store_slug_override")?.trim();
+      if (o) return o;
+    } catch {
+      /* ignore */
+    }
+  }
+  return STORE_SLUG ?? "";
+}
 
 /** Monta a URL absoluta do endpoint (respeitando proxy em dev). */
 function buildApiUrl(path: string): string {
@@ -47,16 +63,16 @@ export async function apiFetch<T = unknown>(
   const url = buildApiUrl(endpoint);
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-store-slug", STORE_SLUG ?? "");
+  headers.set("x-store-slug", getEffectiveStoreSlug());
 
-  /** Evita ciclo com auth.service (login) e não envia Bearer no POST público de login. */
+  /** POST /api/login é público: não envia Bearer. Token vem de authSession (sem ciclo com api). */
   if (!/\/api\/login(\?|$)/.test(endpoint)) {
-    const { getAccessToken } = await import("@/react-app/services/auth.service");
     const token = await getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, { ...options, headers });
+  /** Evita cache HTTP de listagens (ex.: produtos após mudar destaque na home). */
+  const response = await fetch(url, { ...options, headers, cache: options.cache ?? "no-store" });
   const body = await parseJsonOrThrow(response);
 
   if (!response.ok) {
@@ -81,13 +97,12 @@ export async function apiFetch<T = unknown>(
  */
 export async function adminUploadImage(file: File): Promise<{ publicUrl: string }> {
   const url = buildApiUrl("/api/admin/upload");
-  const { getAccessToken } = await import("@/react-app/services/auth.service");
   const token = await getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
 
   const headers = new Headers();
-  headers.set("x-store-slug", STORE_SLUG ?? "");
+  headers.set("x-store-slug", getEffectiveStoreSlug());
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(url, { method: "POST", headers, body: formData });
@@ -127,14 +142,13 @@ export async function adminApiFetch<T = unknown>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = buildApiUrl(endpoint);
-  const { getAccessToken } = await import("@/react-app/services/auth.service");
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-store-slug", STORE_SLUG ?? "");
+  headers.set("x-store-slug", getEffectiveStoreSlug());
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers, cache: options.cache ?? "no-store" });
   const body = await parseJsonOrThrow(response);
 
   if (response.status === 401) {
@@ -167,6 +181,55 @@ export async function adminApiFetch<T = unknown>(
     const err = new Error(message) as Error & { status?: number };
     err.status = response.status;
     throw err;
+  }
+
+  const b = body as { success?: boolean; data?: T; error?: string };
+  if (body && typeof body === "object" && b.success === false) {
+    throw new Error(b.error || "Erro desconhecido");
+  }
+  if (body && typeof body === "object" && b.success === true && "data" in body) {
+    return b.data as T;
+  }
+  return body as T;
+}
+
+export type CreatedPlatformStore = { id: string; slug: string; displayName: string };
+
+/**
+ * Rotas `/api/platform/*`: sem `x-store-slug`; JWT + lista PLATFORM_OPERATOR_EMAILS no Worker.
+ * Se o Worker tiver `PLATFORM_CREATE_STORE_SECRET`, defina `VITE_PLATFORM_CREATE_STORE_SECRET` igual.
+ */
+export async function platformApiFetch<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = buildApiUrl(endpoint);
+  const token = await getAccessToken();
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (PLATFORM_CREATE_SECRET.trim()) {
+    headers.set("x-platform-create-store-secret", PLATFORM_CREATE_SECRET.trim());
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  const body = await parseJsonOrThrow(response);
+
+  if (response.status === 401) {
+    const msg = (body as { error?: string })?.error || "Não autorizado";
+    console.error("[api.platformApiFetch] 401 em:", endpoint, msg);
+    throw new Error(msg);
+  }
+  if (response.status === 403 || response.status === 503) {
+    const msg = (body as { error?: string })?.error || "Acesso à plataforma negado";
+    console.error("[api.platformApiFetch]", response.status, endpoint, msg);
+    throw new Error(msg);
+  }
+
+  if (!response.ok) {
+    const message = (body as { error?: string })?.error || `Erro na requisição: ${response.status}`;
+    console.error("[api.platformApiFetch] Falha em:", endpoint, response.status, message);
+    throw new Error(message);
   }
 
   const b = body as { success?: boolean; data?: T; error?: string };

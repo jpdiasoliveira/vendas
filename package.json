@@ -44,7 +44,7 @@
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "dev": "vite",
-    "knip": "knip",
+    "knip": "knip --no-config-hints --exclude exports,nsExports,types,nsTypes,classMembers,enumMembers,duplicates",
     "lint": "eslint ."
   }
 }

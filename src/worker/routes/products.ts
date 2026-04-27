@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getProductsByStore, getTrendingProductIds } from "../core/database.js";
 import { Variables } from "../types.js";
+import { requireStoreContext } from "../utils/requireStoreContext.js";
 
 const products = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -8,9 +9,11 @@ const products = new Hono<{ Bindings: Env; Variables: Variables }>();
  * Lista produtos do catálogo da loja atual (isolado por store_id).
  */
 products.get("/", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const data = await getProductsByStore(c.env, store.id);
+    c.header("Cache-Control", "private, no-store, max-age=0, must-revalidate");
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao buscar produtos";
@@ -25,8 +28,9 @@ products.get("/", async (c) => {
  * Se a view estiver vazia (ex.: sem vendas nos últimos 30 dias), retorna [].
  */
 products.get("/trending", async (c) => {
+  const store = requireStoreContext(c);
+  if (store instanceof Response) return store;
   try {
-    const store = c.get("store");
     const productIds = await getTrendingProductIds(c.env, store.id);
     return c.json({ success: true, data: productIds }, 200);
   } catch (err: unknown) {

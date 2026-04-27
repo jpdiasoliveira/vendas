@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { ProductCard } from "./ProductCard";
 import type { Product } from "@/react-app/types";
 import { Loader2, Package } from "lucide-react";
 import { useNavigate } from "react-router";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import { isProductFeaturedOnHome } from "@/react-app/utils/productFeaturedOnHome";
 
 interface ProductGridProps {
   products: Product[];
@@ -14,6 +16,16 @@ interface ProductGridProps {
 
 export function ProductGrid({ products, loading, error, trendingProductIds = [] }: ProductGridProps) {
     const navigate = useNavigate();
+
+    /** Se houver destaque manual, vitrine mostra somente os marcados na home. */
+    const displayProducts = useMemo(
+        () => {
+            const featured = products.filter((p) => isProductFeaturedOnHome(p));
+            const source = featured.length > 0 ? featured : products;
+            return [...source].sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+        },
+        [products]
+    );
 
     if (loading) {
         return (
@@ -64,11 +76,12 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
             </div>
 
             <div className="relative z-10 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-                {products.map((product) => (
+                {displayProducts.map((product) => (
                     <ProductCard
                         key={product.id}
                         product={product}
-                        isFeatured={trendingProductIds.includes(product.id)}
+                        isTrending={trendingProductIds.includes(product.id)}
+                        isHomeFeatured={isProductFeaturedOnHome(product)}
                     />
                 ))}
             </div>

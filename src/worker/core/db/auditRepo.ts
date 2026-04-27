@@ -47,6 +47,7 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_PRODUCT: "Atualizar produto",
   DELETE_PRODUCT: "Excluir produto",
   UPDATE_ORDER_STATUS: "Atualizar status do pedido",
+  UPDATE_ORDER_TRACKING: "Atualizar rastreio do pedido",
 };
 
 export interface GetAuditLogsOptions {

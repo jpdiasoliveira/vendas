@@ -7,6 +7,9 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/react-app/services/supabase";
 import { apiFetch } from "@/react-app/services/api";
+import { getSession } from "@/react-app/services/authSession";
+
+export { getSession, getAccessToken } from "@/react-app/services/authSession";
 
 /** Usuário no contexto da aplicação (tipagem estrita para uso global). */
 export interface UserContext {
@@ -63,22 +66,6 @@ export async function logout(): Promise<void> {
  * Retorna o usuário atual a partir da sessão Supabase (sem reatividade).
  */
 export async function getCurrentUser(): Promise<UserContext | null> {
-  const { data } = await supabase.auth.getSession();
-  return sessionToUserContext(data.session);
-}
-
-/**
- * Retorna a sessão bruta (para token e listeners). Uso interno e AdminGuard.
- */
-export async function getSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
-}
-
-/**
- * Access token (JWT) para o header Authorization nas chamadas à API admin.
- */
-export async function getAccessToken(): Promise<string | null> {
   const session = await getSession();
-  return session?.access_token ?? null;
+  return sessionToUserContext(session);
 }

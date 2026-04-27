@@ -6,7 +6,7 @@ export function Hero({ onShopClick }: { onShopClick: () => void }) {
         <section className="relative min-h-[100dvh] min-h-screen flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 overflow-hidden">
                 <img
-                    src="https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/hero-banana-plantation.png"
+                    src="https://images.unsplash.com/photo-1534530005641-d1d6e66eae56?w=1920&q=80&auto=format&fit=crop"
                     alt="Plantação de banana orgânica na Amazônia"
                     className="w-full h-full max-w-none object-cover sm:scale-105 scale-100 animate-[zoom_20s_ease-in-out_infinite_alternate]"
                 />

@@ -42,12 +42,10 @@ export default function CheckoutModal({
                 });
                 setShowPixModal(true);
             } else if (selectedMethod === 'boleto' && data.ticket_url) {
-                // Open Boleto in new tab
                 window.open(data.ticket_url, '_blank');
                 alert('Boleto aberto em nova aba. Por favor, efetue o pagamento.');
                 onClose();
             } else if (selectedMethod === 'credit_card' && data.init_point) {
-                // Redirect to Mercado Pago checkout
                 window.location.href = data.init_point;
             } else {
                 alert('Erro: Dados de pagamento incompletos. Tente novamente.');

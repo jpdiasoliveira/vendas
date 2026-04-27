@@ -30,7 +30,7 @@ Resumo: **Slug (header) → validação no D1 → Store no contexto → `store.i
 
 ### 2.1 Frontend (React)
 
-- **API:** Todas as chamadas passam por `apiFetch` (`src/react-app/lib/api.ts`), que:
+- **API:** Todas as chamadas passam por `apiFetch` (`src/react-app/services/api.ts`), que:
   - Adiciona `Content-Type: application/json` e **`x-store-slug`**
   - Interpreta o padrão de resposta: `{ success, data?, error? }`
   - Em sucesso retorna `data`; em erro lança `Error(error)`.

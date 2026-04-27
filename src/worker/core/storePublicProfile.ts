@@ -5,6 +5,8 @@
  */
 
 export type StorePublicProfile = {
+  /** Linha curta abaixo do nome da loja (navbar / rodapé). */
+  tagline?: string | null;
   contactPhone?: string | null;
   contactWhatsapp?: string | null;
   contactEmail?: string | null;
@@ -69,6 +71,7 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
   }
 
   return {
+    tagline: firstStr(o, ["tagline", "tag_line", "subtitle"]),
     contactPhone: firstStr(o, ["contactPhone", "contact_phone"]),
     contactWhatsapp: firstStr(o, ["contactWhatsapp", "contact_whatsapp", "whatsapp"]),
     contactEmail: firstStr(o, ["contactEmail", "contact_email"]),
@@ -86,6 +89,7 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
 /** Serializa para persistência (sem chaves undefined). */
 export function toPublicProfileJson(p: StorePublicProfile): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  if (p.tagline != null) out.tagline = p.tagline;
   if (p.contactPhone != null) out.contactPhone = p.contactPhone;
   if (p.contactWhatsapp != null) out.contactWhatsapp = p.contactWhatsapp;
   if (p.contactEmail != null) out.contactEmail = p.contactEmail;

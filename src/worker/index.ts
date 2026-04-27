@@ -9,6 +9,7 @@ import webhooks from "./routes/webhooks.js";
 import auth from "./routes/auth.js";
 import admin from "./routes/admin.js";
 import store from "./routes/store.js";
+import platform from "./routes/platform.js";
 
 /**
  * @file index.ts
@@ -32,7 +33,7 @@ app.use(
       return allowed.includes(origin) ? origin : undefined;
     },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "x-store-slug"],
+    allowHeaders: ["Content-Type", "Authorization", "x-store-slug", "x-platform-create-store-secret"],
     exposeHeaders: ["Content-Length"],
     maxAge: 86400,
   })
@@ -49,6 +50,7 @@ app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curta
 app.route("/api/webhooks", webhooks);
 app.route("/api/admin", admin);
 app.route("/api/store", store);
+app.route("/api/platform", platform);
 
 app.get("/api/health", (c) =>
   c.json({ success: true, data: { ok: true, timestamp: Date.now() } })

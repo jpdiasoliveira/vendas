@@ -46,6 +46,8 @@ export const productUpdateSchema = productSchema
     minQuantityWholesale: z.number().int().nonnegative().nullable().optional(),
     stock: z.number().int().nonnegative().nullable().optional(),
     status: z.enum(["active", "inactive"]).optional(),
+    /** Destaque na tela inicial (persistido em products.metadata.featured_on_home). */
+    featured_on_home: z.boolean().optional(),
   });
 
 export type ProductSchema = z.infer<typeof productSchema>;

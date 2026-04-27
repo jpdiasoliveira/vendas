@@ -17,5 +17,6 @@ export type AuthUser = {
 export type Variables = {
   /** Definido nas rotas /api/admin/* após verifyAuth; undefined nas demais. */
   user: AuthUser | unknown;
-  store: Store;
+  /** Injetado pelo storeMiddleware, exceto em rotas skip (ex.: /api/platform/*). */
+  store?: Store;
 };

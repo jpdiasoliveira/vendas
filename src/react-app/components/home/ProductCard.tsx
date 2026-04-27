@@ -2,10 +2,19 @@ import { useState } from "react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import type { Product } from "@/react-app/types";
 import { ProductDetailModal } from "@/react-app/components/home/ProductDetailModal";
+import {
+  catalogCardImageFrameClass,
+  catalogCardImageGlowClass,
+  catalogCardImageInnerClass,
+  catalogCardImageImgClass,
+} from "@/react-app/utils/productCatalogImageLayout";
 
 type ProductCardProps = {
   product: Product;
-  isFeatured?: boolean;
+  /** Badge e estilo “MAIS VENDIDO” (dados de vendas). */
+  isTrending?: boolean;
+  /** Destaque escolhido no admin (metadata). */
+  isHomeFeatured?: boolean;
 };
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300";
@@ -13,10 +22,12 @@ const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300";
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) => {
+export const ProductCard = ({ product, isTrending = false, isHomeFeatured = false }: ProductCardProps) => {
   const { addItem } = useCart();
   const [detailOpen, setDetailOpen] = useState(false);
-  const imageUrl = product.imageUrl ?? (product as { image_url?: string }).image_url ?? PLACEHOLDER_IMAGE;
+  const isSpotlight = isTrending || isHomeFeatured;
+  const imageUrl =
+    (product.imageUrl ?? (product as { image_url?: string }).image_url ?? "").trim() || PLACEHOLDER_IMAGE;
   const description = product.description?.trim();
 
   const handleAdd = () => {
@@ -35,19 +46,19 @@ export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) =
     <div className="group relative">
       <div
         className={`absolute inset-0 rounded-3xl bg-gradient-to-br transition-all duration-500 ${
-          isFeatured
+          isSpotlight
             ? "from-[#FFD166]/30 to-[#1B4332]/30 opacity-100 blur-2xl group-hover:blur-3xl"
             : "from-[#FFD166]/20 to-[#1B4332]/20 opacity-0 blur-xl group-hover:opacity-100 group-hover:blur-2xl"
         }`}
       />
       <div
         className={`relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all duration-500 hover:shadow-2xl ${
-          isFeatured
+          isSpotlight
             ? "border-[#FFD166]/30 bg-white/90 shadow-2xl hover:-translate-y-3 hover:border-[#FFD166]/50"
             : "border-white/50 bg-white/80 shadow-xl hover:-translate-y-2 hover:border-[#FFD166]/30"
         }`}
       >
-        {isFeatured && (
+        {isTrending && (
           <div className="pointer-events-none absolute right-4 top-4 z-20">
             <div className="rounded-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-4 py-1.5 text-xs font-bold text-[#1B4332] shadow-lg backdrop-blur-sm">
               MAIS VENDIDO
@@ -61,19 +72,17 @@ export const ProductCard = ({ product, isFeatured = false }: ProductCardProps) =
           className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4332]/40 focus-visible:ring-offset-2"
           aria-label={`Ver detalhes de ${product.name}`}
         >
-          <div
-            className={`relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#FAF8F3] via-white to-[#FFD166]/${isFeatured ? "10" : "5"} px-6 pt-10 pb-4 sm:px-8`}
-          >
-            <div
-              className={`absolute right-0 top-0 rounded-full ${
-                isFeatured ? "h-40 w-40 bg-[#FFD166]/20 blur-3xl" : "h-32 w-32 bg-[#FFD166]/10 blur-2xl"
-              }`}
-            />
-            <img
-              src={imageUrl}
-              alt=""
-              className="relative z-10 max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
-            />
+          <div className={catalogCardImageFrameClass(isSpotlight)}>
+            <div className={catalogCardImageGlowClass(isSpotlight)} aria-hidden />
+            <div className={catalogCardImageInnerClass}>
+              <img
+                src={imageUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className={catalogCardImageImgClass}
+              />
+            </div>
           </div>
           <div className="bg-gradient-to-b from-white/60 to-white/80 px-6 pb-2 pt-2 backdrop-blur-sm">
             <h4 className="mb-2 font-playfair text-xl font-bold text-[#1B4332] sm:text-2xl break-words">{product.name}</h4>

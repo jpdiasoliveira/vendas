@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
 
@@ -10,7 +10,8 @@ const MOCK_PRODUCTS: Product[] = [
     name: "Chips de Banana Salgada 50g",
     description: "Clássicos, crocantes e salgadinhos na medida certa.",
     price: 8.90,
-    imageUrl: "https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/product-1.png",
+    imageUrl:
+      "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&q=80&auto=format&fit=crop",
     stock: 100,
     status: "active"
   },
@@ -20,7 +21,8 @@ const MOCK_PRODUCTS: Product[] = [
     name: "Chips de Banana Doce 50g",
     description: "Com um toque de canela, ideal para o lanche da tarde.",
     price: 8.90,
-    imageUrl: "https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/product-2.png",
+    imageUrl:
+      "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&q=80&auto=format&fit=crop",
     stock: 50,
     status: "active"
   },
@@ -30,46 +32,67 @@ const MOCK_PRODUCTS: Product[] = [
     name: "Chips de Banana Picante 50g",
     description: "Para quem gosta de uma leve picância.",
     price: 9.90,
-    imageUrl: "https://019bbfb8-9605-7525-9961-da2eb272419f.mochausercontent.com/product-3.png",
+    imageUrl:
+      "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80&auto=format&fit=crop",
     stock: 30,
     status: "active"
   }
 ];
+
+/** Garante `metadata` como objeto (JSONB às vezes chega como string no parse). */
+const normalizeCatalogProduct = (raw: unknown): Product => {
+  const o = raw as Record<string, unknown>;
+  let metadata = o.metadata;
+  if (typeof metadata === "string") {
+    try {
+      const p = JSON.parse(metadata) as unknown;
+      metadata = p != null && typeof p === "object" && !Array.isArray(p) ? p : undefined;
+    } catch {
+      metadata = undefined;
+    }
+  }
+  return { ...o, metadata } as Product;
+};
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /** Carrega a lista de produtos da loja ao montar. */
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await apiFetch<Product[]>("/api/products");
-        
-        // Se o banco estiver vazio, usa os produtos MOCK para manter a interface visual
-        if (Array.isArray(data) && data.length > 0) {
-          setProducts(data);
-        } else {
-          console.warn("📦 [LocalDB] Nenhum produto no banco. Usando dados Mock para teste visual.");
-          setProducts(MOCK_PRODUCTS);
-        }
-        
-        setError(null);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Erro ao carregar os produtos";
-        console.error("[useProducts.fetchProducts] Falha ao carregar produtos:", err);
-        // Em caso de erro, também mostra o MOCK para não quebrar a UI durante os testes
-        setProducts(MOCK_PRODUCTS);
-        setError(null); // Oculta o erro para focar no design
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch<Product[]>("/api/products");
 
-    fetchProducts();
+      if (Array.isArray(data) && data.length > 0) {
+        setProducts(data.map(normalizeCatalogProduct));
+      } else {
+        console.warn("📦 [LocalDB] Nenhum produto no banco. Usando dados Mock para teste visual.");
+        setProducts(MOCK_PRODUCTS);
+      }
+
+      setError(null);
+    } catch (err: unknown) {
+      console.error("[useProducts.fetchProducts] Falha ao carregar produtos:", err);
+      setProducts(MOCK_PRODUCTS);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { products, loading, error };
+  useEffect(() => {
+    void fetchProducts();
+  }, [fetchProducts]);
+
+  /** Página restaurada do bfcache do navegador: estado antigo seria exibido sem novo GET. */
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) void fetchProducts();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [fetchProducts]);
+
+  return { products, loading, error, refetch: fetchProducts };
 }

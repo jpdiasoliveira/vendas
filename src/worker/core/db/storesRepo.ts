@@ -149,3 +149,94 @@ export async function updateStoreSettingsAndDisplayName(
     }
   }
 }
+
+function normalizeStoreSlug(raw: string): string {
+  const s = raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return s;
+}
+
+export type CreatedStoreResult = { id: string; slug: string; displayName: string };
+
+/**
+ * Nova loja SaaS: `stores` + `store_settings` padrão + `store_members` como owner.
+ */
+export async function createStoreWithOwner(
+  env: Env,
+  params: { slug: string; displayName: string; ownerUserId: string }
+): Promise<CreatedStoreResult> {
+  const supabase = getSupabase(env);
+  const slug = normalizeStoreSlug(params.slug);
+  if (slug.length < 2) {
+    throw new Error("Slug inválido: use ao menos 2 caracteres (letras, números ou hífen).");
+  }
+
+  const { data: dup, error: dupErr } = await supabase.from("stores").select("id").eq("slug", slug).maybeSingle();
+  if (dupErr) throw new Error(dupErr.message);
+  if (dup) throw new Error("DUPLICATE_SLUG");
+
+  const displayName = params.displayName.trim();
+  if (displayName.length < 2) {
+    throw new Error("Nome da loja muito curto.");
+  }
+
+  const { data: storeRow, error: insStore } = await supabase
+    .from("stores")
+    .insert({
+      slug,
+      display_name: displayName,
+      status: "active",
+      plan_tier: "free",
+      metadata: {},
+    })
+    .select("id, slug, display_name")
+    .single();
+
+  if (insStore || !storeRow) {
+    throw new Error(insStore?.message ?? "Falha ao criar loja");
+  }
+
+  const storeId = String(storeRow.id);
+
+  const { error: setErr } = await supabase.from("store_settings").insert({
+    store_id: storeId,
+    logo_url: null,
+    primary_color: "#1B4332",
+    minimum_order_value: null,
+    public_profile: toPublicProfileJson(parsePublicProfile({})),
+    theme: {},
+    business_rules: {},
+    operating_hours: {
+      timezone: "America/Manaus",
+      weekdays: "Segunda a sexta, 9h–18h",
+      saturday: "Sábado, 9h–13h",
+      sunday: "Fechado",
+    },
+    order_limits: {},
+    updated_at: new Date().toISOString(),
+  });
+
+  if (setErr) {
+    await supabase.from("stores").delete().eq("id", storeId);
+    throw new Error(setErr.message);
+  }
+
+  const { error: memErr } = await supabase.from("store_members").insert({
+    store_id: storeId,
+    user_id: params.ownerUserId,
+    role: "owner",
+  });
+
+  if (memErr) {
+    await supabase.from("stores").delete().eq("id", storeId); /* CASCADE remove store_settings */
+    throw new Error(memErr.message);
+  }
+
+  return { id: storeId, slug: String(storeRow.slug), displayName: String(storeRow.display_name) };
+}

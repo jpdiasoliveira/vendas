@@ -13,11 +13,11 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
-  getSession,
   login as serviceLogin,
   logout as serviceLogout,
   type UserContext,
 } from "@/react-app/services/auth.service";
+import { getSession, getAccessToken as getAccessTokenFromSession } from "@/react-app/services/authSession";
 import { supabase } from "@/react-app/services/supabase";
 
 export type AuthContextValue = {
@@ -71,10 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await serviceLogout();
   }, []);
 
-  const getAccessToken = useCallback(async () => {
-    const s = await getSession();
-    return s?.access_token ?? null;
-  }, []);
+  const getAccessToken = useCallback(() => getAccessTokenFromSession(), []);
 
   const value: AuthContextValue = {
     user,
