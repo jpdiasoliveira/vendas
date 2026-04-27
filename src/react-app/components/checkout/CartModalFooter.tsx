@@ -72,7 +72,7 @@ export const CartModalFooter = ({
   onCheckout,
   onClearCart,
 }: CartModalFooterProps) => (
-  <div className="shrink-0 space-y-4 border-t border-[#1B4332]/10 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(27,67,50,0.08)] sm:p-6">
+  <div className="mt-6 shrink-0 space-y-4 rounded-2xl border border-[#1B4332]/10 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-sm sm:p-6">
     <div className="space-y-3 font-inter">
       <label className="block text-sm font-medium text-[#6D4C41]">Nome do cliente</label>
       <input

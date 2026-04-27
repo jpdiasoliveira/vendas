@@ -19,7 +19,7 @@ export const Hero = ({ onShopClick }: { onShopClick: () => void }) => {
       : undefined;
 
   return (
-    <section className="relative min-h-[100dvh] min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         <img
           src={bannerSrc}
