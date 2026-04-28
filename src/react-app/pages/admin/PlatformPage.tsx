@@ -1,9 +1,27 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Building2, Home, Plus, X, CheckCircle2 } from "lucide-react";
+import {
+  Building2,
+  Home,
+  Plus,
+  X,
+  CheckCircle2,
+  RefreshCw,
+  Globe,
+  Shield,
+  TestTube2,
+  Eraser,
+} from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
-import { platformApiFetch, type CreatedPlatformStore } from "@/react-app/services/api";
+import {
+  clearStoreSlugOverride,
+  getStoreSlugOverride,
+  platformApiFetch,
+  setStoreSlugOverride,
+  type CreatedPlatformStore,
+  type PlatformStoreOverview,
+} from "@/react-app/services/api";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 
 const slugify = (raw: string) =>
@@ -26,13 +44,36 @@ const PlatformPage = () => {
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingStores, setLoadingStores] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedPlatformStore | null>(null);
+  const [stores, setStores] = useState<PlatformStoreOverview[]>([]);
+  const [customDomainInput, setCustomDomainInput] = useState("");
+  const [overrideSlug, setOverrideSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
     if (user && !allowed) navigate("/admin/pedidos", { replace: true });
   }, [loading, user, allowed, navigate]);
+
+  const loadStores = useCallback(async () => {
+    setLoadingStores(true);
+    try {
+      const data = await platformApiFetch<PlatformStoreOverview[]>("/api/platform/stores");
+      setStores(data);
+    } catch (err) {
+      console.error("[PlatformPage.loadStores]", err);
+      setError(err instanceof Error ? err.message : "Não foi possível carregar as lojas.");
+    } finally {
+      setLoadingStores(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!allowed) return;
+    setOverrideSlug(getStoreSlugOverride());
+    void loadStores();
+  }, [allowed, loadStores]);
 
   const onDisplayBlur = useCallback(() => {
     if (slugTouched || !displayName.trim()) return;
@@ -44,6 +85,7 @@ const PlatformPage = () => {
     setModalOpen(false);
     setError(null);
     setCreated(null);
+    setCustomDomainInput("");
     setDisplayName("");
     setSlug("");
     setSlugTouched(false);
@@ -56,14 +98,20 @@ const PlatformPage = () => {
     setCreated(null);
     try {
       const normalized = slugify(slug || displayName);
+      const customDomains = customDomainInput
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean);
       const data = await platformApiFetch<CreatedPlatformStore>("/api/platform/stores", {
         method: "POST",
         body: JSON.stringify({
           slug: normalized,
           display_name: displayName.trim(),
+          custom_domains: customDomains,
         }),
       });
       setCreated(data);
+      await loadStores();
     } catch (err: unknown) {
       console.error("[PlatformPage.handleSubmit]", err);
       setError(err instanceof Error ? err.message : "Não foi possível criar a loja.");
@@ -75,11 +123,23 @@ const PlatformPage = () => {
   const useThisStore = () => {
     if (!created?.slug) return;
     try {
-      localStorage.setItem("saas_store_slug_override", created.slug);
+      setStoreSlugOverride(created.slug);
+      setOverrideSlug(created.slug);
     } catch {
       console.error("[PlatformPage.useThisStore] localStorage");
     }
     window.location.href = "/";
+  };
+
+  const switchToStoreContext = (storeSlug: string) => {
+    setStoreSlugOverride(storeSlug);
+    setOverrideSlug(storeSlug);
+    window.location.href = "/";
+  };
+
+  const clearOverride = () => {
+    clearStoreSlugOverride();
+    setOverrideSlug(null);
   };
 
   if (loading || !user) {
@@ -116,20 +176,94 @@ const PlatformPage = () => {
           <AdminNav />
         </div>
 
-        <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-8 shadow-sm backdrop-blur-sm">
+        <div className="rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 p-8 shadow-sm backdrop-blur-sm">
           <p className="mb-6 font-inter text-sm text-[#6D4C41]">
-            Cada loja nasce com configurações padrão e você como proprietário. Use o mesmo e-mail configurado em{" "}
-            <code className="rounded bg-[#1B4332]/5 px-1">PLATFORM_OPERATOR_EMAILS</code> no Worker e, se houver
-            segredo, <code className="rounded bg-[#1B4332]/5 px-1">VITE_PLATFORM_CREATE_STORE_SECRET</code> no front.
+            Cada loja nasce com dados iniciais (catálogo base + configurações padrão) e você como proprietário. Se
+            quiser, já cadastre domínios customizados no onboarding.
           </p>
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1B4332] px-5 py-3 font-inter font-semibold text-white shadow-sm transition hover:bg-[#2D5F4A]"
-          >
-            <Plus className="h-5 w-5" />
-            Nova Loja
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-inter font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              <Plus className="h-5 w-5" />
+              Nova Loja
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadStores()}
+              className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-5 py-3 font-inter font-semibold text-[var(--brand-primary)] shadow-sm transition hover:bg-[#FAF8F3]"
+            >
+              <RefreshCw className={`h-5 w-5 ${loadingStores ? "animate-spin" : ""}`} />
+              Atualizar
+            </button>
+            <button
+              type="button"
+              onClick={clearOverride}
+              className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-5 py-3 font-inter font-semibold text-[#6D4C41] shadow-sm transition hover:bg-[#FAF8F3]"
+            >
+              <Eraser className="h-5 w-5" />
+              Limpar override
+            </button>
+          </div>
+          <p className="mt-4 text-xs text-[#6D4C41]">
+            Override atual neste navegador:{" "}
+            <span className="font-mono text-[var(--brand-primary)]">{overrideSlug ?? "(nenhum)"}</span>
+          </p>
+        </div>
+
+        <div className="mt-6 space-y-3 rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+          <div className="mb-2 flex items-center gap-2 text-[var(--brand-primary)]">
+            <TestTube2 className="h-5 w-5" />
+            <h2 className="font-playfair text-lg font-bold">Troca de contexto (simulação)</h2>
+          </div>
+          <p className="text-sm text-[#6D4C41]">
+            Use esta lista para abrir a vitrine como se fosse qualquer loja, sem editar URL manualmente.
+          </p>
+          <div className="grid gap-3">
+            {stores.map((storeRow) => (
+              <div
+                key={storeRow.id}
+                className="rounded-2xl border border-[color:var(--brand-primary)]/10 bg-white p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-[var(--brand-primary)]">{storeRow.displayName}</p>
+                    <p className="font-mono text-xs text-[#6D4C41]">slug: {storeRow.slug}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => switchToStoreContext(storeRow.slug)}
+                    className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                  >
+                    Usar contexto
+                  </button>
+                </div>
+                {storeRow.domains.length > 0 ? (
+                  <div className="mt-3 space-y-1">
+                    {storeRow.domains.map((d) => (
+                      <p key={`${storeRow.id}-${d.domain}`} className="text-xs text-[#6D4C41]">
+                        <Globe className="mr-1 inline h-3.5 w-3.5 text-[var(--brand-primary)]" />
+                        {d.domain}{" "}
+                        <span className="rounded bg-[var(--brand-primary)]/10 px-1.5 py-0.5 text-[var(--brand-primary)]">
+                          {d.status}
+                        </span>
+                        {d.isPrimary ? (
+                          <span className="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-700">principal</span>
+                        ) : null}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-[#6D4C41]/70">Sem domínio customizado cadastrado.</p>
+                )}
+              </div>
+            ))}
+            {!loadingStores && stores.length === 0 ? (
+              <p className="text-sm text-[#6D4C41]">Nenhuma loja cadastrada ainda.</p>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -153,7 +287,9 @@ const PlatformPage = () => {
             <h2 id="platform-new-store-title" className="mb-2 font-playfair text-xl font-bold text-[#1B4332]">
               Nova loja
             </h2>
-            <p className="mb-6 font-inter text-sm text-[#6D4C41]">Nome e slug em segundos para a demo.</p>
+            <p className="mb-6 font-inter text-sm text-[#6D4C41]">
+              Nome, slug e domínios iniciais em um único fluxo de onboarding.
+            </p>
 
             {created ? (
               <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
@@ -210,6 +346,22 @@ const PlatformPage = () => {
                     placeholder="barbearia-do-joao"
                     className="w-full rounded-xl border border-[#1B4332]/20 px-4 py-2.5 text-[#1B4332] placeholder:text-[#6D4C41]/50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/25"
                   />
+                </div>
+                <div>
+                  <label htmlFor="pf-domains" className="mb-1 flex items-center gap-2 text-sm font-medium text-[#1B4332]">
+                    <Shield className="h-4 w-4" />
+                    Domínios customizados (opcional)
+                  </label>
+                  <input
+                    id="pf-domains"
+                    value={customDomainInput}
+                    onChange={(e) => setCustomDomainInput(e.target.value)}
+                    placeholder="ex.: lojaexemplo.com.br, www.lojaexemplo.com.br"
+                    className="w-full rounded-xl border border-[#1B4332]/20 px-4 py-2.5 text-[#1B4332] placeholder:text-[#6D4C41]/50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/25"
+                  />
+                  <p className="mt-1 text-xs text-[#6D4C41]">
+                    Separe múltiplos domínios por vírgula.
+                  </p>
                 </div>
                 {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
                 <div className="flex gap-3 pt-2">

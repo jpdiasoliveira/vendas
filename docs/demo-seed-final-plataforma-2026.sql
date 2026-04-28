@@ -48,7 +48,7 @@ BEGIN
     RAISE EXCEPTION 'Nenhum auth.users com o e-mail "%".', v_owner_email;
   END IF;
 
-  INSERT INTO public.stores (id, slug, display_name, status, plan_tier, metadata, created_at, updated_at)
+  INSERT INTO public.stores (id, slug, display_name, status, created_at, updated_at)
   VALUES (
     v_store_id,
     'natfoods',
@@ -62,7 +62,6 @@ BEGIN
   ON CONFLICT (slug) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     status = 'active',
-    metadata = stores.metadata || EXCLUDED.metadata,
     updated_at = now();
 
   INSERT INTO public.store_members (user_id, store_id, role, created_at, updated_at)
@@ -133,20 +132,19 @@ BEGIN
     order_limits = EXCLUDED.order_limits,
     updated_at = now();
 
-  INSERT INTO public.categories (id, store_id, name, slug, sort_order, metadata, created_at, updated_at)
+  INSERT INTO public.categories (id, store_id, name, slug, sort_order, created_at, updated_at)
   VALUES
-    (cat_selo, v_store_id, 'Selo Amazônia', 'selo-amazonia', 0, '{"highlight":true}'::jsonb, now(), now()),
-    (cat_mesa, v_store_id, 'Mesa assinatura', 'mesa-assinatura', 1, '{}'::jsonb, now(), now()),
-    (cat_ritual, v_store_id, 'Ritual & bem-estar', 'ritual-bem-estar', 2, '{}'::jsonb, now(), now())
+    (cat_selo, v_store_id, 'Selo Amazônia', 'selo-amazonia', 0, now(), now()),
+    (cat_mesa, v_store_id, 'Mesa assinatura', 'mesa-assinatura', 1, now(), now()),
+    (cat_ritual, v_store_id, 'Ritual & bem-estar', 'ritual-bem-estar', 2, now(), now())
   ON CONFLICT (store_id, slug) DO UPDATE SET
     name = EXCLUDED.name,
     sort_order = EXCLUDED.sort_order,
-    metadata = EXCLUDED.metadata,
     updated_at = now();
 
   INSERT INTO public.products (
     id, store_id, category_id, name, slug, description, price, price_wholesale, min_quantity_wholesale,
-    stock, status, image_url, unit_type, metadata, created_at, updated_at
+    stock, status, image_url, metadata, created_at, updated_at
   ) VALUES
     (
       p_hero, v_store_id, cat_selo,
@@ -156,7 +154,6 @@ BEGIN
       42.90, 36.90, 8,
       120, 'active',
       '/demo/image_1.png',
-      'pouch',
       '{"seed":"platform_demo_2026","hero":true,"notas":"Cacau + castanha + banana"}'::jsonb,
       now(), now()
     ),
@@ -168,7 +165,6 @@ BEGIN
       28.50, 24.00, 10,
       95, 'active',
       'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=900&q=80',
-      'pacote',
       '{"seed":"platform_demo_2026"}'::jsonb,
       now(), now()
     ),
@@ -180,7 +176,6 @@ BEGIN
       56.00, 48.00, 6,
       60, 'active',
       'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=900&q=80',
-      'kit',
       '{"seed":"platform_demo_2026"}'::jsonb,
       now(), now()
     ),
@@ -192,7 +187,6 @@ BEGIN
       64.00, null, null,
       40, 'active',
       'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=900&q=80',
-      'garrafa',
       '{"seed":"platform_demo_2026"}'::jsonb,
       now(), now()
     ),
@@ -204,7 +198,6 @@ BEGIN
       39.00, 33.00, 8,
       75, 'active',
       'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=900&q=80',
-      'caixa',
       '{"seed":"platform_demo_2026"}'::jsonb,
       now(), now()
     ),
@@ -216,7 +209,6 @@ BEGIN
       47.50, 40.00, 5,
       110, 'active',
       'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=900&q=80',
-      'caixa',
       '{"seed":"platform_demo_2026"}'::jsonb,
       now(), now()
     )
@@ -230,7 +222,6 @@ BEGIN
     stock = EXCLUDED.stock,
     status = EXCLUDED.status,
     image_url = EXCLUDED.image_url,
-    unit_type = EXCLUDED.unit_type,
     metadata = EXCLUDED.metadata,
     updated_at = now();
 

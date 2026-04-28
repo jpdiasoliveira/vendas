@@ -33,7 +33,7 @@ export const AdminOrdersDesktopTable = ({
   onTracking,
   onCopyOrderShareLink,
 }: AdminOrdersDesktopTableProps) => (
-  <div className="hidden overflow-hidden rounded-2xl border border-[#1B4332]/10 bg-white/70 shadow-sm backdrop-blur-sm md:block">
+  <div className="hidden overflow-hidden rounded-2xl border border-[color:var(--brand-primary)]/10 bg-white/70 shadow-sm backdrop-blur-sm md:block">
     <div className="overflow-x-auto">
       <table
         className="w-full font-inter"
@@ -41,14 +41,14 @@ export const AdminOrdersDesktopTable = ({
         aria-label={activeTab === "ativos" ? "Pedidos ativos" : "Histórico de pedidos"}
       >
         <thead>
-          <tr className="border-b border-[#1B4332]/10 bg-[#1B4332]/5">
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Data</th>
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Cliente</th>
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Cidade/UF</th>
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Total</th>
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Rastreio</th>
-            <th className="px-4 py-4 text-left font-semibold text-[#1B4332]">Status</th>
-            <th className="w-0 px-4 py-4 text-left font-semibold text-[#1B4332]" />
+          <tr className="border-b border-[color:var(--brand-primary)]/10 bg-[var(--brand-primary)]/5">
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Data</th>
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Cliente</th>
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Cidade/UF</th>
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Total</th>
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Rastreio</th>
+            <th className="px-4 py-4 text-left font-semibold text-[var(--brand-primary)]">Status</th>
+            <th className="w-0 px-4 py-4 text-left font-semibold text-[var(--brand-primary)]" />
           </tr>
         </thead>
         <tbody id={activeTab === "ativos" ? "orders-tab-ativos" : "orders-tab-historico"}>
@@ -56,14 +56,14 @@ export const AdminOrdersDesktopTable = ({
             <Fragment key={order.id}>
               <tr
                 onClick={() => onOpenDetail(order.id)}
-                className="cursor-pointer border-b border-[#1B4332]/5 transition-colors hover:bg-[#FAF8F3]/50"
+                className="cursor-pointer border-b border-[color:var(--brand-primary)]/5 transition-colors hover:bg-[var(--brand-primary-soft)]/40"
               >
                 <td className="whitespace-nowrap px-4 py-4 text-[#6D4C41]">{formatDate(order.createdAt)}</td>
-                <td className="px-4 py-4 font-medium text-[#1B4332]">{order.customerName?.trim() || "Cliente"}</td>
+                <td className="px-4 py-4 font-medium text-[var(--brand-primary)]">{order.customerName?.trim() || "Cliente"}</td>
                 <td className="px-4 py-4 text-sm text-[#6D4C41]">
                   {order.shippingCity && order.shippingState ? `${order.shippingCity}/${order.shippingState}` : "—"}
                 </td>
-                <td className="px-4 py-4 font-bold text-[#1B4332]">{formatCurrency(order.total)}</td>
+                <td className="px-4 py-4 font-bold text-[var(--brand-primary)]">{formatCurrency(order.total)}</td>
                 <td className="max-w-[140px] truncate px-4 py-4 text-sm text-[#6D4C41]" title={order.trackingCode ?? undefined}>
                   {order.trackingCode ?? "—"}
                 </td>
@@ -111,7 +111,7 @@ export const AdminOrdersDesktopTable = ({
                         e.stopPropagation();
                         onTracking(order.id);
                       }}
-                      className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg bg-[#1B4332]/10 px-3 py-2 text-sm font-medium text-[#1B4332] transition-colors hover:bg-[#1B4332]/20"
+                      className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--brand-primary)]/10 px-3 py-2 text-sm font-medium text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/20"
                     >
                       <Package className="h-3.5 w-3.5" />
                       Inserir Rastreio

@@ -6,7 +6,7 @@ import { getSupabase } from "../supabase.js";
 import type { Category } from "../schema.js";
 import { rowToCategory } from "./mappers.js";
 
-const CATEGORY_SELECT = "id, store_id, name, slug, sort_order, created_at, updated_at, metadata";
+const CATEGORY_SELECT = "id, store_id, name, slug, sort_order, created_at, updated_at";
 
 function slugFromName(name: string): string {
   const base = name
@@ -68,7 +68,6 @@ export async function createCategory(
       name: nameTrim,
       slug,
       sort_order: params.sortOrder != null ? Math.floor(Number(params.sortOrder)) : 0,
-      metadata: {},
     })
     .select(CATEGORY_SELECT)
     .single();

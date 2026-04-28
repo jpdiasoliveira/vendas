@@ -34,7 +34,7 @@ export async function cancelOrderForInsufficientStockAfterPayment(
   env: Env,
   orderId: string,
   storeId: string,
-  options: { mpPaymentId?: number; detail: string }
+  options: { mpPaymentId?: number }
 ): Promise<void> {
   const supabase = getSupabase(env);
   const { data: row, error: selErr } = await supabase
@@ -51,7 +51,6 @@ export async function cancelOrderForInsufficientStockAfterPayment(
     metadata: {
       ...prevMeta,
       insufficient_stock_at_payment: true,
-      insufficient_stock_detail: options.detail,
     },
   };
   if (options.mpPaymentId != null) {

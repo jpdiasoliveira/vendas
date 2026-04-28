@@ -48,7 +48,6 @@ export const registerAdminProductRoutes = (admin: AdminHono): void => {
           status: body.status ?? "active",
           priceWholesale: body.priceWholesale ?? null,
           minQuantityWholesale: body.minQuantityWholesale ?? null,
-          unit: body.unit_type ?? null,
         });
         await logAction(c, "CREATE_PRODUCT", "product", product.id);
         return c.json({ success: true, data: product }, 201);

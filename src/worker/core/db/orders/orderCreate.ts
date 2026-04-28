@@ -103,7 +103,6 @@ export async function createOrder(
     product_image: line.image ?? null,
     quantity: line.quantity,
     price: line.unitPrice,
-    metadata: {},
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(mappedItems);

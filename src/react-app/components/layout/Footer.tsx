@@ -142,7 +142,13 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
 
   return (
     <footer id="contato" className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1B4332] via-[#2D5F4A] to-[#1B4332]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--brand-primary, #1B4332) 0%, var(--brand-primary-hover, #123325) 50%, var(--brand-primary, #1B4332) 100%)",
+        }}
+      />
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#FFD166]/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 py-20 text-white">
@@ -167,7 +173,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                   {tagline ? <p className="text-sm text-white/70">{tagline}</p> : null}
                 </div>
               </div>
-              <p className="text-white/80 mb-4 max-w-md font-inter text-sm leading-relaxed whitespace-pre-line">
+              <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
                 {p?.shippingInfo?.trim() ||
                   "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
               </p>

@@ -51,8 +51,32 @@ function derivePaymentStatusForOrder(row: Record<string, unknown>): string {
   return "pending";
 }
 
+function orderMetadataRecord(row: Record<string, unknown>): Record<string, unknown> {
+  const m = row.metadata;
+  if (m != null && typeof m === "object" && !Array.isArray(m)) return m as Record<string, unknown>;
+  return {};
+}
+
+function derivePaymentProvider(row: Record<string, unknown>): string | undefined {
+  const meta = orderMetadataRecord(row);
+  const fromMeta = meta.payment_provider;
+  if (typeof fromMeta === "string" && fromMeta.trim() !== "") return fromMeta.trim();
+  const pid = row.payment_id;
+  if (pid != null && String(pid).trim() !== "") return "mercadopago";
+  return undefined;
+}
+
+function derivePaymentPreferenceId(row: Record<string, unknown>): string | undefined {
+  const meta = orderMetadataRecord(row);
+  const a = meta.mp_checkout_preference_id;
+  const b = meta.mp_preference_id;
+  if (typeof a === "string" && a.trim() !== "") return a.trim();
+  if (typeof b === "string" && b.trim() !== "") return b.trim();
+  return undefined;
+}
+
 export function rowToOrder(row: Record<string, unknown>): Order {
-  const statusVal = (row.status ?? row.payment_status) as string | null | undefined;
+  const statusVal = row.status as string | null | undefined;
   const fulfillmentStatus = statusVal ?? "pending";
   return {
     id: row.id != null ? String(row.id) : "",
@@ -65,9 +89,9 @@ export function rowToOrder(row: Record<string, unknown>): Order {
     total: Number(row.total),
     currency: (row.currency as string | null) ?? undefined,
     paymentMethod: (row.payment_method as string | null) ?? undefined,
-    paymentProvider: (row.payment_provider as string | null) ?? undefined,
+    paymentProvider: derivePaymentProvider(row),
     paymentId: (row.payment_id as string | null) ?? undefined,
-    paymentPreferenceId: (row.payment_preference_id as string | null) ?? undefined,
+    paymentPreferenceId: derivePaymentPreferenceId(row),
     paymentStatus: derivePaymentStatusForOrder(row),
     deliveryAddress: (row.delivery_address as string | null) ?? undefined,
     shippingPostalCode: (row.shipping_postal_code as string | null) ?? undefined,
@@ -97,7 +121,6 @@ export function rowToOrderItem(row: Record<string, unknown>): OrderItem {
     productImage: (row.product_image as string | null) ?? undefined,
     quantity: Number(row.quantity),
     price: Number(row.price),
-    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     createdAt: row.created_at as string | undefined,
   };
 }
@@ -108,8 +131,6 @@ export function rowToStore(row: Record<string, unknown>): Store {
     slug: row.slug as string,
     displayName: row.display_name as string,
     status: row.status as string,
-    planTier: (row.plan_tier as string | null) ?? undefined,
-    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -124,6 +145,5 @@ export function rowToCategory(row: Record<string, unknown>): Category {
     sortOrder: row.sort_order != null ? Number(row.sort_order) : undefined,
     createdAt: row.created_at as string | undefined,
     updatedAt: row.updated_at as string | undefined,
-    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
   };
 }

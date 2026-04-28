@@ -127,7 +127,7 @@ export const Navbar = ({
           <div className="flex min-w-0 flex-1 basis-0 items-center justify-end gap-1 sm:gap-2">
             <button
               type="button"
-              className={`${touchBtn} shrink-0 rounded-xl border border-[#1B4332]/15 bg-white/80 text-[#1B4332] md:hidden`}
+              className={`${touchBtn} shrink-0 rounded-xl border border-[color:var(--brand-primary)]/15 bg-white/80 text-[var(--brand-primary)] md:hidden`}
               onClick={() => setMobileNavOpen((o) => !o)}
               aria-expanded={mobileNavOpen}
               aria-controls="mobile-nav-menu"
@@ -141,7 +141,7 @@ export const Navbar = ({
                   <button
                     type="button"
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
+                    className="flex min-h-[44px] items-center gap-2 rounded-full border border-[color:var(--brand-primary)]/10 bg-white/60 px-3 text-[var(--brand-primary)] backdrop-blur-sm transition-all duration-300 hover:shadow-lg sm:px-4"
                   >
                     <User className="h-5 w-5 shrink-0" />
                     <span className="hidden max-w-[10rem] truncate lg:inline">
@@ -162,7 +162,7 @@ export const Navbar = ({
                             setShowUserMenu(false);
                             navigate("/admin/pedidos");
                           }}
-                          className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
+                          className="flex min-h-[44px] w-full items-center gap-2 px-4 text-left font-inter text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary-soft)]"
                         >
                           <LayoutDashboard className="h-4 w-4 shrink-0" />
                           <span>Painel da loja</span>
@@ -174,7 +174,7 @@ export const Navbar = ({
                             setShowUserMenu(false);
                             navigate("/pedidos");
                           }}
-                          className="w-full flex items-center gap-2 px-4 min-h-[44px] text-[#1B4332] hover:bg-[#FAF8F3] transition-colors font-inter text-left"
+                          className="flex min-h-[44px] w-full items-center gap-2 px-4 text-left font-inter text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary-soft)]"
                         >
                           <Package className="h-4 w-4 shrink-0" />
                           <span>Meus Pedidos</span>
@@ -218,7 +218,7 @@ export const Navbar = ({
                 <button
                   type="button"
                   onClick={onOpenLogin}
-                  className={`flex items-center gap-2 bg-white/60 backdrop-blur-sm text-[#1B4332] rounded-full hover:shadow-lg transition-all duration-300 font-inter font-medium border border-[#1B4332]/10 min-h-[44px] px-3 sm:px-4`}
+                    className="flex min-h-[44px] items-center gap-2 rounded-full border border-[color:var(--brand-primary)]/10 bg-white/60 px-3 font-inter font-medium text-[var(--brand-primary)] backdrop-blur-sm transition-all duration-300 hover:shadow-lg sm:px-4"
                 >
                   <User className="h-5 w-5 shrink-0" />
                   <span className="hidden sm:inline">Entrar</span>
@@ -230,7 +230,7 @@ export const Navbar = ({
                 <button
                   type="button"
                   onClick={onOpenCart}
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] rounded-full hover:shadow-xl hover:shadow-[#FFD166]/50 transition-all duration-300 font-inter font-medium relative overflow-hidden group min-h-[44px] px-4 sm:px-6"
+                  className="group relative flex min-h-[44px] items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-4 font-inter font-medium text-[var(--brand-primary)] transition-all duration-300 hover:shadow-xl hover:shadow-[#FFD166]/50 sm:px-6"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FFE084] to-[#FFD166] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <ShoppingCart className="h-5 w-5 relative z-10 shrink-0" />

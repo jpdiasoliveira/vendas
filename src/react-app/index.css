@@ -4,6 +4,9 @@
 
 :root {
   --brand-primary: #1B4332;
+  --brand-primary-rgb: 27, 67, 50;
+  --brand-primary-hover: #123325;
+  --brand-primary-soft: #ECF3EF;
   --brand-secondary: #FFD166;
   --brand-surface: #FAF8F3;
   --brand-text: #6D4C41;
@@ -41,7 +44,8 @@ html {
 
 @layer base {
   body {
-    @apply font-inter text-base antialiased text-[#6D4C41];
+    @apply font-inter text-base antialiased;
+    color: var(--brand-text, #6D4C41);
     overflow-x: hidden;
   }
 }
@@ -56,18 +60,19 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--brand-primary, #1B4332), #2D5F4A);
+  background: linear-gradient(180deg, var(--brand-primary, #1B4332), var(--brand-primary-hover, #123325));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #2D5F4A, var(--brand-primary, #1B4332));
+  background: linear-gradient(180deg, var(--brand-primary-hover, #123325), var(--brand-primary, #1B4332));
 }
 
 /* Rolagem discreta em modais (evita o thumb grosso/verde do estilo global em painéis estreitos) */
 .scrollbar-slim {
   scrollbar-width: thin;
-  scrollbar-color: rgba(27, 67, 50, 0.32) rgba(27, 67, 50, 0.06);
+  scrollbar-color: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.32)
+    rgba(var(--brand-primary-rgb, 27, 67, 50), 0.06);
 }
 
 .scrollbar-slim::-webkit-scrollbar {
@@ -76,17 +81,17 @@ html {
 
 .scrollbar-slim::-webkit-scrollbar-track {
   margin: 10px 0;
-  background: rgba(27, 67, 50, 0.06);
+  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.06);
   border-radius: 999px;
 }
 
 .scrollbar-slim::-webkit-scrollbar-thumb {
-  background: rgba(27, 67, 50, 0.28);
+  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.28);
   border-radius: 999px;
 }
 
 .scrollbar-slim::-webkit-scrollbar-thumb:hover {
-  background: rgba(27, 67, 50, 0.45);
+  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.45);
 }
 
 /* Glassmorphism utility */
@@ -99,7 +104,7 @@ html {
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #1B4332, #FFD166);
+  background: linear-gradient(135deg, var(--brand-primary, #1B4332), #FFD166);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

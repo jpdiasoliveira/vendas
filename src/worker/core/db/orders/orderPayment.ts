@@ -31,15 +31,24 @@ export async function updateOrderPayment(
     payment_method: paymentMethod,
     status: options?.paymentStatus ?? "pending",
     updated_at: new Date().toISOString(),
-    payment_provider: "mercadopago",
   };
   if (options?.paymentId != null) {
     payload.payment_id = String(options.paymentId);
   }
   if (options?.paymentPreferenceId !== undefined) {
     const raw = options.paymentPreferenceId;
-    payload.payment_preference_id =
-      raw == null || String(raw).trim() === "" ? null : String(raw).trim();
+    const pref = raw == null || String(raw).trim() === "" ? null : String(raw).trim();
+    const { data: row, error: selErr } = await supabase
+      .from("orders")
+      .select("metadata")
+      .match({ id: String(orderId), store_id: storeId })
+      .maybeSingle();
+    if (selErr) throw new Error(selErr.message);
+    const prev = (row?.metadata as Record<string, unknown> | null) ?? {};
+    const next: Record<string, unknown> = { ...prev };
+    if (pref) next.mp_checkout_preference_id = pref;
+    else delete next.mp_checkout_preference_id;
+    payload.metadata = next;
   }
   const { error } = await supabase
     .from("orders")
@@ -111,7 +120,6 @@ export async function updateOrderPaymentStatus(
     if (!dec.ok) {
       await cancelOrderForInsufficientStockAfterPayment(env, idStr, storeId, {
         mpPaymentId: paymentInfo?.paymentId,
-        detail: dec.detail,
       });
       logServerError("updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED", {
         reason: "INSUFFICIENT_STOCK_AT_MP_APPROVAL",
@@ -134,7 +142,6 @@ export async function updateOrderPaymentStatus(
   };
   if (incomingId) {
     updateRow.payment_id = incomingId;
-    updateRow.payment_provider = "mercadopago";
   }
   if (st === "paid" || st === "approved") {
     updateRow.paid_at = new Date().toISOString();

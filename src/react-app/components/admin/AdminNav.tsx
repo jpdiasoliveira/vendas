@@ -46,17 +46,17 @@ export const AdminNav = ({ children }: AdminNavProps) => {
   const linkClass = (isActive: boolean) =>
     `inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors sm:gap-2 sm:px-4 ${
       isActive
-        ? "bg-[#1B4332] text-white"
-        : "border border-[#1B4332]/10 bg-white/60 text-[#6D4C41] hover:bg-white hover:text-[#1B4332]"
+        ? "bg-[var(--brand-primary)] text-white"
+        : "border border-[color:var(--brand-primary)]/10 bg-white/60 text-[#6D4C41] hover:bg-white hover:text-[var(--brand-primary)]"
     }`;
 
   return (
     <nav className="flex w-full min-w-0 flex-col gap-3 font-inter" aria-label="Painel administrativo">
-      <div className="flex items-center gap-2.5 border-b border-[#1B4332]/10 pb-2.5">
+      <div className="flex items-center gap-2.5 border-b border-[color:var(--brand-primary)]/10 pb-2.5">
         {settings?.logoUrl?.trim() ? (
           <img src={settings.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
         ) : null}
-        <p className="min-w-0 text-balance font-semibold leading-snug text-[#1B4332] sm:text-lg">{storeName}</p>
+        <p className="min-w-0 text-balance font-semibold leading-snug text-[var(--brand-primary)] sm:text-lg">{storeName}</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -76,7 +76,7 @@ export const AdminNav = ({ children }: AdminNavProps) => {
           <button
             type="button"
             onClick={() => setShowLogoutModal(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-white/60 px-3 py-2 text-sm font-medium text-[#6D4C41] transition-colors hover:bg-white hover:text-[#1B4332] sm:px-4"
+            className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/10 bg-white/60 px-3 py-2 text-sm font-medium text-[#6D4C41] transition-colors hover:bg-white hover:text-[var(--brand-primary)] sm:px-4"
             aria-label="Sair do painel"
           >
             <LogOut className="h-4 w-4 shrink-0" />

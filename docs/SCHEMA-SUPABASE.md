@@ -119,7 +119,6 @@ Documento alinhado à auditoria. **Não invente colunas:** use apenas as listada
 | length_cm               | integer                  |
 | width_cm                | integer                  |
 | height_cm               | integer                  |
-| unit_type              | text                     |
 
 ---
 

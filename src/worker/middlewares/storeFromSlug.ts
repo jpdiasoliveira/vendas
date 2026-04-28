@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { getStoreBySlug } from "../core/database.js";
+import { getStoreByDomain, getStoreBySlug } from "../core/database.js";
 import type { Variables } from "../types.js";
 
 /**
@@ -60,13 +60,14 @@ export const storeMiddleware = async (
   }
 
   const storeSlug = resolveStoreSlug(c);
+  const requestHost = parseHostFromRequest(c);
 
-  if (!storeSlug) {
+  if (!storeSlug && !requestHost) {
     return c.json(
       {
         success: false,
         error:
-          "Não foi possível identificar a loja. Use subdomínio válido (ex.: loja.sua-plataforma.com) ou envie x-store-slug.",
+          "Não foi possível identificar a loja. Use subdomínio, domínio customizado mapeado ou envie x-store-slug.",
       },
       400
     );
@@ -74,9 +75,14 @@ export const storeMiddleware = async (
 
   let store;
   try {
-    store = await getStoreBySlug(c.env, storeSlug);
+    if (requestHost) {
+      store = await getStoreByDomain(c.env, requestHost);
+    }
+    if (!store && storeSlug) {
+      store = await getStoreBySlug(c.env, storeSlug);
+    }
   } catch (err) {
-    console.error("storeMiddleware getStoreBySlug error:", err);
+    console.error("storeMiddleware resolve store error:", err);
     return c.json({ success: false, error: "Erro ao buscar loja" }, 500);
   }
 

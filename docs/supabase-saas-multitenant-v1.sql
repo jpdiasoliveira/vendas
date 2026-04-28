@@ -30,8 +30,6 @@ CREATE TABLE public.stores (
   display_name text NOT NULL,
   status text NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'suspended', 'archived')),
-  plan_tier text NOT NULL DEFAULT 'free',
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -89,13 +87,10 @@ CREATE TABLE public.categories (
   name text NOT NULL,
   slug text,
   sort_order integer NOT NULL DEFAULT 0,
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (store_id, slug)
 );
-
-CREATE INDEX idx_categories_store_id ON public.categories (store_id);
 
 CREATE TABLE public.products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -110,7 +105,6 @@ CREATE TABLE public.products (
   stock integer NOT NULL DEFAULT 0 CHECK (stock >= 0),
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
   image_url text,
-  unit_type text,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -119,7 +113,6 @@ CREATE TABLE public.products (
 
 CREATE INDEX idx_products_store_id ON public.products (store_id);
 CREATE INDEX idx_products_category_id ON public.products (category_id);
-CREATE INDEX idx_products_store_status ON public.products (store_id, status);
 
 -- =============================================================================
 -- 6) Pedidos (cliente no próprio pedido — sem delivery_addresses)
@@ -150,7 +143,6 @@ CREATE TABLE public.orders (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_orders_store_id ON public.orders (store_id);
 CREATE INDEX idx_orders_store_created ON public.orders (store_id, created_at DESC);
 CREATE INDEX idx_orders_user_store ON public.orders (user_id, store_id);
 
@@ -169,7 +161,6 @@ CREATE TABLE public.order_items (
   product_image text,
   quantity integer NOT NULL CHECK (quantity > 0),
   price numeric(14, 4) NOT NULL CHECK (price >= 0),
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -210,8 +201,6 @@ CREATE TABLE public.audit_logs (
   resource_id text NOT NULL,
   resource_label text,
   details jsonb,
-  ip_address inet,
-  user_agent text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

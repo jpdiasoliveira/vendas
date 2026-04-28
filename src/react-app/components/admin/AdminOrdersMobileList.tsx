@@ -36,16 +36,16 @@ export const AdminOrdersMobileList = ({
   <div className="space-y-3 md:hidden">
     {displayedOrders.map((order) => (
       <Fragment key={`m-${order.id}`}>
-        <article className="overflow-hidden rounded-2xl border border-[#1B4332]/10 bg-white/90 shadow-sm">
+        <article className="overflow-hidden rounded-2xl border border-[color:var(--brand-primary)]/10 bg-white/90 shadow-sm">
           <button
             type="button"
             onClick={() => onOpenDetail(order.id)}
-            className="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#FAF8F3]/80"
+            className="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[var(--brand-primary-soft)]/50"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-[#6D4C41]">{formatDate(order.createdAt)}</p>
-                <p className="break-words text-lg font-semibold text-[#1B4332]">
+                <p className="break-words text-lg font-semibold text-[var(--brand-primary)]">
                   {order.customerName?.trim() || "Cliente"}
                 </p>
                 <p className="mt-1 text-base text-[#5a4035]">
@@ -57,12 +57,12 @@ export const AdminOrdersMobileList = ({
               </div>
               <div className="shrink-0 text-right">
                 <StatusBadge status={order.paymentStatus ?? order.status ?? "pending"} />
-                <p className="mt-2 font-playfair text-xl font-bold text-[#1B4332]">{formatCurrency(order.total)}</p>
+                <p className="mt-2 font-playfair text-xl font-bold text-[var(--brand-primary)]">{formatCurrency(order.total)}</p>
               </div>
             </div>
           </button>
           <div
-            className="flex flex-col gap-2 border-t border-[#1B4332]/10 bg-slate-50/90 p-3 sm:flex-row sm:flex-wrap"
+            className="flex flex-col gap-2 border-t border-[color:var(--brand-primary)]/10 bg-slate-50/90 p-3 sm:flex-row sm:flex-wrap"
             onClick={(e) => e.stopPropagation()}
           >
             {activeTab === "historico" && (
@@ -79,7 +79,7 @@ export const AdminOrdersMobileList = ({
               type="button"
               onClick={() => onExpand(order.id)}
               disabled={loadingItemsOrderId === order.id}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-base font-medium text-[#6D4C41] ring-1 ring-[#1B4332]/15 transition-colors hover:bg-[#FAF8F3] disabled:opacity-60 sm:flex-none"
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-base font-medium text-[#6D4C41] ring-1 ring-[color:var(--brand-primary)]/15 transition-colors hover:bg-[var(--brand-primary-soft)]/45 disabled:opacity-60 sm:flex-none"
             >
               {loadingItemsOrderId === order.id ? (
                 <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
@@ -93,7 +93,7 @@ export const AdminOrdersMobileList = ({
             <button
               type="button"
               onClick={() => onTracking(order.id)}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#1B4332]/10 px-3 py-2.5 text-base font-medium text-[#1B4332] ring-1 ring-[#1B4332]/20 transition-colors hover:bg-[#1B4332]/15 sm:flex-none"
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)]/10 px-3 py-2.5 text-base font-medium text-[var(--brand-primary)] ring-1 ring-[color:var(--brand-primary)]/20 transition-colors hover:bg-[var(--brand-primary)]/15 sm:flex-none"
             >
               <Package className="h-4 w-4 shrink-0" />
               Rastreio

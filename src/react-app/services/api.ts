@@ -7,6 +7,7 @@
 import { getAccessToken } from "@/react-app/services/authSession";
 
 const PLATFORM_CREATE_SECRET = import.meta.env.VITE_PLATFORM_CREATE_STORE_SECRET ?? "";
+const STORE_OVERRIDE_KEY = "saas_store_slug_override";
 const API_BASE = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
@@ -34,7 +35,7 @@ function inferStoreSlugFromHostname(hostname: string): string {
 export function getEffectiveStoreSlug(): string {
   if (typeof window !== "undefined") {
     try {
-      const o = normalizeSlug(localStorage.getItem("saas_store_slug_override"));
+      const o = normalizeSlug(localStorage.getItem(STORE_OVERRIDE_KEY));
       if (o) return o;
     } catch {
       /* ignore */
@@ -43,6 +44,24 @@ export function getEffectiveStoreSlug(): string {
     if (fromHost) return fromHost;
   }
   return "";
+}
+
+export function setStoreSlugOverride(slug: string): void {
+  if (typeof window === "undefined") return;
+  const normalized = normalizeSlug(slug);
+  if (!normalized) return;
+  localStorage.setItem(STORE_OVERRIDE_KEY, normalized);
+}
+
+export function clearStoreSlugOverride(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORE_OVERRIDE_KEY);
+}
+
+export function getStoreSlugOverride(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = normalizeSlug(localStorage.getItem(STORE_OVERRIDE_KEY));
+  return value || null;
 }
 
 /** Monta a URL absoluta do endpoint (respeitando proxy em dev). */
@@ -217,6 +236,14 @@ export async function adminApiFetch<T = unknown>(
 }
 
 export type CreatedPlatformStore = { id: string; slug: string; displayName: string };
+export type PlatformStoreOverview = {
+  id: string;
+  slug: string;
+  displayName: string;
+  status: string;
+  createdAt: string;
+  domains: { domain: string; status: string; isPrimary: boolean }[];
+};
 
 /**
  * Rotas `/api/platform/*`: sem `x-store-slug`; JWT + lista PLATFORM_OPERATOR_EMAILS no Worker.

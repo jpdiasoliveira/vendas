@@ -78,7 +78,7 @@ export const AdminOrdersToolbar = ({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Buscar por nome do cliente..."
-          className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-base text-slate-800 focus:border-[#1B4332] focus:outline-none focus:ring-1 focus:ring-[#1B4332]"
+          className="min-h-[48px] w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3 text-base text-slate-800 focus:border-[var(--brand-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
           aria-label="Buscar pedidos por nome do cliente"
         />
       </div>
@@ -134,7 +134,7 @@ export const AdminOrdersToolbar = ({
                 periodLabel: PERIOD_LABELS[historyPeriodFilter],
               })
             }
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-[#EAD7BB] px-4 py-3 text-base font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-[#EAD7BB]/90"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-[var(--brand-primary-soft)] px-4 py-3 text-base font-medium text-[var(--brand-primary)] shadow-sm transition-colors hover:brightness-95"
             aria-label="Exportar relatório de fechamento em PDF"
           >
             <FileDown className="h-5 w-5" />

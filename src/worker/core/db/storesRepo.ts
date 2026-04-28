@@ -12,6 +12,15 @@ import {
 } from "../storePublicProfile.js";
 import { rowToStore } from "./mappers.js";
 
+function isMissingStoreDomainsTable(err: unknown): boolean {
+  const code = typeof err === "object" && err != null && "code" in err ? String((err as { code?: unknown }).code ?? "") : "";
+  const message =
+    typeof err === "object" && err != null && "message" in err
+      ? String((err as { message?: unknown }).message ?? "")
+      : "";
+  return code === "42P01" || /store_domains/i.test(message);
+}
+
 /** Loja ativa por slug (tenant resolvido pelo middleware x-store-slug). */
 export async function getStoreBySlug(env: Env, slug: string): Promise<Store | null> {
   const supabase = getSupabase(env);
@@ -25,6 +34,47 @@ export async function getStoreBySlug(env: Env, slug: string): Promise<Store | nu
   if (error) throw new Error(error.message);
   if (!row) return null;
 
+  return rowToStore(row as Record<string, unknown>);
+}
+
+function normalizeHostDomain(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\.$/, "");
+}
+
+/** Loja ativa por domínio completo (ex.: lojaexemplo.com.br). */
+export async function getStoreByDomain(env: Env, domain: string): Promise<Store | null> {
+  const supabase = getSupabase(env);
+  const normalized = normalizeHostDomain(domain);
+  if (!normalized) return null;
+
+  const candidates = new Set<string>([normalized]);
+  if (normalized.startsWith("www.")) candidates.add(normalized.slice(4));
+
+  const { data: domainRows, error: domainErr } = await supabase
+    .from("store_domains")
+    .select("store_id, domain, status")
+    .in("domain", [...candidates])
+    .eq("status", "active")
+    .limit(5);
+  if (domainErr) {
+    if (isMissingStoreDomainsTable(domainErr)) return null;
+    throw new Error(domainErr.message);
+  }
+  if (!domainRows || domainRows.length === 0) return null;
+
+  const preferred =
+    domainRows.find((r) => String(r.domain).toLowerCase() === normalized) ?? domainRows[0];
+  const storeId = String(preferred.store_id ?? "").trim();
+  if (!storeId) return null;
+
+  const { data: row, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("id", storeId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
   return rowToStore(row as Record<string, unknown>);
 }
 
@@ -172,12 +222,185 @@ function normalizeStoreSlug(raw: string): string {
 
 export type CreatedStoreResult = { id: string; slug: string; displayName: string };
 
+function slugFromLabel(raw: string, fallback: string): string {
+  const base = raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return base || fallback;
+}
+
+type SeedCategoryInput = {
+  name: string;
+  sortOrder: number;
+};
+
+type SeedProductInput = {
+  categoryName: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  status: "active" | "inactive";
+};
+
+const DEFAULT_ONBOARDING_CATEGORIES: SeedCategoryInput[] = [
+  { name: "Destaques", sortOrder: 1 },
+  { name: "Mais vendidos", sortOrder: 2 },
+  { name: "Novidades", sortOrder: 3 },
+];
+
+const DEFAULT_ONBOARDING_PRODUCTS: SeedProductInput[] = [
+  {
+    categoryName: "Destaques",
+    name: "Produto principal",
+    description: "Item inicial para editar preço, foto e descrição da sua loja.",
+    price: 19.9,
+    stock: 25,
+    status: "active",
+  },
+  {
+    categoryName: "Mais vendidos",
+    name: "Produto premium",
+    description: "Exemplo de item premium para montar kits e promoções.",
+    price: 29.9,
+    stock: 20,
+    status: "active",
+  },
+  {
+    categoryName: "Novidades",
+    name: "Produto lançamento",
+    description: "Use este item para divulgar novidades com destaque na vitrine.",
+    price: 24.9,
+    stock: 15,
+    status: "active",
+  },
+];
+
+async function seedDefaultCatalog(env: Env, storeId: string): Promise<void> {
+  const supabase = getSupabase(env);
+  const now = new Date().toISOString();
+
+  const categoryRows = DEFAULT_ONBOARDING_CATEGORIES.map((cat) => ({
+    store_id: storeId,
+    name: cat.name,
+    slug: `${slugFromLabel(cat.name, "categoria")}-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}`,
+    sort_order: cat.sortOrder,
+    metadata: {},
+    created_at: now,
+    updated_at: now,
+  }));
+
+  const { data: insertedCategories, error: categoryErr } = await supabase
+    .from("categories")
+    .insert(categoryRows)
+    .select("id, name");
+  if (categoryErr) throw new Error(categoryErr.message);
+
+  const byName = new Map<string, string>();
+  for (const c of insertedCategories ?? []) {
+    byName.set(String(c.name), String(c.id));
+  }
+
+  const productRows = DEFAULT_ONBOARDING_PRODUCTS.map((p) => ({
+    store_id: storeId,
+    category_id: byName.get(p.categoryName) ?? null,
+    name: p.name,
+    slug: `${slugFromLabel(p.name, "produto")}-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}`,
+    description: p.description,
+    price: p.price,
+    stock: p.stock,
+    status: p.status,
+    image_url: null,
+    metadata: { seeded: true },
+    created_at: now,
+    updated_at: now,
+  }));
+
+  const { error: productErr } = await supabase.from("products").insert(productRows);
+  if (productErr) throw new Error(productErr.message);
+}
+
+function normalizeDomain(raw: string): string {
+  return raw.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "").replace(/\.$/, "");
+}
+
+type StoreDomainInsert = {
+  store_id: string;
+  domain: string;
+  status: "active" | "pending_verification" | "disabled";
+  is_primary: boolean;
+};
+
+async function addStoreDomains(
+  env: Env,
+  storeId: string,
+  domains: string[]
+): Promise<void> {
+  if (domains.length === 0) return;
+  const supabase = getSupabase(env);
+  const rows: StoreDomainInsert[] = [];
+  const uniq = [...new Set(domains.map((d) => normalizeDomain(d)).filter(Boolean))];
+  uniq.forEach((domain, idx) => {
+    rows.push({
+      store_id: storeId,
+      domain,
+      status: "active",
+      is_primary: idx === 0,
+    });
+  });
+  if (rows.length === 0) return;
+  const { error } = await supabase.from("store_domains").insert(rows);
+  if (error) {
+    if (isMissingStoreDomainsTable(error)) return;
+    throw new Error(error.message);
+  }
+}
+
+export async function addDomainsToStore(
+  env: Env,
+  params: { storeId: string; domains: string[]; setPrimaryFirst?: boolean }
+): Promise<void> {
+  const supabase = getSupabase(env);
+  const { data: store, error: storeErr } = await supabase
+    .from("stores")
+    .select("id")
+    .eq("id", params.storeId)
+    .maybeSingle();
+  if (storeErr) throw new Error(storeErr.message);
+  if (!store) throw new Error("STORE_NOT_FOUND");
+
+  const uniq = [...new Set(params.domains.map((d) => normalizeDomain(d)).filter(Boolean))];
+  if (uniq.length === 0) return;
+  const rows = uniq.map((domain, idx) => ({
+    store_id: params.storeId,
+    domain,
+    status: "active" as const,
+    is_primary: params.setPrimaryFirst === true && idx === 0,
+  }));
+  const { error } = await supabase
+    .from("store_domains")
+    .upsert(rows, { onConflict: "domain", ignoreDuplicates: false });
+  if (error) {
+    if (isMissingStoreDomainsTable(error)) return;
+    throw new Error(error.message);
+  }
+}
+
 /**
  * Nova loja SaaS: `stores` + `store_settings` padrão + `store_members` como owner.
  */
 export async function createStoreWithOwner(
   env: Env,
-  params: { slug: string; displayName: string; ownerUserId: string }
+  params: { slug: string; displayName: string; ownerUserId: string; customDomains?: string[] }
 ): Promise<CreatedStoreResult> {
   const supabase = getSupabase(env);
   const slug = normalizeStoreSlug(params.slug);
@@ -200,8 +423,6 @@ export async function createStoreWithOwner(
       slug,
       display_name: displayName,
       status: "active",
-      plan_tier: "free",
-      metadata: {},
     })
     .select("id, slug, display_name")
     .single();
@@ -246,5 +467,63 @@ export async function createStoreWithOwner(
     throw new Error(memErr.message);
   }
 
+  try {
+    await seedDefaultCatalog(env, storeId);
+    await addStoreDomains(env, storeId, params.customDomains ?? []);
+  } catch (err) {
+    await supabase.from("stores").delete().eq("id", storeId);
+    throw err instanceof Error ? err : new Error("Falha ao preparar loja inicial.");
+  }
+
   return { id: storeId, slug: String(storeRow.slug), displayName: String(storeRow.display_name) };
+}
+
+export type PlatformStoreOverview = {
+  id: string;
+  slug: string;
+  displayName: string;
+  status: string;
+  createdAt: string;
+  domains: { domain: string; status: string; isPrimary: boolean }[];
+};
+
+export async function listPlatformStores(env: Env): Promise<PlatformStoreOverview[]> {
+  const supabase = getSupabase(env);
+  const { data: rows, error } = await supabase
+    .from("stores")
+    .select("id, slug, display_name, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error(error.message);
+  const stores = rows ?? [];
+  if (stores.length === 0) return [];
+
+  const ids = stores.map((s) => String(s.id));
+  const { data: domainRows, error: domainErr } = await supabase
+    .from("store_domains")
+    .select("store_id, domain, status, is_primary")
+    .in("store_id", ids)
+    .order("is_primary", { ascending: false });
+  if (domainErr && !isMissingStoreDomainsTable(domainErr)) throw new Error(domainErr.message);
+
+  const domainsByStore = new Map<string, { domain: string; status: string; isPrimary: boolean }[]>();
+  for (const row of domainRows ?? []) {
+    const key = String(row.store_id);
+    const list = domainsByStore.get(key) ?? [];
+    list.push({
+      domain: String(row.domain ?? ""),
+      status: String(row.status ?? ""),
+      isPrimary: row.is_primary === true,
+    });
+    domainsByStore.set(key, list);
+  }
+
+  return stores.map((row) => ({
+    id: String(row.id),
+    slug: String(row.slug ?? ""),
+    displayName: String(row.display_name ?? ""),
+    status: String(row.status ?? ""),
+    createdAt: String(row.created_at ?? ""),
+    domains: domainsByStore.get(String(row.id)) ?? [],
+  }));
 }

@@ -64,7 +64,6 @@ export interface ProductCreatePayload {
   status?: string | null;
   priceWholesale?: number | null;
   minQuantityWholesale?: number | null;
-  unit?: string | null;
 }
 
 async function assertCategoryIdForStore(
@@ -115,8 +114,6 @@ export async function createProduct(
   if (data.priceWholesale != null) payload.price_wholesale = Number(data.priceWholesale);
   if (data.minQuantityWholesale != null)
     payload.min_quantity_wholesale = Math.floor(Number(data.minQuantityWholesale));
-  if (data.unit != null && String(data.unit).trim() !== "")
-    payload.unit_type = String(data.unit).trim();
 
   const { data: row, error } = await supabase
     .from("products")

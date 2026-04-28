@@ -13,10 +13,6 @@ export interface Store {
   slug: string;
   displayName: string;
   status: string;
-  /** Plano SaaS (ex.: free, pro). */
-  planTier?: string | null;
-  /** Metadados livres da loja (JSONB). */
-  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,7 +72,6 @@ export interface Category {
   sortOrder?: number | null;
   createdAt?: string;
   updatedAt?: string;
-  metadata?: Record<string, unknown> | null;
 }
 
 export interface Order {
@@ -136,7 +131,6 @@ export interface OrderItem {
   productImage?: string | null;
   quantity: number;
   price: number;
-  metadata?: Record<string, unknown> | null;
   createdAt?: string;
 }
 

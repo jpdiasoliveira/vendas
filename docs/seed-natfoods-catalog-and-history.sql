@@ -53,19 +53,18 @@ BEGIN
   DELETE FROM public.orders
   WHERE store_id = v_store_id AND (metadata->>'seed') = 'natfoods_demo';
 
-  INSERT INTO public.categories (id, store_id, name, slug, sort_order, metadata, created_at, updated_at)
+  INSERT INTO public.categories (id, store_id, name, slug, sort_order, created_at, updated_at)
   VALUES
-    (cat_linha_amazonia, v_store_id, 'Linha Amazônia', 'linha-amazonia', 0, '{"tag":"destaque"}'::jsonb, now(), now()),
-    (cat_snacks, v_store_id, 'Snacks naturais', 'snacks-naturais', 1, '{}'::jsonb, now(), now())
+    (cat_linha_amazonia, v_store_id, 'Linha Amazônia', 'linha-amazonia', 0, now(), now()),
+    (cat_snacks, v_store_id, 'Snacks naturais', 'snacks-naturais', 1, now(), now())
   ON CONFLICT (store_id, slug) DO UPDATE SET
     name = EXCLUDED.name,
     sort_order = EXCLUDED.sort_order,
-    metadata = EXCLUDED.metadata,
     updated_at = now();
 
   INSERT INTO public.products (
     id, store_id, category_id, name, slug, description, price, price_wholesale, min_quantity_wholesale,
-    stock, status, image_url, unit_type, metadata, created_at, updated_at
+    stock, status, image_url, metadata, created_at, updated_at
   ) VALUES
     (
       p1, v_store_id, cat_linha_amazonia,
@@ -75,7 +74,6 @@ BEGIN
       20.00, 16.00, 12,
       80, 'active',
       'https://picsum.photos/seed/natfoods-extra-picante/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods","selos":["vegano","sem_gluten","artesanal"]}'::jsonb,
       now(), now()
     ),
@@ -87,7 +85,6 @@ BEGIN
       20.00, 16.50, 10,
       60, 'active',
       'https://picsum.photos/seed/natfoods-castanha/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods"}'::jsonb,
       now(), now()
     ),
@@ -99,7 +96,6 @@ BEGIN
       20.00, 16.00, 12,
       70, 'active',
       'https://picsum.photos/seed/natfoods-lime-cumin/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods"}'::jsonb,
       now(), now()
     ),
@@ -111,7 +107,6 @@ BEGIN
       20.00, 16.00, 12,
       55, 'active',
       'https://picsum.photos/seed/natfoods-acai-guarana/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods"}'::jsonb,
       now(), now()
     ),
@@ -123,7 +118,6 @@ BEGIN
       20.00, 16.00, 12,
       65, 'active',
       'https://picsum.photos/seed/natfoods-ervas/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods"}'::jsonb,
       now(), now()
     ),
@@ -135,7 +129,6 @@ BEGIN
       22.90, 18.50, 8,
       40, 'active',
       'https://picsum.photos/seed/natfoods-defumado-jatoba/900/900',
-      'pacote',
       '{"peso_g":300,"marca":"Natfoods"}'::jsonb,
       now(), now()
     )
@@ -149,7 +142,6 @@ BEGIN
     status = EXCLUDED.status,
     image_url = EXCLUDED.image_url,
     category_id = EXCLUDED.category_id,
-    unit_type = EXCLUDED.unit_type,
     metadata = EXCLUDED.metadata,
     updated_at = now();
 
@@ -192,13 +184,13 @@ BEGIN
       now() - interval '2 hours', now() - interval '2 hours'
     );
 
-  INSERT INTO public.order_items (id, store_id, order_id, product_id, product_name, product_image, quantity, price, metadata, created_at)
+  INSERT INTO public.order_items (id, store_id, order_id, product_id, product_name, product_image, quantity, price, created_at)
   VALUES
-    (gen_random_uuid(), v_store_id, o1, p1, 'Banana Chips Extra Picante — 300g', 'https://picsum.photos/seed/natfoods-extra-picante/200/200', 2, 20.0000, '{}'::jsonb, now() - interval '14 days'),
-    (gen_random_uuid(), v_store_id, o1, p3, 'Banana Chips Lime & Cumin — 300g', 'https://picsum.photos/seed/natfoods-lime-cumin/200/200', 1, 20.0000, '{}'::jsonb, now() - interval '14 days'),
-    (gen_random_uuid(), v_store_id, o2, p4, 'Banana Chips Açaí & Guaraná — 300g', 'https://picsum.photos/seed/natfoods-acai-guarana/200/200', 2, 20.0000, '{}'::jsonb, now() - interval '6 days'),
-    (gen_random_uuid(), v_store_id, o3, p5, 'Banana Chips Ervas da Floresta — 300g', 'https://picsum.photos/seed/natfoods-ervas/200/200', 1, 20.0000, '{}'::jsonb, now() - interval '2 days'),
-    (gen_random_uuid(), v_store_id, o4, p2, 'Banana Chips Castanha-do-Pará — 300g', 'https://picsum.photos/seed/natfoods-castanha/200/200', 1, 20.0000, '{}'::jsonb, now() - interval '2 hours');
+    (gen_random_uuid(), v_store_id, o1, p1, 'Banana Chips Extra Picante — 300g', 'https://picsum.photos/seed/natfoods-extra-picante/200/200', 2, 20.0000, now() - interval '14 days'),
+    (gen_random_uuid(), v_store_id, o1, p3, 'Banana Chips Lime & Cumin — 300g', 'https://picsum.photos/seed/natfoods-lime-cumin/200/200', 1, 20.0000, now() - interval '14 days'),
+    (gen_random_uuid(), v_store_id, o2, p4, 'Banana Chips Açaí & Guaraná — 300g', 'https://picsum.photos/seed/natfoods-acai-guarana/200/200', 2, 20.0000, now() - interval '6 days'),
+    (gen_random_uuid(), v_store_id, o3, p5, 'Banana Chips Ervas da Floresta — 300g', 'https://picsum.photos/seed/natfoods-ervas/200/200', 1, 20.0000, now() - interval '2 days'),
+    (gen_random_uuid(), v_store_id, o4, p2, 'Banana Chips Castanha-do-Pará — 300g', 'https://picsum.photos/seed/natfoods-castanha/200/200', 1, 20.0000, now() - interval '2 hours');
 
   INSERT INTO public.audit_logs (store_id, user_id, action, resource_type, resource_id, resource_label, details, created_at)
   VALUES

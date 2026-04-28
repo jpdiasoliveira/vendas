@@ -3,14 +3,6 @@ import { X, Loader2, Save, ImagePlus } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
 import { useCurrencyMask } from "@/react-app/hooks/useCurrencyMask";
-import { wholesaleCopy } from "@/react-app/utils/wholesaleCopy";
-
-const UNITS = [
-  { value: "Un", label: "Un" },
-  { value: "Kg", label: "Kg" },
-  { value: "Pacote", label: "Pacote" },
-  { value: "Fardo", label: "Fardo" },
-];
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -32,7 +24,6 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
   const [wholesaleEnabled, setWholesaleEnabled] = useState(false);
   const wholesaleMask = useCurrencyMask();
   const [minWholesaleQty, setMinWholesaleQty] = useState("");
-  const [unitType, setUnitType] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +38,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
     imageUrl.trim() !== "" ||
     imageFile !== null ||
     wholesaleEnabled ||
-    minWholesaleQty.trim() !== "" ||
-    unitType.trim() !== "";
+    minWholesaleQty.trim() !== "";
 
   const requestClose = () => {
     if (isDirty) setShowExitConfirm(true);
@@ -83,8 +73,6 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
     };
   }, [isOpen]);
 
-  const wholesaleHints = wholesaleCopy(unitType);
-
   if (!isOpen) return null;
 
   const resetForm = () => {
@@ -100,7 +88,6 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
     setWholesaleEnabled(false);
     wholesaleMask.setValue(0);
     setMinWholesaleQty("");
-    setUnitType("");
     setError(null);
     setFieldErrors({});
   };
@@ -154,7 +141,6 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
         ...(categoryId.trim() !== "" ? { category_id: categoryId.trim() } : {}),
         image_url: imageUrlFinal || "",
         status,
-        unit_type: unitType.trim() || undefined,
       };
       if (wholesaleEnabled) {
         payload.priceWholesale = wholesaleMask.parse() || null;
@@ -237,37 +223,18 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Estoque Inicial
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className={inputBase}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Unidade de Medida
-              </label>
-              <select
-                value={unitType}
-                onChange={(e) => setUnitType(e.target.value)}
-                className={inputBase}
-              >
-                <option value="">Selecione</option>
-                {UNITS.map((u) => (
-                  <option key={u.value} value={u.value}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Estoque Inicial
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className={inputBase}
+            />
           </div>
 
           <div>
@@ -348,7 +315,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">
                       Preço atacado
                       <span className="mt-0.5 block font-normal text-xs leading-snug text-slate-500">
-                        Por {wholesaleHints.pricePer} (mesma base do preço normal).
+                        Valor unitário para pedidos em atacado.
                       </span>
                     </label>
                     <input
@@ -362,9 +329,9 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
                   </div>
                   <div className="flex flex-col">
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      {wholesaleHints.minQtyLabel}
+                      Quantidade mínima
                       <span className="mt-0.5 block font-normal text-xs leading-snug text-slate-500">
-                        Mesma unidade do produto.
+                        A partir desse volume, o preço atacado é aplicado.
                       </span>
                     </label>
                     <input
@@ -379,7 +346,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
                   </div>
                 </div>
                 <p id="wholesale-qty-hint" className="text-xs text-slate-600 leading-relaxed">
-                  {wholesaleHints.minQtyHint}
+                  Use um valor inteiro para definir o gatilho do atacado.
                 </p>
               </div>
             )}

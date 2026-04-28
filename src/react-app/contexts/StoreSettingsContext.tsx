@@ -8,7 +8,7 @@ import {
 } from "react";
 import { apiFetch } from "@/react-app/services/api";
 import type { StorePublicProfile } from "@/react-app/types";
-import { normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import { hexToRgbTriplet, mixHexColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
 
 export interface StoreSettingsData {
   displayName: string;
@@ -71,9 +71,18 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
   useEffect(() => {
     const root = document.documentElement;
     const primary = normalizeStorePrimaryColor(settings?.primaryColor ?? undefined);
+    const rgb = hexToRgbTriplet(primary) ?? "27, 67, 50";
+    const hover = mixHexColor(primary, "#000000", 0.12);
+    const soft = mixHexColor(primary, "#ffffff", 0.82);
     root.style.setProperty("--brand-primary", primary);
+    root.style.setProperty("--brand-primary-rgb", rgb);
+    root.style.setProperty("--brand-primary-hover", hover);
+    root.style.setProperty("--brand-primary-soft", soft);
     return () => {
       root.style.setProperty("--brand-primary", "#1B4332");
+      root.style.setProperty("--brand-primary-rgb", "27, 67, 50");
+      root.style.setProperty("--brand-primary-hover", "#123325");
+      root.style.setProperty("--brand-primary-soft", "#ECF3EF");
     };
   }, [settings?.primaryColor]);
 

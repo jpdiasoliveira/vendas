@@ -10,7 +10,7 @@
 -- do passo 3 com /* ... */ e execute; depois descomente, preencha o e-mail e rode de novo.)
 
 -- 1) Loja de exemplo (tenant)
-INSERT INTO stores (id, slug, display_name, status, plan_tier, metadata, created_at, updated_at)
+INSERT INTO stores (id, slug, display_name, status, created_at, updated_at)
 VALUES (
   'a0000001-0001-0001-0001-000000000001',
   'natfoods',
@@ -24,7 +24,6 @@ VALUES (
 ON CONFLICT (slug) DO UPDATE SET
   display_name = EXCLUDED.display_name,
   status = 'active',
-  plan_tier = COALESCE(EXCLUDED.plan_tier, stores.plan_tier),
   updated_at = now();
 
 -- 2) Linha de configurações (JSONB para regras/horários/tema no futuro)
@@ -82,7 +81,7 @@ $$;
 -- 4) Conferência — ao rodar estas linhas (só elas ou o arquivo inteiro), você deve ver linhas:
 -- =============================================================================
 
-SELECT id, slug, display_name, status, plan_tier
+SELECT id, slug, display_name, status
 FROM public.stores
 WHERE slug = 'natfoods';
 

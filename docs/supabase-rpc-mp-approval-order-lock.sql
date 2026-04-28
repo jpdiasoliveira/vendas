@@ -4,11 +4,9 @@
 -- Execute no SQL Editor do Supabase após:
 --   - docs/supabase-saas-multitenant-v1.sql
 --   - docs/supabase-rpc-decrement-order-stock.sql
---   - docs/supabase-orders-payment-provider-idempotency.sql (payment_provider)
 --
--- Duas requisições simultâneas no mesmo pedido: uma faz SELECT ... FOR UPDATE
--- e só libera ao fim da transação; a outra espera na porta. Assim só uma
--- execução de decrement_stock_for_order corre para status = pending.
+-- Não grava colunas removidas (ex.: payment_provider): idempotência via
+-- payment_id + índice parcial (store_id, payment_id).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.apply_mp_approval_with_order_lock(
@@ -18,8 +16,8 @@ CREATE OR REPLACE FUNCTION public.apply_mp_approval_with_order_lock(
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
-AS $$
+SET search_path TO 'public'
+AS $function$
 DECLARE
   o public.orders%ROWTYPE;
   prev text;
@@ -54,7 +52,6 @@ BEGIN
     UPDATE public.orders
     SET
       payment_id = pin,
-      payment_provider = 'mercadopago',
       updated_at = now()
     WHERE id = p_order_id;
 
@@ -75,11 +72,8 @@ BEGIN
           status = 'cancelled',
           updated_at = now(),
           payment_id = pin,
-          payment_provider = 'mercadopago',
-          metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(
-            'insufficient_stock_at_payment', true,
-            'insufficient_stock_detail', SQLERRM
-          )
+          metadata = COALESCE(metadata, '{}'::jsonb)
+            || jsonb_build_object('insufficient_stock_at_payment', true)
         WHERE id = p_order_id;
         RETURN 'stock_conflict_cancelled';
       END IF;
@@ -91,13 +85,12 @@ BEGIN
     status = 'approved',
     paid_at = COALESCE(paid_at, now()),
     payment_id = pin,
-    payment_provider = 'mercadopago',
     updated_at = now()
   WHERE id = p_order_id;
 
   RETURN 'paid';
 END;
-$$;
+$function$;
 
 REVOKE ALL ON FUNCTION public.apply_mp_approval_with_order_lock(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.apply_mp_approval_with_order_lock(uuid, text) TO service_role;
