@@ -6,23 +6,43 @@
 
 import { getAccessToken } from "@/react-app/services/authSession";
 
-const STORE_SLUG = import.meta.env.VITE_STORE_SLUG;
 const PLATFORM_CREATE_SECRET = import.meta.env.VITE_PLATFORM_CREATE_STORE_SECRET ?? "";
 const API_BASE = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
-/** Slug da vitrine/admin: `localStorage.saas_store_slug_override` tem prioridade na demo. */
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+function normalizeSlug(raw: string | null | undefined): string {
+  return (raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function inferStoreSlugFromHostname(hostname: string): string {
+  const host = hostname.trim().toLowerCase();
+  if (!host || LOCAL_HOSTS.has(host)) return "";
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length < 3) return "";
+  return normalizeSlug(parts[0]);
+}
+
+/** Slug da vitrine/admin: override local tem prioridade; fallback automático por subdomínio. */
 export function getEffectiveStoreSlug(): string {
   if (typeof window !== "undefined") {
     try {
-      const o = localStorage.getItem("saas_store_slug_override")?.trim();
+      const o = normalizeSlug(localStorage.getItem("saas_store_slug_override"));
       if (o) return o;
     } catch {
       /* ignore */
     }
+    const fromHost = inferStoreSlugFromHostname(window.location.hostname);
+    if (fromHost) return fromHost;
   }
-  return STORE_SLUG ?? "";
+  return "";
 }
 
 /** Monta a URL absoluta do endpoint (respeitando proxy em dev). */
@@ -63,7 +83,8 @@ export async function apiFetch<T = unknown>(
   const url = buildApiUrl(endpoint);
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-store-slug", getEffectiveStoreSlug());
+  const storeSlug = getEffectiveStoreSlug();
+  if (storeSlug) headers.set("x-store-slug", storeSlug);
 
   /** POST /api/login é público: não envia Bearer. Token vem de authSession (sem ciclo com api). */
   if (!/\/api\/login(\?|$)/.test(endpoint)) {
@@ -102,7 +123,8 @@ export async function adminUploadImage(file: File): Promise<{ publicUrl: string 
   formData.append("file", file);
 
   const headers = new Headers();
-  headers.set("x-store-slug", getEffectiveStoreSlug());
+  const storeSlug = getEffectiveStoreSlug();
+  if (storeSlug) headers.set("x-store-slug", storeSlug);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(url, { method: "POST", headers, body: formData });
@@ -145,7 +167,8 @@ export async function adminApiFetch<T = unknown>(
   const token = await getAccessToken();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("x-store-slug", getEffectiveStoreSlug());
+  const storeSlug = getEffectiveStoreSlug();
+  if (storeSlug) headers.set("x-store-slug", storeSlug);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(url, { ...options, headers, cache: options.cache ?? "no-store" });

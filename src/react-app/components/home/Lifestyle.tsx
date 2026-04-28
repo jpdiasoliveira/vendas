@@ -1,6 +1,10 @@
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 
 export function Lifestyle() {
+    const { settings } = useStoreSettings();
+    const displayName = settings?.displayName?.trim() || "Sua Loja";
+
     return (
         <section className="relative overflow-hidden py-24">
             <div className="absolute inset-0 bg-gradient-to-b from-[#FAF8F3] via-white to-[#FAF8F3]"></div>
@@ -12,7 +16,7 @@ export function Lifestyle() {
                         <span className="text-sm font-medium text-[#1B4332] font-inter">Estilo de Vida</span>
                     </div>
                     <h3 className="text-4xl md:text-6xl font-bold text-[#1B4332] mb-4 font-playfair">
-                        Momentos Natfoods
+                        {`Momentos ${displayName}`}
                     </h3>
                     <p className="text-lg text-[#6D4C41] font-inter">
                         Snacks saudáveis para todos os momentos da sua vida

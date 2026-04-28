@@ -1,7 +1,11 @@
 import { Leaf, MapPin } from "lucide-react";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 
 export function Story() {
+    const { settings } = useStoreSettings();
+    const displayName = settings?.displayName?.trim() || "Sua Loja";
+
     return (
         <section id="historia" className="py-16 sm:py-24 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-[#FAF8F3]/50 backdrop-blur-3xl"></div>
@@ -22,7 +26,7 @@ export function Story() {
                             </h3>
                             <div className="space-y-4 text-[#5a4035] font-inter leading-relaxed">
                                 <p className="text-base sm:text-lg">
-                                    Na Natfoods, acreditamos que a melhor forma de criar um snack saudável é respeitar a natureza desde o início. Nossos chips de banana vêm diretamente das plantações orgânicas certificadas na Amazônia.
+                                    {`Na ${displayName}, acreditamos que a melhor forma de criar um snack saudável é respeitar a natureza desde o início. Nossos chips de banana vêm diretamente das plantações orgânicas certificadas na Amazônia.`}
                                 </p>
                                 <p className="text-base sm:text-lg">
                                     Trabalhamos lado a lado com agricultores locais, garantindo práticas sustentáveis e comércio justo. Cada pacote que você abre é resultado de um processo cuidadoso: da colheita manual à secagem natural, tudo é feito pensando na qualidade e no meio ambiente.

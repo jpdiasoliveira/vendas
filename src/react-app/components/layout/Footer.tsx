@@ -108,7 +108,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   const p = settings?.publicProfile;
-  const displayName = settings?.displayName?.trim() || "Natfoods";
+  const displayName = settings?.displayName?.trim() || "Sua Loja";
   const tagline = p?.tagline?.trim();
   const logoSrc = settings?.logoUrl?.trim() || null;
   const wa = whatsappHref(p?.contactWhatsapp);

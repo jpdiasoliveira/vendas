@@ -22,7 +22,7 @@ type ProductCardProps = {
   isHomeFeatured?: boolean;
 };
 
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/800x1000/e2e8f0/1B4332?text=Natfoods";
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/800x1000/e2e8f0/1B4332?text=Produto";
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);

@@ -28,6 +28,17 @@ interface StoreSettingsContextType {
 
 const StoreSettingsContext = createContext<StoreSettingsContextType | undefined>(undefined);
 
+function ensureMetaTag(name: string): HTMLMetaElement | null {
+  if (typeof document === "undefined") return null;
+  let node = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  if (!node) {
+    node = document.createElement("meta");
+    node.setAttribute("name", name);
+    document.head.appendChild(node);
+  }
+  return node;
+}
+
 export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<StoreSettingsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +76,24 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
       root.style.setProperty("--brand-primary", "#1B4332");
     };
   }, [settings?.primaryColor]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const displayName = settings?.displayName?.trim() || "Sua Loja";
+    const tagline = settings?.publicProfile?.tagline?.trim() || "Loja online";
+    document.title = `${displayName} | ${tagline}`;
+
+    const description =
+      settings?.publicProfile?.shippingInfo?.trim() ||
+      settings?.publicProfile?.tagline?.trim() ||
+      `${displayName} - catálogo e pedidos online.`;
+    const descriptionMeta = ensureMetaTag("description");
+    if (descriptionMeta) descriptionMeta.setAttribute("content", description);
+
+    const primary = normalizeStorePrimaryColor(settings?.primaryColor ?? undefined);
+    const themeMeta = ensureMetaTag("theme-color");
+    if (themeMeta) themeMeta.setAttribute("content", primary);
+  }, [settings?.displayName, settings?.publicProfile?.shippingInfo, settings?.publicProfile?.tagline, settings?.primaryColor]);
 
   useEffect(() => {
     let tid: ReturnType<typeof setTimeout> | undefined;

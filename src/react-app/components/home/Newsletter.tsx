@@ -1,5 +1,11 @@
 import { useState } from "react";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import { getEffectiveStoreSlug } from "@/react-app/services/api";
+
+function getNewsletterStorageKey(): string {
+    const slug = getEffectiveStoreSlug() || "default";
+    return `@saas:newsletter:${slug}`;
+}
 
 export function Newsletter() {
     const [email, setEmail] = useState('');
@@ -12,12 +18,13 @@ export function Newsletter() {
         // [MOCK LOCAL]: Salvando no localStorage para simular o banco de dados
         // No futuro, isso será uma chamada para a API: await apiFetch('/api/newsletter/subscribe', 'POST', { email })
         try {
-            const existingSubscribers = JSON.parse(localStorage.getItem('@natfoods:newsletter') || '[]');
+            const storageKey = getNewsletterStorageKey();
+            const existingSubscribers = JSON.parse(localStorage.getItem(storageKey) || '[]');
             
             // Verifica se já está inscrito localmente
             if (!existingSubscribers.includes(email)) {
                 existingSubscribers.push(email);
-                localStorage.setItem('@natfoods:newsletter', JSON.stringify(existingSubscribers));
+                localStorage.setItem(storageKey, JSON.stringify(existingSubscribers));
                 console.log('✅ [LocalDB] E-mail salvo com sucesso:', email);
                 console.log('📦 [LocalDB] Total de inscritos:', existingSubscribers.length);
             } else {

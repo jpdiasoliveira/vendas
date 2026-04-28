@@ -84,7 +84,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ex: Natfoods"
+                placeholder="Ex: Sua Loja"
                 className={inputCls}
               />
             </div>

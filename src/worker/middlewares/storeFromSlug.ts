@@ -17,6 +17,39 @@ const SKIP_STORE_PATHS = [
   "/api/platform",
 ];
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function sanitizeSlug(raw: string | null | undefined): string {
+  return (raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function parseHostFromRequest(c: Context<{ Bindings: Env; Variables: Variables }>): string {
+  const forwarded = c.req.header("x-forwarded-host");
+  const hostHeader = (forwarded ?? c.req.header("host") ?? "").trim().toLowerCase();
+  return hostHeader.split(",")[0]?.trim().split(":")[0] ?? "";
+}
+
+function inferStoreSlugFromHost(host: string): string {
+  if (!host || LOCAL_HOSTS.has(host)) return "";
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length < 3) return "";
+  return sanitizeSlug(parts[0]);
+}
+
+function resolveStoreSlug(c: Context<{ Bindings: Env; Variables: Variables }>): string {
+  const fromHeader = sanitizeSlug(c.req.header("x-store-slug"));
+  if (fromHeader) return fromHeader;
+  const host = parseHostFromRequest(c);
+  const fromHost = inferStoreSlugFromHost(host);
+  if (fromHost) return fromHost;
+  return "";
+}
+
 export const storeMiddleware = async (
   c: Context<{ Bindings: Env; Variables: Variables }>,
   next: Next
@@ -26,10 +59,17 @@ export const storeMiddleware = async (
     return next();
   }
 
-  const storeSlug = c.req.header("x-store-slug");
+  const storeSlug = resolveStoreSlug(c);
 
   if (!storeSlug) {
-    return c.json({ success: false, error: "Identificação da loja (x-store-slug) é obrigatória" }, 400);
+    return c.json(
+      {
+        success: false,
+        error:
+          "Não foi possível identificar a loja. Use subdomínio válido (ex.: loja.sua-plataforma.com) ou envie x-store-slug.",
+      },
+      400
+    );
   }
 
   let store;
