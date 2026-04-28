@@ -91,6 +91,27 @@ async function parseJsonOrThrow(response: Response): Promise<unknown> {
   }
 }
 
+/** fetch com mensagem em português quando a rede cai ou o servidor não responde. */
+async function fetchOrNetworkError(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("networkerror") ||
+      lower.includes("load failed") ||
+      lower.includes("network request failed")
+    ) {
+      throw new Error(
+        "Não foi possível conectar ao servidor. Verifique sua internet, se a API está no ar (em dev: wrangler dev + proxy /api) e o domínio da loja."
+      );
+    }
+    throw new Error(`Falha de rede: ${msg}`);
+  }
+}
+
 /**
  * Requisição autenticada apenas por store (x-store-slug). Para rotas públicas e usuário loja.
  * Retorna data quando success === true; caso contrário lança com mensagem de error.
@@ -112,7 +133,7 @@ export async function apiFetch<T = unknown>(
   }
 
   /** Evita cache HTTP de listagens (ex.: produtos após mudar destaque na home). */
-  const response = await fetch(url, { ...options, headers, cache: options.cache ?? "no-store" });
+  const response = await fetchOrNetworkError(url, { ...options, headers, cache: options.cache ?? "no-store" });
   const body = await parseJsonOrThrow(response);
 
   if (!response.ok) {
@@ -146,7 +167,7 @@ export async function adminUploadImage(file: File): Promise<{ publicUrl: string 
   if (storeSlug) headers.set("x-store-slug", storeSlug);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(url, { method: "POST", headers, body: formData });
+  const response = await fetchOrNetworkError(url, { method: "POST", headers, body: formData });
   const body = await parseJsonOrThrow(response);
 
   if (response.status === 401 || response.status === 403) {
@@ -190,7 +211,7 @@ export async function adminApiFetch<T = unknown>(
   if (storeSlug) headers.set("x-store-slug", storeSlug);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(url, { ...options, headers, cache: options.cache ?? "no-store" });
+  const response = await fetchOrNetworkError(url, { ...options, headers, cache: options.cache ?? "no-store" });
   const body = await parseJsonOrThrow(response);
 
   if (response.status === 401) {
@@ -235,7 +256,29 @@ export async function adminApiFetch<T = unknown>(
   return body as T;
 }
 
-export type CreatedPlatformStore = { id: string; slug: string; displayName: string };
+export type CreatedPlatformStore = {
+  id: string;
+  slug: string;
+  displayName: string;
+  subscriptionWarning?: string;
+};
+
+export type PlatformAnalyticsOverviewDto = {
+  mrrBrlEstimated: number;
+  payingOrTrialingSubscriptions: number;
+  activeStoresCount: number;
+  gmvPaidBrlLast30d: number;
+};
+
+export type PlatformStoreRankingRowDto = {
+  storeId: string;
+  slug: string;
+  displayName: string;
+  storeStatus: string;
+  gmvPaidBrlLast30d: number;
+  paidOrdersLast30d: number;
+  allOrdersLast30d: number;
+};
 export type PlatformStoreOverview = {
   id: string;
   slug: string;
@@ -262,7 +305,7 @@ export async function platformApiFetch<T = unknown>(
     headers.set("x-platform-create-store-secret", PLATFORM_CREATE_SECRET.trim());
   }
 
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetchOrNetworkError(url, { ...options, headers });
   const body = await parseJsonOrThrow(response);
 
   if (response.status === 401) {

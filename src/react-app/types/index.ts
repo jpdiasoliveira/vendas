@@ -6,6 +6,7 @@ export type { StorePublicProfile } from "@/worker/core/storePublicProfile";
 
 export type {
   Store,
+  StoreCapabilities,
   StoreSettings,
   StoreMember,
   Product,

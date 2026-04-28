@@ -1,6 +1,12 @@
 -- =============================================================================
 -- RPC: aprovação Mercado Pago com tranca na linha do pedido (anti-corrida)
 -- =============================================================================
+-- Versão mais recente (incl. `stock_reserved_at_create` / pedido criado pela RPC
+-- `create_order_with_stock_lock`) está consolidada em:
+--   docs/supabase-create-order-stock-lock-idempotency.sql
+-- Aplique esse arquivo no Supabase para manter `apply_mp_approval_with_order_lock`
+-- e a criação de pedidos alinhados.
+--
 -- Execute no SQL Editor do Supabase após:
 --   - docs/supabase-saas-multitenant-v1.sql
 --   - docs/supabase-rpc-decrement-order-stock.sql

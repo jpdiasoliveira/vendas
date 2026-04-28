@@ -9,11 +9,17 @@ import { AdminProductsToolbar } from "@/react-app/components/admin/AdminProducts
 import { AdminProductsTable } from "@/react-app/components/admin/AdminProductsTable";
 import { useAdminProducts } from "@/react-app/hooks/useAdminProducts";
 import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
+import { useCapabilities } from "@/react-app/hooks/useCapabilities";
 
 const AdminProductsPage = () => {
   const navigate = useNavigate();
   const m = useAdminProducts();
   const trendingProductIds = useTrendingProductIds();
+  const { isAtProductLimit, capabilities } = useCapabilities();
+  const productLimitReached = isAtProductLimit(m.products.length);
+  const newProductLimitTitle = productLimitReached
+    ? `Limite do plano: ${capabilities.maxProducts ?? "?"} produtos.`
+    : undefined;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-12 pt-24 sm:px-6 lg:px-8">
@@ -74,6 +80,8 @@ const AdminProductsPage = () => {
               categoryOptions={m.categoryOptions}
               criticalCount={m.criticalCount}
               onNewProduct={() => m.setAddModalOpen(true)}
+              newProductDisabled={productLimitReached}
+              newProductDisabledTitle={newProductLimitTitle}
             />
             <AdminProductsTable
               products={m.filteredProducts}
@@ -91,7 +99,12 @@ const AdminProductsPage = () => {
       </div>
 
       <EditProductModal isOpen={m.modalOpen} product={m.editingProduct} onClose={m.closeModal} onSaved={m.fetchProducts} />
-      <AddProductModal isOpen={m.addModalOpen} onClose={() => m.setAddModalOpen(false)} onSaved={m.handleProductCreated} />
+      <AddProductModal
+        isOpen={m.addModalOpen}
+        onClose={() => m.setAddModalOpen(false)}
+        onSaved={m.handleProductCreated}
+        catalogProductCount={m.products.length}
+      />
       {m.qrProduct && (
         <ProductQRModal
           isOpen={!!m.qrProduct}

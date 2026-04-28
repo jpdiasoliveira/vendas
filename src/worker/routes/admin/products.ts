@@ -1,9 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  countProductsByStore,
   createProduct,
   deleteProduct,
   getProductById,
   getProductsByStore,
+  getStoreCapabilities,
   updateProduct,
 } from "../../core/database.js";
 import { productCreateSchema, productUpdateSchema } from "../../schemas/product.js";
@@ -38,6 +40,31 @@ export const registerAdminProductRoutes = (admin: AdminHono): void => {
       if (store instanceof Response) return store;
       const body = c.req.valid("json");
       try {
+        let caps: Awaited<ReturnType<typeof getStoreCapabilities>>;
+        try {
+          caps = await getStoreCapabilities(c.env, store.id);
+        } catch (e: unknown) {
+          logServerError("admin.post /products resolve_store_entitlements", e);
+          caps = {
+            maxProducts: null,
+            staffMembersLimit: null,
+            customDomain: false,
+            advancedAnalytics: false,
+            hasActiveSubscription: false,
+          };
+        }
+        if (caps.maxProducts != null) {
+          const n = await countProductsByStore(c.env, store.id);
+          if (n >= caps.maxProducts) {
+            return c.json(
+              {
+                success: false,
+                error: `Limite de produtos do plano atingido (${caps.maxProducts}). Faça upgrade para cadastrar mais itens.`,
+              },
+              403
+            );
+          }
+        }
         const product = await createProduct(c.env, store.id, {
           name: body.title,
           price: body.price,

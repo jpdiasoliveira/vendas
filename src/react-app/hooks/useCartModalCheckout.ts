@@ -97,12 +97,13 @@ export const useCartModalCheckout = (onCloseParent: () => void) => {
     try {
       const formattedItems = items.map((item) => {
         const unitPrice = calculateItemPrice(item, item.quantity);
+        const img = item.image ?? item.imageUrl;
         return {
           id: item.id,
           name: item.name,
           price: unitPrice,
           quantity: item.quantity,
-          image: item.image,
+          ...(img ? { image: img, imageUrl: img } : {}),
         };
       });
       const data = await apiFetch<{
@@ -159,12 +160,13 @@ export const useCartModalCheckout = (onCloseParent: () => void) => {
     try {
       const formattedItems = items.map((item) => {
         const unitPrice = calculateItemPrice(item, item.quantity);
+        const img = item.image ?? item.imageUrl;
         return {
           id: item.id,
           name: item.name,
           price: unitPrice,
           quantity: item.quantity,
-          image: item.image,
+          ...(img ? { image: img, imageUrl: img } : {}),
         };
       });
 

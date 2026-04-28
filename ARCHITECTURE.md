@@ -47,7 +47,7 @@ Resumo: **Slug (header) → validação em `stores` → Store no contexto → `s
 - **Orquestração:** `src/worker/index.ts` só registra middlewares e rotas; não contém lógica de negócio.
 
 - **Middleware:**  
-  - `storeMiddleware` em `/api/*`: valida o tenant (D1) e injeta `store`.  
+  - `storeMiddleware` em `/api/*`: valida o tenant no **Supabase** (`stores` / `store_domains`) e injeta `store`.  
   - **verifyAuth** (`src/worker/middlewares/verifyAuth.ts`) em `/api/admin/*`: valida JWT no header `Authorization: Bearer <token>`, verifica se o usuário é membro ativo da loja em **store_members** e injeta `c.set('user', user)` (id, role). Bloqueia requisições não autorizadas (401/403).
 
 - **Respostas padronizadas:**
@@ -67,10 +67,6 @@ Resumo: **Slug (header) → validação em `stores` → Store no contexto → `s
 
 ### 2.3 Bancos
 
-- **D1 (Cloudflare):**  
-  - Tabela **`stores`**: id, slug, display_name, status, created_at, updated_at.  
-  - Uso: validar slug e obter o `store` (id e metadados) por request.
-
 - **Supabase (PostgreSQL):**  
   - **products**, **orders**, **order_items**: todas com **`store_id`**.  
   - **store_members**: id, user_id (FK auth.users), store_id, role (admin/editor). Vincula usuários do Supabase Auth às lojas para acesso ao painel admin. Ver `docs/supabase-store-members.sql`.  
@@ -87,9 +83,8 @@ src/
 │   │   ├── schema.ts        # Tipos globais (Source of Truth)
 │   │   ├── database.ts      # Acesso a dados (Repository)
 │   │   └── supabase.ts      # Cliente Supabase
-│   ├── middleware/
-│   │   └── store.ts         # Tenant: slug → D1 → store
 │   ├── middlewares/
+│   │   ├── storeFromSlug.ts # Tenant: slug/host → Supabase → store
 │   │   └── verifyAuth.ts    # Proteção admin: JWT + store_members, c.set('user')
 │   ├── routes/              # Rotas por domínio
 │   │   ├── products.ts
@@ -143,7 +138,7 @@ O acesso a dados por loja é garantido pela cadeia **Auth User → Store Member 
 
 1. **Auth User** — O usuário se autentica via Supabase Auth (email/senha). O frontend envia o **JWT** (access_token) no header `Authorization` em toda requisição ao `/api/admin/*`.
 
-2. **Store Member** — O middleware **verifyAuth** no Worker valida o JWT e obtém o `user_id` (claim `sub`). Em seguida consulta a tabela **store_members** no Supabase: só há linha se esse `user_id` estiver vinculado ao **store_id** da loja que está sendo acessada (o `store_id` vem do **storeMiddleware**, que já validou o `x-store-slug` no D1). Se não existir membro ativo para aquela loja, a requisição é bloqueada (403).
+2. **Store Member** — O middleware **verifyAuth** no Worker valida o JWT e obtém o `user_id` (claim `sub`). Em seguida consulta a tabela **store_members** no Supabase: só há linha se esse `user_id` estiver vinculado ao **store_id** da loja que está sendo acessada (o `store_id` vem do **storeMiddleware**, que já validou o `x-store-slug` / host contra **stores**). Se não existir membro ativo para aquela loja, a requisição é bloqueada (403).
 
 3. **Store ID** — Todas as operações de dados (pedidos, produtos) usam o `store.id` já injetado no contexto. Assim, um usuário nunca acessa dados de outra loja: ele só é “membro” de lojas nas quais foi explicitamente cadastrado em **store_members**, e as queries filtram sempre por `store_id`.
 
@@ -154,7 +149,7 @@ Resumo: **JWT (user_id) + store_members (user_id, store_id) + store (do slug)** 
 | **Banco (DB)**   | snake_case (`store_id`, `created_at`) |
 | **Código (TS)**  | camelCase (`storeId`, `createdAt`)   |
 | **Resposta API** | `{ success: boolean, data?: T, error?: string }` |
-| **Tenant**       | Header `x-store-slug` → D1 → `store` no contexto |
+| **Tenant**       | Header `x-store-slug` (ou host) → Supabase → `store` no contexto |
 | **Dados**        | Acesso só via `database.ts`; rotas não chamam Supabase direto |
 
 Com isso, o projeto fica previsível, escalável e fácil de retomar (por exemplo, ao subir uma nova “loja” ou outra marca no mesmo código).

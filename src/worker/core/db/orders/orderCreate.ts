@@ -1,5 +1,6 @@
 /**
  * Criação de pedido (itens + frete + cupom) com totais decididos no servidor.
+ * Persistência atômica via RPC `create_order_with_stock_lock` (reserva de estoque + idempotência).
  */
 
 import { getSupabase } from "../../supabase.js";
@@ -14,6 +15,14 @@ import { OrderBusinessError } from "../../orderErrors.js";
 
 const roundMoney = (n: number): number => Math.round(n * 100) / 100;
 
+export type CreateOrderResult = {
+  orderId: string;
+  total: number;
+  shippingPostalCode: string;
+  /** true quando a mesma Idempotency-Key já havia criado o pedido (sem novo e-mail). */
+  idempotent: boolean;
+};
+
 export async function createOrder(
   env: Env,
   params: {
@@ -27,8 +36,10 @@ export async function createOrder(
     customerPhone?: string | null;
     deliveryAddress?: string | null;
     guestCheckoutEmail?: string | null;
+    /** Obrigatório para deduplicação segura (header Idempotency-Key ou corpo). */
+    idempotencyKey: string;
   }
-): Promise<{ orderId: string; total: number; shippingPostalCode: string }> {
+): Promise<CreateOrderResult> {
   const supabase = getSupabase(env);
   const lines =
     params.resolvedLines ??
@@ -61,43 +72,12 @@ export async function createOrder(
     throw new OrderBusinessError("Valor total do pedido inválido após descontos.");
   }
 
-  const orderPayload: Record<string, unknown> = {
-    store_id: params.storeId,
-    user_id: params.userId,
-    total,
-    currency: "BRL",
-    payment_method: null,
-    status: "pending",
-    shipping_postal_code: cep8,
-    shipping_fee: fee,
-    coupon_code: couponCodeStored,
-    coupon_discount: couponDiscount,
-  };
-  if (params.userId == null) {
-    const guestEmailTrim =
-      params.guestCheckoutEmail != null ? String(params.guestCheckoutEmail).trim() : "";
-    if (guestEmailTrim !== "") {
-      orderPayload.guest_checkout_email = guestEmailTrim.toLowerCase();
-    }
+  const keyTrim = String(params.idempotencyKey ?? "").trim();
+  if (!keyTrim) {
+    throw new OrderBusinessError("Identificador de idempotência ausente. Atualize o app e tente novamente.");
   }
-  if (params.customerName != null && String(params.customerName).trim() !== "")
-    orderPayload.customer_name = String(params.customerName).trim();
-  if (params.customerPhone != null && String(params.customerPhone).trim() !== "")
-    orderPayload.customer_phone = String(params.customerPhone).trim();
-  if (params.deliveryAddress != null && String(params.deliveryAddress).trim() !== "")
-    orderPayload.delivery_address = String(params.deliveryAddress).trim();
 
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert(orderPayload)
-    .select()
-    .single();
-
-  if (orderError) throw new Error(orderError.message);
-
-  const mappedItems = lines.map((line) => ({
-    order_id: order.id,
-    store_id: params.storeId,
+  const lineItemsJson = lines.map((line) => ({
     product_id: line.id,
     product_name: line.name || "Produto",
     product_image: line.image ?? null,
@@ -105,8 +85,51 @@ export async function createOrder(
     price: line.unitPrice,
   }));
 
-  const { error: itemsError } = await supabase.from("order_items").insert(mappedItems);
-  if (itemsError) throw new Error(itemsError.message);
+  const { data, error } = await supabase.rpc("create_order_with_stock_lock", {
+    p_store_id: params.storeId,
+    p_idempotency_key: keyTrim,
+    p_user_id: params.userId,
+    p_total: total,
+    p_currency: "BRL",
+    p_shipping_postal_code: cep8,
+    p_shipping_fee: fee,
+    p_coupon_code: couponCodeStored ?? "",
+    p_coupon_discount: couponDiscount,
+    p_guest_checkout_email: params.guestCheckoutEmail ?? "",
+    p_customer_name: params.customerName ?? "",
+    p_customer_phone: params.customerPhone ?? "",
+    p_delivery_address: params.deliveryAddress ?? "",
+    p_line_items: lineItemsJson,
+  });
 
-  return { orderId: String(order.id), total, shippingPostalCode: cep8 };
+  if (error) {
+    const m = error.message ?? String(error);
+    if (m.includes("INSUFFICIENT_STOCK") || m.includes("P0001")) {
+      throw new OrderBusinessError(
+        "Um ou mais itens ficaram sem estoque no momento da finalização. Atualize o carrinho e tente novamente."
+      );
+    }
+    if (m.includes("PRODUCT_NOT_FOUND") || m.includes("INVALID_LINE")) {
+      throw new OrderBusinessError("Produto inválido ou indisponível. Atualize a página e tente novamente.");
+    }
+    if (m.includes("create_order_with_stock_lock") || m.includes("schema cache")) {
+      throw new OrderBusinessError(
+        "Servidor de pedidos desatualizado. Aplique a migração SQL `docs/supabase-create-order-stock-lock-idempotency.sql` no Supabase."
+      );
+    }
+    throw new Error(m);
+  }
+
+  const payload = data as { order_id?: string; idempotent?: boolean; shipping_postal_code?: string } | null;
+  const oid = payload?.order_id != null ? String(payload.order_id).trim() : "";
+  if (!oid) {
+    throw new Error("Resposta inesperada da criação de pedido (RPC).");
+  }
+
+  return {
+    orderId: oid,
+    total,
+    shippingPostalCode: String(payload?.shipping_postal_code ?? cep8),
+    idempotent: payload?.idempotent === true,
+  };
 }

@@ -9,6 +9,17 @@ import { OrderBusinessError } from "../orderErrors.js";
 
 const PRODUCT_SELECT_WITH_CATEGORY = "*, categories(name)";
 
+/** Total de SKUs da loja (para enforcement de `max_products`). */
+export async function countProductsByStore(env: Env, storeId: string): Promise<number> {
+  const supabase = getSupabase(env);
+  const { count, error } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", storeId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function getProductsByStore(env: Env, storeId: string): Promise<Product[]> {
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase

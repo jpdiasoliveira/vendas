@@ -35,7 +35,7 @@ export const AdminNav = ({ children }: AdminNavProps) => {
     ...(isAdminOrOwner ? [{ to: "/admin/historico", label: "Histórico", icon: Activity }] : []),
     { to: "/admin/produtos", label: "Produtos", icon: Package },
     { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
-    ...(showPlatform ? [{ to: "/admin/plataforma", label: "Plataforma", icon: Building2 }] : []),
+    ...(showPlatform ? [{ to: "/admin/platform", label: "Central", icon: Building2 }] : []),
   ];
 
   const handleLogout = async () => {

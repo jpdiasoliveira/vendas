@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback neutro até StoreSettings aplicar tokens da loja (evita “flash” de outra marca). */
 :root {
-  --brand-primary: #1B4332;
-  --brand-primary-rgb: 27, 67, 50;
-  --brand-primary-hover: #123325;
-  --brand-primary-soft: #ECF3EF;
-  --brand-secondary: #FFD166;
-  --brand-surface: #FAF8F3;
-  --brand-text: #6D4C41;
+  --brand-primary: #334155;
+  --brand-primary-rgb: 51, 65, 85;
+  --brand-primary-hover: #1e293b;
+  --brand-primary-soft: #f1f5f9;
+  --brand-secondary: #94a3b8;
+  --brand-surface: #f8fafc;
+  --brand-text: #334155;
 }
 
 @layer utilities {

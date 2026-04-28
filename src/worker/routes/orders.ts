@@ -49,6 +49,22 @@ orders.post(
     if (store instanceof Response) return store;
     const body = c.req.valid("json");
 
+    const idempotencyKey =
+      c.req.header("Idempotency-Key")?.trim() ||
+      c.req.header("X-Idempotency-Key")?.trim() ||
+      body.idempotencyKey?.trim() ||
+      "";
+    if (!idempotencyKey) {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Envie o header Idempotency-Key (UUID) em cada finalização para evitar pedidos duplicados.",
+        },
+        400
+      );
+    }
+
     const storeSettings = await getStoreSettingsWithDisplayName(c.env, store.id);
     const requireLogin = storeSettings.publicProfile?.requireLoginToCheckout !== false;
 
@@ -95,7 +111,7 @@ orders.post(
     try {
       const guestCheckoutEmail =
         !user?.id && guestEmailRaw ? guestEmailRaw.toLowerCase() : null;
-      const { orderId, total, shippingPostalCode: cepNorm } = await createOrder(c.env, {
+      const { orderId, total, shippingPostalCode: cepNorm, idempotent } = await createOrder(c.env, {
         storeId: store.id,
         userId: user?.id ?? null,
         items: body.items as CartItemPayload[],
@@ -106,20 +122,23 @@ orders.post(
         customerPhone: body.customerPhone || null,
         deliveryAddress: body.deliveryAddress || null,
         guestCheckoutEmail,
+        idempotencyKey,
       });
       const recipientEmail =
         user?.email?.trim() || guestCheckoutEmail || null;
-      await notifyOrderCreated(c.env, {
-        storeId: store.id,
-        orderId,
-        userId: user?.id ?? null,
-        total,
-        shippingCep: cepNorm,
-        recipientEmail,
-      });
+      if (!idempotent) {
+        await notifyOrderCreated(c.env, {
+          storeId: store.id,
+          orderId,
+          userId: user?.id ?? null,
+          total,
+          shippingCep: cepNorm,
+          recipientEmail,
+        });
+      }
       return c.json(
-        { success: true, data: { orderId, status: "pending", total } },
-        201
+        { success: true, data: { orderId, status: "pending", total, idempotent } },
+        idempotent ? 200 : 201
       );
     } catch (err: unknown) {
       if (err instanceof OrderBusinessError) {
@@ -156,6 +175,53 @@ orders.post(
     });
     if (!order) {
       return c.json({ success: false, error: "Pedido não encontrado" }, 404);
+    }
+
+    const fulfillment = String(order.status ?? "").trim().toLowerCase();
+    if (fulfillment !== "pending") {
+      return c.json(
+        {
+          success: false,
+          error: "Este pedido não aceita novo pagamento neste estado.",
+        },
+        409
+      );
+    }
+
+    const existingMpPaymentId = String(order.paymentId ?? "").trim();
+    if (existingMpPaymentId !== "") {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Um pagamento já foi iniciado para este pedido no Mercado Pago. Use o QR Code ou o link anteriores, ou consulte o status na página de confirmação.",
+        },
+        409
+      );
+    }
+
+    const prefExisting = String(order.paymentPreferenceId ?? "").trim();
+    if (prefExisting !== "") {
+      if (body.payment_method === "credit_card") {
+        return c.json(
+          {
+            success: false,
+            error:
+              "O checkout com cartão já foi iniciado para este pedido. Use o link de pagamento anterior ou a página de confirmação.",
+          },
+          409
+        );
+      }
+      if (body.payment_method === "pix") {
+        return c.json(
+          {
+            success: false,
+            error:
+              "O checkout com cartão já foi iniciado para este pedido. Conclua por lá ou cancele no Mercado Pago antes de gerar PIX.",
+          },
+          409
+        );
+      }
     }
 
     const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;

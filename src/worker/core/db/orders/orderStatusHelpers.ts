@@ -1,5 +1,13 @@
 const PAID_STATUSES = ["paid", "approved"];
 
+/** Pedido criado com RPC que já reservou estoque em `products` (metadata no banco). */
+export const orderHasStockReservedAtCreate = (
+  metadata: Record<string, unknown> | null | undefined
+): boolean => {
+  const v = metadata?.stock_reserved_at_create;
+  return v === true || v === "true";
+};
+
 export const isPaidStatus = (s: string | null | undefined): boolean =>
   !!s && PAID_STATUSES.includes(s.toLowerCase());
 

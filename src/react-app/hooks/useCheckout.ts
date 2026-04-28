@@ -6,6 +6,8 @@ interface CreateOrderData {
   orderId: string;
   status: string;
   total: number;
+  /** true quando o servidor reconheceu replay da mesma Idempotency-Key. */
+  idempotent?: boolean;
 }
 
 export function useCheckout() {
@@ -27,7 +29,8 @@ export function useCheckout() {
     setIsProcessing(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { items };
+      const idempotencyKey = crypto.randomUUID();
+      const body: Record<string, unknown> = { items, idempotencyKey };
       if (options?.customerName?.trim()) body.customerName = options.customerName.trim();
       if (options?.customerPhone?.trim()) body.customerPhone = options.customerPhone.trim();
       if (options?.deliveryAddress?.trim()) body.deliveryAddress = options.deliveryAddress.trim();
@@ -36,6 +39,7 @@ export function useCheckout() {
       if (options?.couponCode?.trim()) body.couponCode = options.couponCode.trim();
       const data = await apiFetch<CreateOrderData>("/api/orders", {
         method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
         body: JSON.stringify(body),
       });
       return data;

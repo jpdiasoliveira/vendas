@@ -1,6 +1,8 @@
 # Variáveis de ambiente do Worker em desenvolvimento.
 # Copie para .dev.vars e preencha os valores (não commite .dev.vars).
 #
+# Stack de dados: Supabase (PostgreSQL). O Worker não usa D1/R2 neste projeto.
+#
 # Para o login do painel admin (POST /api/login) funcionar, defina:
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

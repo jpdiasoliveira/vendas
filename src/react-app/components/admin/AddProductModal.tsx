@@ -3,14 +3,24 @@ import { X, Loader2, Save, ImagePlus } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
 import { useCurrencyMask } from "@/react-app/hooks/useCurrencyMask";
+import { useCapabilities } from "@/react-app/hooks/useCapabilities";
 
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  /** Total de produtos já cadastrados (para enforcement de max_products no UI). */
+  catalogProductCount: number;
 }
 
-export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalProps) {
+export const AddProductModal = ({
+  isOpen,
+  onClose,
+  onSaved,
+  catalogProductCount,
+}: AddProductModalProps) => {
+  const { isAtProductLimit, capabilities } = useCapabilities();
+  const atProductLimit = isAtProductLimit(catalogProductCount);
   const [name, setName] = useState("");
   const priceMask = useCurrencyMask();
   const [stock, setStock] = useState("0");
@@ -106,6 +116,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (atProductLimit) return;
     setError(null);
     setFieldErrors({});
 
@@ -183,6 +194,13 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 font-inter space-y-5">
+          {atProductLimit && (
+            <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-900">
+              Limite do plano atingido
+              {capabilities.maxProducts != null ? ` (${capabilities.maxProducts} produtos).` : "."}{" "}
+              Faça upgrade para cadastrar mais itens.
+            </div>
+          )}
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded-xl text-sm border border-red-100">
               {error}
@@ -374,7 +392,7 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || atProductLimit}
               className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium focus:ring-2 focus:ring-blue-200 focus:ring-offset-2 disabled:opacity-60 transition-colors"
             >
               {saving ? (
@@ -425,4 +443,4 @@ export function AddProductModal({ isOpen, onClose, onSaved }: AddProductModalPro
       )}
     </div>
   );
-}
+};

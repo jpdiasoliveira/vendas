@@ -28,7 +28,9 @@ export interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  image: string;
+  /** URL da imagem (pode vir da vitrine como `image` ou `imageUrl`). */
+  image?: string;
+  imageUrl?: string | null;
   priceWholesale?: number | null;
   minQuantityWholesale?: number | null;
   /** Estoque disponível no momento em que o item foi adicionado (usado para bloquear finalizar se insuficiente). */

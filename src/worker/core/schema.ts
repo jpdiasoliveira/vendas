@@ -17,6 +17,19 @@ export interface Store {
   updatedAt: string;
 }
 
+/**
+ * Direitos efetivos da loja (RPC `resolve_store_entitlements`).
+ * `null` em limites numéricos = sem teto (ilimitado).
+ */
+export interface StoreCapabilities {
+  maxProducts: number | null;
+  staffMembersLimit: number | null;
+  customDomain: boolean;
+  advancedAnalytics: boolean;
+  /** true quando a RPC retornou ao menos uma linha (assinatura ativa mapeada). */
+  hasActiveSubscription: boolean;
+}
+
 /** Dados de configuração da loja (store_settings + display_name de stores). */
 export interface StoreSettings {
   displayName: string;
@@ -35,6 +48,8 @@ export interface StoreSettings {
   operatingHours?: Record<string, unknown> | null;
   /** Limites de pedido (JSONB). */
   orderLimits?: Record<string, unknown> | null;
+  /** Mapa de direitos da assinatura atual (Bloco 2). */
+  capabilities?: StoreCapabilities;
 }
 
 export interface Product {

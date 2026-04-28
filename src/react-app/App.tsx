@@ -21,23 +21,47 @@ import { StoreSettingsProvider, useStoreSettings } from "@/react-app/contexts/St
 import { AuthProvider } from "@/react-app/contexts/AuthContext";
 import { AuthProvider as MochaAuthProvider } from "@getmocha/users-service/react";
 import { AdminGuard } from "@/react-app/components/auth/AdminGuard";
+import { AlertCircle } from "lucide-react";
 
-function StoreBootGate({ children }: { children: ReactNode }) {
-  const { loading, settings } = useStoreSettings();
+const StoreBootGate = ({ children }: { children: ReactNode }) => {
+  const { loading, error, refetch, settings } = useStoreSettings();
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-6 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 px-6 text-center">
         <div>
-          <p className="font-playfair text-2xl font-bold text-[#1B4332]">
+          <p className="font-playfair text-2xl font-bold text-slate-800">
             {settings?.displayName?.trim() || "Carregando loja"}
           </p>
-          <p className="mt-2 font-inter text-sm text-[#6D4C41]">Preparando identidade da loja...</p>
+          <p className="mt-2 font-inter text-sm text-slate-600">Preparando identidade da loja...</p>
         </div>
       </div>
     );
   }
+  if (error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-br from-slate-50 via-white to-slate-100 px-6 text-center">
+        <AlertCircle className="h-12 w-12 text-amber-600" aria-hidden />
+        <div className="max-w-md">
+          <h1 className="font-playfair text-xl font-semibold text-slate-800">Não foi possível carregar a loja</h1>
+          <p className="mt-2 font-inter text-sm text-slate-600">{error}</p>
+          <p className="mt-3 font-inter text-xs text-slate-500">
+            Confira sua conexão, se o slug da loja está correto (ou o subdomínio) e se a API está no ar — em
+            desenvolvimento: <code className="rounded bg-slate-200 px-1">wrangler dev</code> na porta 8787 com proxy{" "}
+            <code className="rounded bg-slate-200 px-1">/api</code> no Vite.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-full bg-slate-800 px-6 py-2.5 font-inter text-sm font-medium text-white transition hover:bg-slate-900"
+          onClick={() => void refetch()}
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
   return <>{children}</>;
-}
+};
 
 export default function App() {
   return (
@@ -60,8 +84,9 @@ export default function App() {
                     <Route path="categorias" element={<AdminCategoriesPage />} />
                     <Route path="configuracoes" element={<AdminSettingsPage />} />
                     <Route path="historico" element={<AuditLogsPage />} />
-                    <Route path="plataforma" element={<PlatformPage />} />
-                    <Route path="plataforma/nova-loja" element={<Navigate to="/admin/plataforma" replace />} />
+                    <Route path="platform" element={<PlatformPage />} />
+                    <Route path="plataforma" element={<Navigate to="/admin/platform" replace />} />
+                    <Route path="plataforma/nova-loja" element={<Navigate to="/admin/platform" replace />} />
                   </Route>
                 </Routes>
               </AuthProvider>

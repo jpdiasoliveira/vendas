@@ -18,6 +18,7 @@
     }
   },
   "include": [
-    "src/worker"
+    "src/worker",
+    "src/constants"
   ]
 }

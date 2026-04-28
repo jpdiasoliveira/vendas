@@ -8,6 +8,8 @@ type AdminProductsToolbarProps = {
   categoryOptions: string[];
   criticalCount: number;
   onNewProduct: () => void;
+  newProductDisabled?: boolean;
+  newProductDisabledTitle?: string;
 };
 
 export const AdminProductsToolbar = ({
@@ -18,6 +20,8 @@ export const AdminProductsToolbar = ({
   categoryOptions,
   criticalCount,
   onNewProduct,
+  newProductDisabled = false,
+  newProductDisabledTitle,
 }: AdminProductsToolbarProps) => (
   <>
     <div className="mb-4 flex flex-nowrap items-center gap-4 font-inter">
@@ -51,7 +55,9 @@ export const AdminProductsToolbar = ({
       <button
         type="button"
         onClick={onNewProduct}
-        className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-[#EAD7BB] px-4 py-2.5 font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-[#EAD7BB]/90"
+        disabled={newProductDisabled}
+        title={newProductDisabled ? newProductDisabledTitle : undefined}
+        className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-[#EAD7BB] px-4 py-2.5 font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-[#EAD7BB]/90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Plus className="h-5 w-5" />
         Novo Produto

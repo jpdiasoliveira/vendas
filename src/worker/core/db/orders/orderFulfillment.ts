@@ -6,7 +6,11 @@ import { getSupabase } from "../../supabase.js";
 import type { Order } from "../../schema.js";
 import { getOrderByIdForStore } from "./orderReads.js";
 import { increaseStockForOrder, tryAtomicDecrementStockForOrder } from "./orderStock.js";
-import { inventoryCommittedStatus, isPaidStatus } from "./orderStatusHelpers.js";
+import {
+  inventoryCommittedStatus,
+  isPaidStatus,
+  orderHasStockReservedAtCreate,
+} from "./orderStatusHelpers.js";
 import { notifyOrderShipped } from "../../../services/notificationHooks.js";
 
 /** Pedido em estado em que cancelamento pode exigir estorno no gateway (não automático aqui). */
@@ -109,6 +113,8 @@ export async function updateOrderStatus(
   const oldStatus = order?.status ?? null;
   const statusLower = newStatus.trim().toLowerCase();
   const isCanceled = statusLower === "cancelled" || statusLower === "canceled";
+  const reservedAtCreate = orderHasStockReservedAtCreate(order?.metadata);
+  const wasPending = String(oldStatus ?? "").trim().toLowerCase() === "pending";
 
   if (inventoryCommittedStatus(oldStatus) && isCanceled) {
     try {
@@ -123,12 +129,24 @@ export async function updateOrderStatus(
         stack: stockErr instanceof Error ? stockErr.stack : undefined,
       });
     }
+  } else if (isCanceled && wasPending && reservedAtCreate) {
+    try {
+      await increaseStockForOrder(env, idStr, storeId);
+    } catch (stockErr) {
+      console.error("[updateOrderStatus] Erro ao repor estoque reservado na criação (cancelamento):", {
+        orderId: idStr,
+        storeId,
+        error: stockErr instanceof Error ? stockErr.message : String(stockErr),
+      });
+    }
   } else if (isPaidStatus(newStatus) && !inventoryCommittedStatus(oldStatus)) {
-    const dec = await tryAtomicDecrementStockForOrder(env, idStr, storeId);
-    if (!dec.ok) {
-      throw new Error(
-        `Estoque insuficiente para marcar o pedido como pago (${dec.detail}). Ajuste o estoque ou cancele o pedido.`
-      );
+    if (!reservedAtCreate) {
+      const dec = await tryAtomicDecrementStockForOrder(env, idStr, storeId);
+      if (!dec.ok) {
+        throw new Error(
+          `Estoque insuficiente para marcar o pedido como pago (${dec.detail}). Ajuste o estoque ou cancele o pedido.`
+        );
+      }
     }
   }
 

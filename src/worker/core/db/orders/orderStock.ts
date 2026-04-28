@@ -6,6 +6,7 @@ import { getSupabase } from "../../supabase.js";
 import { getProductStock, updateProduct } from "../productsRepo.js";
 import { getOrderItemsByOrderAndStore } from "./orderReads.js";
 import { logServerError } from "../../../utils/safeApiError.js";
+import { orderHasStockReservedAtCreate } from "./orderStatusHelpers.js";
 
 /**
  * Baixa de estoque atômica via RPC `decrement_stock_for_order` (ver docs/supabase-rpc-decrement-order-stock.sql).
@@ -58,6 +59,14 @@ export async function cancelOrderForInsufficientStockAfterPayment(
   }
   const { error } = await supabase.from("orders").update(payload).match({ id: orderId, store_id: storeId });
   if (error) throw new Error(error.message);
+
+  if (orderHasStockReservedAtCreate(prevMeta)) {
+    try {
+      await increaseStockForOrder(env, orderId, storeId);
+    } catch (e) {
+      console.error("[cancelOrderForInsufficientStockAfterPayment] Falha ao repor estoque reservado:", e);
+    }
+  }
 }
 
 export async function increaseStockForOrder(env: Env, orderId: string, storeId: string): Promise<void> {

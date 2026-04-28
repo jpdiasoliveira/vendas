@@ -25,6 +25,9 @@ const rawCreateOrderBodySchema = z.object({
   shipping_postal_code: optionalTrimmedString,
   couponCode: optionalTrimmedString,
   coupon_code: optionalTrimmedString,
+  /** Fallback se o header `Idempotency-Key` não for enviado (ex.: ferramentas). */
+  idempotencyKey: z.string().uuid().optional(),
+  idempotency_key: z.string().uuid().optional(),
 });
 
 export const createOrderBodySchema = rawCreateOrderBodySchema
@@ -34,6 +37,7 @@ export const createOrderBodySchema = rawCreateOrderBodySchema
     const cepTrim = String(b.shippingPostalCode ?? b.shipping_postal_code ?? "").trim();
     const couponCode = b.couponCode ?? b.coupon_code ?? null;
     const guestEmailRaw = String(b.guestEmail ?? b.guest_email ?? "").trim();
+    const idem = b.idempotencyKey ?? b.idempotency_key;
     return {
       items: b.items,
       customerName: b.customerName ?? null,
@@ -42,6 +46,7 @@ export const createOrderBodySchema = rawCreateOrderBodySchema
       shippingPostalCode: cepTrim,
       couponCode,
       guestEmailRaw,
+      idempotencyKey: idem && String(idem).trim() !== "" ? String(idem).trim() : null,
     };
   })
   .superRefine((out, ctx) => {

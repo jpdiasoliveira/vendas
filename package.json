@@ -43,6 +43,8 @@
     "build": "tsc -b && vite build",
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
+    "fire-test:probe": "node scripts/operational-fire-test.mjs probe",
+    "webhook-stress": "node scripts/webhook-stress-sim.mjs",
     "dev": "vite",
     "knip": "knip --no-config-hints --exclude exports,nsExports,types,nsTypes,classMembers,enumMembers,duplicates",
     "lint": "eslint ."

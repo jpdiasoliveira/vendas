@@ -1,6 +1,14 @@
 import { Hono } from "hono";
 import { verifyPlatformOperator } from "../middlewares/verifyPlatformOperator.js";
-import { addDomainsToStore, createStoreWithOwner, listPlatformStores } from "../core/database.js";
+import {
+  addDomainsToStore,
+  createStoreWithOwner,
+  getPlatformAnalyticsOverview,
+  getPlatformStoreRanking,
+  getSubscriptionGraceDays,
+  listPlatformStores,
+  upsertSubscriptionGraceDays,
+} from "../core/database.js";
 import type { AuthUser, Variables } from "../types.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
 
@@ -8,12 +16,68 @@ const platform = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 platform.use("*", verifyPlatformOperator);
 
+platform.get("/runtime-settings", async (c) => {
+  try {
+    const subscriptionGraceDays = await getSubscriptionGraceDays(c.env);
+    return c.json({ success: true, data: { subscriptionGraceDays } }, 200);
+  } catch (err: unknown) {
+    logServerError("platform.get /runtime-settings", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+platform.patch("/runtime-settings", async (c) => {
+  const body = (await c.req.json()) as {
+    subscriptionGraceDays?: unknown;
+    subscription_grace_days?: unknown;
+  };
+  const raw = body.subscriptionGraceDays ?? body.subscription_grace_days;
+  const days = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : NaN;
+  if (!Number.isFinite(days)) {
+    return c.json({ success: false, error: "Informe subscriptionGraceDays (0 a 90)." }, 400);
+  }
+  try {
+    const subscriptionGraceDays = await upsertSubscriptionGraceDays(c.env, days);
+    return c.json({ success: true, data: { subscriptionGraceDays } }, 200);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "INVALID_GRACE_DAYS") {
+      return c.json({ success: false, error: "Carência inválida. Use um inteiro entre 0 e 90 dias." }, 400);
+    }
+    logServerError("platform.patch /runtime-settings", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
 platform.get("/stores", async (c) => {
   try {
     const data = await listPlatformStores(c.env);
     return c.json({ success: true, data }, 200);
   } catch (err: unknown) {
     logServerError("platform.get /stores", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+platform.get("/analytics/overview", async (c) => {
+  try {
+    const data = await getPlatformAnalyticsOverview(c.env);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    logServerError("platform.get /analytics/overview", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+platform.get("/analytics/store-ranking", async (c) => {
+  const raw = c.req.query("limit");
+  const n = raw != null && raw !== "" ? Number(raw) : 15;
+  const limit = Number.isFinite(n) ? Math.trunc(n) : 15;
+  try {
+    const data = await getPlatformStoreRanking(c.env, limit);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    logServerError("platform.get /analytics/store-ranking", err);
     return c.json({ success: false, error: genericServerErrorMessage() }, 500);
   }
 });
@@ -55,6 +119,8 @@ platform.post("/stores", async (c) => {
     display_name?: string;
     customDomains?: string[];
     custom_domains?: string[];
+    planSlug?: string;
+    plan_definition_slug?: string;
   };
 
   const slug = typeof body.slug === "string" ? body.slug : "";
@@ -78,12 +144,21 @@ platform.post("/stores", async (c) => {
     return c.json({ success: false, error: "Informe slug e nome da loja." }, 400);
   }
 
+  const planSlugRaw =
+    typeof body.planSlug === "string"
+      ? body.planSlug
+      : typeof body.plan_definition_slug === "string"
+        ? body.plan_definition_slug
+        : "tier_base";
+  const planDefinitionSlug = (planSlugRaw.trim() || "tier_base").toLowerCase();
+
   try {
     const created = await createStoreWithOwner(c.env, {
       slug: slug.trim(),
       displayName: displayName.trim(),
       ownerUserId: user.id,
       customDomains,
+      planDefinitionSlug,
     });
     return c.json({ success: true, data: created }, 201);
   } catch (err: unknown) {

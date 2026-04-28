@@ -4,6 +4,7 @@
  */
 
 import { getSupabase } from "../supabase.js";
+import { getStoreCapabilities } from "../storeCapabilities.js";
 import type { Store, StoreSettings } from "../schema.js";
 import {
   parsePublicProfile,
@@ -84,21 +85,26 @@ export async function getStoreSettingsWithDisplayName(
   storeId: string
 ): Promise<StoreSettings> {
   const supabase = getSupabase(env);
-  const { data: storeRow, error: storeError } = await supabase
-    .from("stores")
-    .select("display_name")
-    .eq("id", storeId)
-    .maybeSingle();
+  const [{ data: storeRow, error: storeError }, { data: settingsRow, error: settingsError }] = await Promise.all([
+    supabase.from("stores").select("display_name").eq("id", storeId).maybeSingle(),
+    supabase
+      .from("store_settings")
+      .select(
+        "logo_url, banner_url, primary_color, minimum_order_value, public_profile, theme, business_rules, operating_hours, order_limits"
+      )
+      .eq("store_id", storeId)
+      .maybeSingle(),
+  ]);
   if (storeError) throw new Error(storeError.message);
-
-  const { data: settingsRow, error: settingsError } = await supabase
-    .from("store_settings")
-    .select(
-      "logo_url, banner_url, primary_color, minimum_order_value, public_profile, theme, business_rules, operating_hours, order_limits"
-    )
-    .eq("store_id", storeId)
-    .maybeSingle();
   if (settingsError) throw new Error(settingsError.message);
+
+  let capabilities: Awaited<ReturnType<typeof getStoreCapabilities>> | undefined;
+  try {
+    capabilities = await getStoreCapabilities(env, storeId);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[getStoreSettingsWithDisplayName] Falha ao resolver capabilities:", msg);
+  }
 
   return {
     displayName: (storeRow?.display_name as string) ?? "",
@@ -115,6 +121,7 @@ export async function getStoreSettingsWithDisplayName(
     businessRules: (settingsRow?.business_rules as Record<string, unknown> | null) ?? null,
     operatingHours: (settingsRow?.operating_hours as Record<string, unknown> | null) ?? null,
     orderLimits: (settingsRow?.order_limits as Record<string, unknown> | null) ?? null,
+    capabilities,
   };
 }
 
@@ -220,7 +227,13 @@ function normalizeStoreSlug(raw: string): string {
   return s;
 }
 
-export type CreatedStoreResult = { id: string; slug: string; displayName: string };
+export type CreatedStoreResult = {
+  id: string;
+  slug: string;
+  displayName: string;
+  /** Preenchido quando o vínculo à assinatura da plataforma falhou (loja criada mesmo assim). */
+  subscriptionWarning?: string;
+};
 
 function slugFromLabel(raw: string, fallback: string): string {
   const base = raw
@@ -395,12 +408,72 @@ export async function addDomainsToStore(
   }
 }
 
+async function attachDefaultPlatformSubscription(
+  env: Env,
+  storeId: string,
+  planDefinitionSlug: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const supabase = getSupabase(env);
+  const { data: def, error: defErr } = await supabase
+    .from("platform_plan_definitions")
+    .select("id")
+    .eq("slug", planDefinitionSlug)
+    .maybeSingle();
+  if (defErr) return { ok: false, message: defErr.message };
+  if (!def) return { ok: false, message: `PLAN_SLUG_NOT_FOUND:${planDefinitionSlug}` };
+
+  const { data: ver, error: verErr } = await supabase
+    .from("platform_plan_price_versions")
+    .select("id, trial_period_days")
+    .eq("plan_definition_id", def.id)
+    .eq("version_seq", 1)
+    .maybeSingle();
+  if (verErr) return { ok: false, message: verErr.message };
+  if (!ver) return { ok: false, message: "PLAN_VERSION_NOT_FOUND" };
+
+  const trialDays = Math.max(0, Math.min(365, Math.trunc(Number(ver.trial_period_days ?? 0))));
+  const now = new Date();
+  const startedAt = now.toISOString();
+  const trialEndsAt =
+    trialDays > 0 ? new Date(now.getTime() + trialDays * 86400000).toISOString() : null;
+  const isTrialing = trialDays > 0;
+
+  let currentPeriodStart: string | null = null;
+  let currentPeriodEnd: string | null = null;
+  if (!isTrialing) {
+    currentPeriodStart = startedAt;
+    const end = new Date(now.getTime());
+    end.setUTCMonth(end.getUTCMonth() + 1);
+    currentPeriodEnd = end.toISOString();
+  }
+
+  const { error: insErr } = await supabase.from("platform_store_subscriptions").insert({
+    store_id: storeId,
+    plan_price_version_id: ver.id,
+    lifecycle_status: isTrialing ? "trialing" : "active",
+    started_at: startedAt,
+    ended_at: null,
+    trial_ends_at: trialEndsAt,
+    current_period_start_at: currentPeriodStart,
+    current_period_end_at: currentPeriodEnd,
+  });
+  if (insErr) return { ok: false, message: insErr.message };
+  return { ok: true };
+}
+
 /**
  * Nova loja SaaS: `stores` + `store_settings` padrão + `store_members` como owner.
+ * `planDefinitionSlug` (ex.: tier_base): cria assinatura na plataforma quando o catálogo de planos existir.
  */
 export async function createStoreWithOwner(
   env: Env,
-  params: { slug: string; displayName: string; ownerUserId: string; customDomains?: string[] }
+  params: {
+    slug: string;
+    displayName: string;
+    ownerUserId: string;
+    customDomains?: string[];
+    planDefinitionSlug?: string | null;
+  }
 ): Promise<CreatedStoreResult> {
   const supabase = getSupabase(env);
   const slug = normalizeStoreSlug(params.slug);
@@ -475,7 +548,19 @@ export async function createStoreWithOwner(
     throw err instanceof Error ? err : new Error("Falha ao preparar loja inicial.");
   }
 
-  return { id: storeId, slug: String(storeRow.slug), displayName: String(storeRow.display_name) };
+  let subscriptionWarning: string | undefined;
+  const planSlug = params.planDefinitionSlug?.trim();
+  if (planSlug) {
+    const sub = await attachDefaultPlatformSubscription(env, storeId, planSlug);
+    if (!sub.ok) subscriptionWarning = sub.message;
+  }
+
+  return {
+    id: storeId,
+    slug: String(storeRow.slug),
+    displayName: String(storeRow.display_name),
+    ...(subscriptionWarning ? { subscriptionWarning } : {}),
+  };
 }
 
 export type PlatformStoreOverview = {

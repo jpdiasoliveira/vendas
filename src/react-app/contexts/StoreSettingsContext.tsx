@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { apiFetch } from "@/react-app/services/api";
-import type { StorePublicProfile } from "@/react-app/types";
+import type { StoreCapabilities, StorePublicProfile } from "@/react-app/types";
 import { hexToRgbTriplet, mixHexColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
 
 export interface StoreSettingsData {
@@ -17,6 +17,8 @@ export interface StoreSettingsData {
   primaryColor?: string | null;
   minimumOrderValue?: number | null;
   publicProfile?: StorePublicProfile;
+  /** Direitos da assinatura (Bloco 2); ausente em respostas antigas ou erro parcial. */
+  capabilities?: StoreCapabilities;
 }
 
 interface StoreSettingsContextType {
@@ -79,10 +81,10 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     root.style.setProperty("--brand-primary-hover", hover);
     root.style.setProperty("--brand-primary-soft", soft);
     return () => {
-      root.style.setProperty("--brand-primary", "#1B4332");
-      root.style.setProperty("--brand-primary-rgb", "27, 67, 50");
-      root.style.setProperty("--brand-primary-hover", "#123325");
-      root.style.setProperty("--brand-primary-soft", "#ECF3EF");
+      root.style.removeProperty("--brand-primary");
+      root.style.removeProperty("--brand-primary-rgb");
+      root.style.removeProperty("--brand-primary-hover");
+      root.style.removeProperty("--brand-primary-soft");
     };
   }, [settings?.primaryColor]);
 

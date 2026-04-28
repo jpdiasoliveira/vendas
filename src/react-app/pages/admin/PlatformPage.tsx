@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
   Building2,
@@ -7,22 +7,33 @@ import {
   X,
   CheckCircle2,
   RefreshCw,
-  Globe,
   Shield,
-  TestTube2,
   Eraser,
+  CalendarClock,
+  LayoutDashboard,
+  CircleDollarSign,
+  Store,
+  BarChart3,
+  Trophy,
+  UserCog,
 } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
+import { PlatformGlobalCommandBar } from "@/react-app/components/admin/PlatformGlobalCommandBar";
 import {
   clearStoreSlugOverride,
   getStoreSlugOverride,
   platformApiFetch,
   setStoreSlugOverride,
   type CreatedPlatformStore,
+  type PlatformAnalyticsOverviewDto,
   type PlatformStoreOverview,
+  type PlatformStoreRankingRowDto,
 } from "@/react-app/services/api";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
+
+const brl = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 }).format(n);
 
 const slugify = (raw: string) =>
   raw
@@ -50,6 +61,19 @@ const PlatformPage = () => {
   const [stores, setStores] = useState<PlatformStoreOverview[]>([]);
   const [customDomainInput, setCustomDomainInput] = useState("");
   const [overrideSlug, setOverrideSlug] = useState<string | null>(null);
+  const [graceDaysInput, setGraceDaysInput] = useState("7");
+  const [graceLoading, setGraceLoading] = useState(false);
+  const [graceSaving, setGraceSaving] = useState(false);
+  const [graceMessage, setGraceMessage] = useState<string | null>(null);
+  const [analyticsOverview, setAnalyticsOverview] = useState<PlatformAnalyticsOverviewDto | null>(null);
+  const [rankingRows, setRankingRows] = useState<PlatformStoreRankingRowDto[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const gmvByStoreId = useMemo(() => {
+    const m = new Map<string, PlatformStoreRankingRowDto>();
+    for (const r of rankingRows) m.set(r.storeId, r);
+    return m;
+  }, [rankingRows]);
 
   useEffect(() => {
     if (loading) return;
@@ -69,11 +93,78 @@ const PlatformPage = () => {
     }
   }, []);
 
+  const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const [overview, ranking] = await Promise.all([
+        platformApiFetch<PlatformAnalyticsOverviewDto>("/api/platform/analytics/overview"),
+        platformApiFetch<PlatformStoreRankingRowDto[]>("/api/platform/analytics/store-ranking?limit=10"),
+      ]);
+      setAnalyticsOverview(overview);
+      setRankingRows(ranking);
+    } catch (err) {
+      console.error("[PlatformPage.loadAnalytics]", err);
+      setAnalyticsOverview({
+        mrrBrlEstimated: 0,
+        payingOrTrialingSubscriptions: 0,
+        activeStoresCount: 0,
+        gmvPaidBrlLast30d: 0,
+      });
+      setRankingRows([]);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  const loadRuntimeSettings = useCallback(async () => {
+    setGraceLoading(true);
+    setGraceMessage(null);
+    try {
+      const data = await platformApiFetch<{ subscriptionGraceDays: number }>(
+        "/api/platform/runtime-settings"
+      );
+      setGraceDaysInput(String(data.subscriptionGraceDays));
+    } catch (err) {
+      console.error("[PlatformPage.loadRuntimeSettings]", err);
+      setGraceMessage(
+        err instanceof Error ? err.message : "Não foi possível carregar as configurações da plataforma."
+      );
+    } finally {
+      setGraceLoading(false);
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadStores(), loadRuntimeSettings(), loadAnalytics()]);
+  }, [loadStores, loadRuntimeSettings, loadAnalytics]);
+
   useEffect(() => {
     if (!allowed) return;
     setOverrideSlug(getStoreSlugOverride());
-    void loadStores();
-  }, [allowed, loadStores]);
+    void refreshAll();
+  }, [allowed, refreshAll]);
+
+  const saveGraceDays = async () => {
+    const n = Number(graceDaysInput);
+    if (!Number.isFinite(n) || n < 0 || n > 90 || !Number.isInteger(n)) {
+      setGraceMessage("Use um número inteiro entre 0 e 90 dias.");
+      return;
+    }
+    setGraceSaving(true);
+    setGraceMessage(null);
+    try {
+      const data = await platformApiFetch<{ subscriptionGraceDays: number }>(
+        "/api/platform/runtime-settings",
+        { method: "PATCH", body: JSON.stringify({ subscriptionGraceDays: n }) }
+      );
+      setGraceDaysInput(String(data.subscriptionGraceDays));
+      setGraceMessage("Carência atualizada. O Postgres (suspend/entitlements) passa a usar este valor.");
+    } catch (err) {
+      setGraceMessage(err instanceof Error ? err.message : "Não foi possível salvar.");
+    } finally {
+      setGraceSaving(false);
+    }
+  };
 
   const onDisplayBlur = useCallback(() => {
     if (slugTouched || !displayName.trim()) return;
@@ -108,10 +199,11 @@ const PlatformPage = () => {
           slug: normalized,
           display_name: displayName.trim(),
           custom_domains: customDomains,
+          planSlug: "tier_base",
         }),
       });
       setCreated(data);
-      await loadStores();
+      await refreshAll();
     } catch (err: unknown) {
       console.error("[PlatformPage.handleSubmit]", err);
       setError(err instanceof Error ? err.message : "Não foi possível criar a loja.");
@@ -131,10 +223,11 @@ const PlatformPage = () => {
     window.location.href = "/";
   };
 
-  const switchToStoreContext = (storeSlug: string) => {
+  /** Impersonação: só o browser do operador; o Worker continua exigindo JWT + papel na loja de destino. */
+  const manageStoreAsAdmin = (storeSlug: string) => {
     setStoreSlugOverride(storeSlug);
     setOverrideSlug(storeSlug);
-    window.location.href = "/";
+    window.location.href = "/admin/pedidos";
   };
 
   const clearOverride = () => {
@@ -152,117 +245,231 @@ const PlatformPage = () => {
 
   if (!allowed) return null;
 
+  const overview = analyticsOverview ?? {
+    mrrBrlEstimated: 0,
+    payingOrTrialingSubscriptions: 0,
+    activeStoresCount: 0,
+    gmvPaidBrlLast30d: 0,
+  };
+  const busy = loadingStores || analyticsLoading || graceLoading;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1B4332]/10 bg-white/60 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
-              aria-label="Voltar"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-8 w-8 text-[#1B4332]" />
-              <div>
-                <h1 className="font-playfair text-2xl font-bold text-[#1B4332]">Plataforma</h1>
-                <p className="font-inter text-sm text-[#6D4C41]">Criar novas lojas (tenants) sem SQL</p>
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-100/90 via-[#F5F1E8] to-[#FAF8F3] font-inter text-[#6D4C41]">
+      <PlatformGlobalCommandBar storeOverrideSlug={overrideSlug} onClearStoreOverride={clearOverride} />
+
+      <div className="flex-1 px-4 pb-20 pt-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="mb-8 flex flex-col gap-4 border-b border-slate-800/10 pb-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/pedidos")}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-800/15 bg-white/80 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
+                aria-label="Voltar ao painel da loja"
+              >
+                <Home className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <LayoutDashboard className="h-9 w-9 shrink-0 text-slate-800" />
+                <div>
+                  <h1 className="font-playfair text-2xl font-bold text-slate-900 sm:text-3xl">
+                    Central de Comando
+                  </h1>
+                  <p className="mt-1 max-w-xl text-sm text-[#6D4C41]">
+                    Planos, direitos, ciclo de vida e rollups consolidados. Criação de tenants e leitura de métricas
+                    globais.
+                  </p>
+                </div>
               </div>
             </div>
+            <div className="rounded-2xl border border-slate-800/10 bg-white/70 p-1 shadow-sm backdrop-blur-sm">
+              <AdminNav>
+                <button
+                  type="button"
+                  onClick={() => void refreshAll()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-3 py-2 text-sm font-semibold text-[var(--brand-primary)] shadow-sm transition hover:bg-[#FAF8F3]"
+                >
+                  <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+                  Atualizar dados
+                </button>
+              </AdminNav>
+            </div>
           </div>
-          <AdminNav />
-        </div>
 
-        <div className="rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 p-8 shadow-sm backdrop-blur-sm">
-          <p className="mb-6 font-inter text-sm text-[#6D4C41]">
-            Cada loja nasce com dados iniciais (catálogo base + configurações padrão) e você como proprietário. Se
-            quiser, já cadastre domínios customizados no onboarding.
-          </p>
-          <div className="flex flex-wrap gap-3">
+          <div className="mb-6 rounded-3xl border border-slate-800/10 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+            <p className="mb-4 text-sm text-[#6D4C41]">
+              Novas lojas nascem com catálogo base, <strong className="text-[#1B4332]">plano Base (tier_base)</strong>{" "}
+              no billing da plataforma (trial conforme catálogo) e você como proprietário.
+            </p>
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-inter font-semibold text-white shadow-sm transition hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
             >
               <Plus className="h-5 w-5" />
               Nova Loja
             </button>
+          </div>
+
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-5 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80">
+                <CircleDollarSign className="h-4 w-4 text-[var(--brand-primary)]" />
+                MRR estimado
+              </div>
+              <p className="font-playfair text-2xl font-bold text-[#1B4332]">{brl(overview.mrrBrlEstimated)}</p>
+              <p className="mt-1 text-xs text-[#6D4C41]/80">
+                {overview.payingOrTrialingSubscriptions} linha(s) de assinatura ativa/trial/past_due
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-5 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80">
+                <Store className="h-4 w-4 text-[var(--brand-primary)]" />
+                Lojas ativas
+              </div>
+              <p className="font-playfair text-2xl font-bold text-[#1B4332]">{overview.activeStoresCount}</p>
+              <p className="mt-1 text-xs text-[#6D4C41]/80">Contagem em stores.status = active</p>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-5 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
+                GMV pago (30d)
+              </div>
+              <p className="font-playfair text-2xl font-bold text-[#1B4332]">{brl(overview.gmvPaidBrlLast30d)}</p>
+              <p className="mt-1 text-xs text-[#6D4C41]/80">Soma dos rollups diários (UTC), Bloco 4</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800/15 bg-slate-900 p-5 text-amber-50 shadow-sm">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-amber-200/80">
+                <Trophy className="h-4 w-4 text-amber-400" />
+                Top lojas (GMV 30d)
+              </div>
+              <ol className="mt-2 space-y-1.5 text-sm">
+                {rankingRows.slice(0, 5).map((r, i) => (
+                  <li key={r.storeId} className="flex justify-between gap-2 border-b border-white/10 pb-1 last:border-0">
+                    <span className="truncate text-amber-100/95">
+                      {i + 1}. {r.displayName || r.slug}
+                    </span>
+                    <span className="shrink-0 font-mono text-xs text-amber-200/90">{brl(r.gmvPaidBrlLast30d)}</span>
+                  </li>
+                ))}
+                {rankingRows.length === 0 ? (
+                  <li className="text-xs text-amber-200/70">Sem dados de ranking (execute o SQL do Bloco 4).</li>
+                ) : null}
+              </ol>
+            </div>
+          </div>
+
+        <div className="mt-6 rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+          <div className="mb-3 flex items-center gap-2 text-[var(--brand-primary)]">
+            <CalendarClock className="h-5 w-5" />
+            <h2 className="font-playfair text-lg font-bold">Carência de assinatura</h2>
+          </div>
+          <p className="mb-4 text-sm text-[#6D4C41]">
+            Dias extras após o fim do trial ou do período pago antes de suspender a loja e cortar benefícios
+            (alinhado às funções <span className="font-mono text-xs">resolve_store_entitlements</span> e{" "}
+            <span className="font-mono text-xs">platform_suspend_expired_store_subscriptions</span> no banco).
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[8rem]">
+              <label htmlFor="pf-grace-days" className="mb-1 block text-xs font-medium text-[#1B4332]">
+                Dias (0 a 90)
+              </label>
+              <input
+                id="pf-grace-days"
+                type="number"
+                min={0}
+                max={90}
+                step={1}
+                disabled={graceLoading || graceSaving}
+                value={graceDaysInput}
+                onChange={(e) => setGraceDaysInput(e.target.value)}
+                className="w-full rounded-xl border border-[#1B4332]/20 px-3 py-2 font-mono text-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/25 disabled:opacity-60"
+              />
+            </div>
             <button
               type="button"
-              onClick={() => void loadStores()}
-              className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-5 py-3 font-inter font-semibold text-[var(--brand-primary)] shadow-sm transition hover:bg-[#FAF8F3]"
+              disabled={graceLoading || graceSaving}
+              onClick={() => void saveGraceDays()}
+              className="rounded-xl bg-[var(--brand-primary)] px-4 py-2 font-inter text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60"
             >
-              <RefreshCw className={`h-5 w-5 ${loadingStores ? "animate-spin" : ""}`} />
-              Atualizar
+              {graceSaving ? "Salvando…" : "Salvar"}
             </button>
             <button
               type="button"
-              onClick={clearOverride}
-              className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-5 py-3 font-inter font-semibold text-[#6D4C41] shadow-sm transition hover:bg-[#FAF8F3]"
+              disabled={graceLoading}
+              onClick={() => void loadRuntimeSettings()}
+              className="rounded-xl border border-[color:var(--brand-primary)]/20 bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-primary)] hover:bg-[#FAF8F3] disabled:opacity-60"
             >
-              <Eraser className="h-5 w-5" />
-              Limpar override
+              Recarregar
             </button>
           </div>
-          <p className="mt-4 text-xs text-[#6D4C41]">
-            Override atual neste navegador:{" "}
-            <span className="font-mono text-[var(--brand-primary)]">{overrideSlug ?? "(nenhum)"}</span>
-          </p>
+          {graceMessage ? (
+            <p
+              className={`mt-3 text-sm ${graceMessage.includes("atualizada") ? "text-emerald-700" : "text-red-700"}`}
+            >
+              {graceMessage}
+            </p>
+          ) : null}
         </div>
 
-        <div className="mt-6 space-y-3 rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
-          <div className="mb-2 flex items-center gap-2 text-[var(--brand-primary)]">
-            <TestTube2 className="h-5 w-5" />
-            <h2 className="font-playfair text-lg font-bold">Troca de contexto (simulação)</h2>
+        <div className="mt-6 overflow-hidden rounded-3xl border border-[color:var(--brand-primary)]/10 bg-white/90 shadow-sm backdrop-blur-sm">
+          <div className="border-b border-[color:var(--brand-primary)]/10 bg-[#1B4332]/5 px-6 py-4">
+            <div className="flex items-center gap-2 text-[var(--brand-primary)]">
+              <Building2 className="h-5 w-5" />
+              <h2 className="font-playfair text-lg font-bold">Gestor de lojas</h2>
+            </div>
+            <p className="mt-1 text-sm text-[#6D4C41]">
+              <strong className="text-[#1B4332]">Gerenciar</strong> grava{" "}
+              <code className="rounded bg-white/80 px-1 font-mono text-xs">saas_store_slug_override</code> neste
+              navegador e abre o admin da loja — útil para suporte (você precisa ser membro da loja para ver dados).
+            </p>
           </div>
-          <p className="text-sm text-[#6D4C41]">
-            Use esta lista para abrir a vitrine como se fosse qualquer loja, sem editar URL manualmente.
-          </p>
-          <div className="grid gap-3">
-            {stores.map((storeRow) => (
-              <div
-                key={storeRow.id}
-                className="rounded-2xl border border-[color:var(--brand-primary)]/10 bg-white p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold text-[var(--brand-primary)]">{storeRow.displayName}</p>
-                    <p className="font-mono text-xs text-[#6D4C41]">slug: {storeRow.slug}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => switchToStoreContext(storeRow.slug)}
-                    className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-                  >
-                    Usar contexto
-                  </button>
-                </div>
-                {storeRow.domains.length > 0 ? (
-                  <div className="mt-3 space-y-1">
-                    {storeRow.domains.map((d) => (
-                      <p key={`${storeRow.id}-${d.domain}`} className="text-xs text-[#6D4C41]">
-                        <Globe className="mr-1 inline h-3.5 w-3.5 text-[var(--brand-primary)]" />
-                        {d.domain}{" "}
-                        <span className="rounded bg-[var(--brand-primary)]/10 px-1.5 py-0.5 text-[var(--brand-primary)]">
-                          {d.status}
-                        </span>
-                        {d.isPrimary ? (
-                          <span className="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-emerald-700">principal</span>
-                        ) : null}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-[#6D4C41]/70">Sem domínio customizado cadastrado.</p>
-                )}
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="border-b border-[color:var(--brand-primary)]/10 bg-white/80 font-semibold text-[#1B4332]">
+                <tr>
+                  <th className="px-4 py-3">Loja</th>
+                  <th className="px-4 py-3">Slug</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">GMV 30d (pago)</th>
+                  <th className="px-4 py-3">Pedidos pagos 30d</th>
+                  <th className="px-4 py-3 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stores.map((storeRow) => {
+                  const rank = gmvByStoreId.get(storeRow.id);
+                  return (
+                    <tr key={storeRow.id} className="border-b border-[color:var(--brand-primary)]/5 last:border-0">
+                      <td className="px-4 py-3 font-medium text-[var(--brand-primary)]">{storeRow.displayName}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-[#6D4C41]">{storeRow.slug}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs capitalize">{storeRow.status}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">{brl(rank?.gmvPaidBrlLast30d ?? 0)}</td>
+                      <td className="px-4 py-3">{rank?.paidOrdersLast30d ?? 0}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => manageStoreAsAdmin(storeRow.slug)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                        >
+                          <UserCog className="h-3.5 w-3.5" aria-hidden />
+                          Gerenciar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
             {!loadingStores && stores.length === 0 ? (
-              <p className="text-sm text-[#6D4C41]">Nenhuma loja cadastrada ainda.</p>
+              <p className="px-6 py-8 text-center text-sm text-[#6D4C41]">Nenhuma loja cadastrada ainda.</p>
             ) : null}
+          </div>
+          <div className="border-t border-[color:var(--brand-primary)]/10 px-6 py-4 text-xs text-[#6D4C41]/85">
+            Domínios customizados continuam disponíveis no fluxo de criação ou via API{" "}
+            <code className="font-mono">POST /api/platform/stores/:id/domains</code>.
           </div>
         </div>
       </div>
@@ -287,8 +494,9 @@ const PlatformPage = () => {
             <h2 id="platform-new-store-title" className="mb-2 font-playfair text-xl font-bold text-[#1B4332]">
               Nova loja
             </h2>
-            <p className="mb-6 font-inter text-sm text-[#6D4C41]">
-              Nome, slug e domínios iniciais em um único fluxo de onboarding.
+            <p className="mb-2 font-inter text-sm text-[#6D4C41]">
+              Nome, slug e domínios iniciais. A loja será vinculada ao plano{" "}
+              <strong className="text-[#1B4332]">Base (tier_base)</strong> no catálogo da plataforma.
             </p>
 
             {created ? (
@@ -298,6 +506,11 @@ const PlatformPage = () => {
                   <div>
                     <p className="font-semibold text-emerald-900">{created.displayName}</p>
                     <p className="mt-1 font-mono text-sm text-emerald-800">Slug: {created.slug}</p>
+                    {created.subscriptionWarning ? (
+                      <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+                        Assinatura da plataforma: {created.subscriptionWarning}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <button
