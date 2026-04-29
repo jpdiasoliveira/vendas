@@ -12,3 +12,4 @@ export * from "./db/membersRepo.js";
 export * from "./db/auditRepo.js";
 export * from "./db/platformRuntimeSettingsRepo.js";
 export * from "./db/platformAnalyticsRepo.js";
+export * from "./db/platformPlansCatalogRepo.js";

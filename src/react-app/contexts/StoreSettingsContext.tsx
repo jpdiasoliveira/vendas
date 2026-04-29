@@ -47,6 +47,7 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // fetchSettings: GET /api/store/settings e atualiza estado. useCallback([]): `refetch` estável para consumidores e para o useMemo do `contextValue`.
   const fetchSettings = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
     if (!silent) {
@@ -121,8 +122,20 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     };
   }, [fetchSettings]);
 
+  // contextValue: estado da loja + refetch; mesma ideia do Auth/Cart — referência estável evita re-render em massa (ex.: Navbar + Home) quando o Provider reexecuta sem mudança semântica.
+  // useMemo([settings, loading, error, fetchSettings]): só novo objeto quando um destes campos muda; `fetchSettings` já é estável via useCallback.
+  const contextValue = useMemo<StoreSettingsContextType>(
+    () => ({
+      settings,
+      loading,
+      error,
+      refetch: fetchSettings,
+    }),
+    [settings, loading, error, fetchSettings]
+  );
+
   return (
-    <StoreSettingsContext.Provider value={{ settings, loading, error, refetch: fetchSettings }}>
+    <StoreSettingsContext.Provider value={contextValue}>
       {children}
     </StoreSettingsContext.Provider>
   );

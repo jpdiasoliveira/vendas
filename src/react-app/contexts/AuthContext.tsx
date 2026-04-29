@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -63,24 +64,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const user = sessionToUser(session);
 
+  // signIn: delega ao serviço de auth (Supabase). useCallback([]): referência estável para o objeto memoizado `value` abaixo.
   const signIn = useCallback(async (email: string, password: string) => {
     await serviceLogin(email, password);
   }, []);
 
+  // signOut: encerra sessão no cliente. useCallback: não recriar função a cada render do Provider.
   const signOut = useCallback(async () => {
     await serviceLogout();
   }, []);
 
+  // getAccessToken: lê token atual (ex.: chamadas admin). useCallback: mesma referência entre renders.
   const getAccessToken = useCallback(() => getAccessTokenFromSession(), []);
 
-  const value: AuthContextValue = {
-    user,
-    session,
-    loading,
-    signIn,
-    signOut,
-    getAccessToken,
-  };
+  // value: agrega sessão, utilizador derivado e ações de login/logout/token.
+  // useMemo([user, session, loading, …]): o Provider não deve passar um objeto literal novo a cada render — isso dispara re-renders em toda a árvore que consome useAuth() mesmo quando nada mudou.
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      session,
+      loading,
+      signIn,
+      signOut,
+      getAccessToken,
+    }),
+    [user, session, loading, signIn, signOut, getAccessToken]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

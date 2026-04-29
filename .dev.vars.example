@@ -24,12 +24,12 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # STOREFRONT_BASE_URL=http://localhost:5173
 #
 # Plataforma SaaS — POST /api/platform/stores (criar loja sem SQL):
-# PLATFORM_OPERATOR_EMAILS=operador@empresa.com,joao@empresa.com
+# PLATFORM_OPERATOR_EMAILS=suporte@ktech.mobi
 # Opcional: exige header x-platform-create-store-secret (defina o mesmo no front: VITE_PLATFORM_CREATE_STORE_SECRET)
 # PLATFORM_CREATE_STORE_SECRET=seu-segredo-demo
 #
-# Vitrine (Vite): mesmo e-mail da lista acima para exibir o menu «Plataforma» no admin
-# VITE_PLATFORM_OPERATOR_EMAILS=operador@empresa.com,joao@empresa.com
+# Vitrine (Vite): mesmo e-mail da lista acima para exibir o menu «Plataforma» no admin (.env.local na raiz)
+# VITE_PLATFORM_OPERATOR_EMAILS=suporte@ktech.mobi
 # VITE_PLATFORM_CREATE_STORE_SECRET=seu-segredo-demo
 #
 # Vite (.env ou .env.local na raiz do repo — não é .dev.vars): em http://localhost:5173 sem subdomínio,

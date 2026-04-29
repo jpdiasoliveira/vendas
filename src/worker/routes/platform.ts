@@ -4,13 +4,20 @@ import {
   addDomainsToStore,
   createStoreWithOwner,
   getPlatformAnalyticsOverview,
+  getPlatformNewStoresByWeek,
+  getPlatformPlansCatalog,
   getPlatformStoreRanking,
   getSubscriptionGraceDays,
   listPlatformStores,
+  replaceEntitlementsForPriceVersion,
   upsertSubscriptionGraceDays,
 } from "../core/database.js";
-import type { AuthUser, Variables } from "../types.js";
+import type { Variables } from "../types.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
+import { zodErrorToMessage } from "../utils/zodErrorMessage.js";
+import { provisionStoreOwnerUser } from "../core/auth/provisionStoreOwnerUser.js";
+import { getSupabase } from "../core/supabase.js";
+import { platformCreateStoreBodySchema, normalizeStoreSlugInput } from "../../schemas/platformCreateStore.js";
 
 const platform = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -82,6 +89,78 @@ platform.get("/analytics/store-ranking", async (c) => {
   }
 });
 
+platform.get("/analytics/new-stores-weekly", async (c) => {
+  const raw = c.req.query("weeks");
+  const n = raw != null && raw !== "" ? Number(raw) : 8;
+  const weeks = Number.isFinite(n) ? Math.trunc(n) : 8;
+  try {
+    const data = await getPlatformNewStoresByWeek(c.env, weeks);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    logServerError("platform.get /analytics/new-stores-weekly", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+platform.get("/plans-catalog", async (c) => {
+  try {
+    const data = await getPlatformPlansCatalog(c.env);
+    return c.json({ success: true, data }, 200);
+  } catch (err: unknown) {
+    logServerError("platform.get /plans-catalog", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
+platform.put("/plan-price-versions/:versionId/entitlements", async (c) => {
+  const versionId = c.req.param("versionId");
+  const body = (await c.req.json()) as { entitlements?: unknown };
+  const raw = body.entitlements;
+  if (!Array.isArray(raw)) {
+    return c.json({ success: false, error: "Informe entitlements (array de linhas)." }, 400);
+  }
+  type Row = { featureId: string; intValue?: number | null; boolValue?: boolean | null };
+  const entitlements: Row[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) continue;
+    const o = item as Record<string, unknown>;
+    const fid =
+      typeof o.featureId === "string"
+        ? o.featureId
+        : typeof o.feature_id === "string"
+          ? o.feature_id
+          : "";
+    if (!fid) continue;
+    const intRaw = o.intValue !== undefined ? o.intValue : o.int_value;
+    const boolRaw = o.boolValue !== undefined ? o.boolValue : o.bool_value;
+    entitlements.push({
+      featureId: fid,
+      intValue: intRaw === undefined ? undefined : intRaw === null ? null : Number(intRaw),
+      boolValue: boolRaw === undefined ? undefined : boolRaw === null ? null : Boolean(boolRaw),
+    });
+  }
+  try {
+    await replaceEntitlementsForPriceVersion(c.env, versionId, entitlements);
+    return c.json({ success: true, data: { ok: true } }, 200);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "VERSION_NOT_FOUND") {
+      return c.json({ success: false, error: "Versão de preço não encontrada." }, 404);
+    }
+    if (msg === "VERSION_NOT_EDITABLE") {
+      return c.json(
+        { success: false, error: "Só é permitido editar entitlements de ofertas públicas e não aposentadas." },
+        400
+      );
+    }
+    if (msg.startsWith("FEATURE_UNKNOWN") || msg.includes("INVALID")) {
+      return c.json({ success: false, error: "Dados de entitlement inválidos." }, 400);
+    }
+    logServerError("platform.put /plan-price-versions/:versionId/entitlements", err);
+    return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+  }
+});
+
 platform.post("/stores/:storeId/domains", async (c) => {
   const storeId = c.req.param("storeId");
   const body = (await c.req.json()) as { domains?: string[]; setPrimaryFirst?: boolean };
@@ -109,62 +188,94 @@ platform.post("/stores/:storeId/domains", async (c) => {
 });
 
 /**
- * Cria loja (tenant), store_settings padrão e vínculo owner em store_members.
+ * Cria loja (tenant), utilizador Auth do administrador, store_settings e vínculo owner em store_members.
  */
 platform.post("/stores", async (c) => {
-  const user = c.get("user") as AuthUser;
-  const body = (await c.req.json()) as {
-    slug?: string;
-    displayName?: string;
-    display_name?: string;
-    customDomains?: string[];
-    custom_domains?: string[];
-    planSlug?: string;
-    plan_definition_slug?: string;
-  };
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return c.json({ success: false, error: "Corpo JSON inválido." }, 400);
+  }
 
-  const slug = typeof body.slug === "string" ? body.slug : "";
-  const displayNameRaw =
-    typeof body.displayName === "string"
-      ? body.displayName
-      : typeof body.display_name === "string"
-        ? body.display_name
-        : "";
-  const displayName = displayNameRaw;
-  const customDomainsRaw = Array.isArray(body.customDomains)
-    ? body.customDomains
-    : Array.isArray(body.custom_domains)
-      ? body.custom_domains
-      : [];
-  const customDomains = customDomainsRaw
+  const o = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+  const parsed = platformCreateStoreBodySchema.safeParse({
+    slug: typeof o.slug === "string" ? o.slug : "",
+    displayName:
+      typeof o.displayName === "string"
+        ? o.displayName
+        : typeof o.display_name === "string"
+          ? o.display_name
+          : "",
+    customDomains: Array.isArray(o.customDomains)
+      ? o.customDomains
+      : Array.isArray(o.custom_domains)
+        ? o.custom_domains
+        : [],
+    ownerAdminName: typeof o.ownerAdminName === "string" ? o.ownerAdminName : "",
+    ownerAdminEmail: typeof o.ownerAdminEmail === "string" ? o.ownerAdminEmail : "",
+    sendPasswordSetupLink: Boolean(o.sendPasswordSetupLink),
+    initialPassword: typeof o.initialPassword === "string" ? o.initialPassword : "",
+    planSlug:
+      typeof o.planSlug === "string"
+        ? o.planSlug
+        : typeof o.plan_definition_slug === "string"
+          ? o.plan_definition_slug
+          : "tier_base",
+  });
+
+  if (!parsed.success) {
+    return c.json({ success: false, error: zodErrorToMessage(parsed.error) }, 400);
+  }
+
+  const b = parsed.data;
+  const slug = normalizeStoreSlugInput(b.slug);
+  const displayName = b.displayName.trim();
+  const customDomains = (b.customDomains ?? [])
     .filter((d): d is string => typeof d === "string")
     .map((d) => d.trim())
     .filter(Boolean);
-  if (!slug.trim() || !displayName.trim()) {
-    return c.json({ success: false, error: "Informe slug e nome da loja." }, 400);
-  }
+  const ownerEmail = b.ownerAdminEmail.trim().toLowerCase();
+  const ownerName = b.ownerAdminName.trim();
+  const planDefinitionSlug = b.planSlug;
 
-  const planSlugRaw =
-    typeof body.planSlug === "string"
-      ? body.planSlug
-      : typeof body.plan_definition_slug === "string"
-        ? body.plan_definition_slug
-        : "tier_base";
-  const planDefinitionSlug = (planSlugRaw.trim() || "tier_base").toLowerCase();
+  const supabase = getSupabase(c.env);
+  const baseUrl = typeof c.env.STOREFRONT_BASE_URL === "string" ? c.env.STOREFRONT_BASE_URL.trim() : "";
+  const redirectTo = baseUrl.length > 0 ? `${baseUrl.replace(/\/$/, "")}/auth/callback` : undefined;
 
+  let ownerUserId: string | null = null;
   try {
+    const { userId } = await provisionStoreOwnerUser(supabase, {
+      email: ownerEmail,
+      fullName: ownerName,
+      sendPasswordSetupLink: b.sendPasswordSetupLink,
+      initialPassword: b.initialPassword,
+      redirectTo,
+    });
+    ownerUserId = userId;
+
     const created = await createStoreWithOwner(c.env, {
-      slug: slug.trim(),
-      displayName: displayName.trim(),
-      ownerUserId: user.id,
+      slug,
+      displayName,
+      ownerUserId,
       customDomains,
       planDefinitionSlug,
     });
     return c.json({ success: true, data: created }, 201);
   } catch (err: unknown) {
+    if (ownerUserId) {
+      try {
+        await supabase.auth.admin.deleteUser(ownerUserId);
+      } catch {
+        /* rollback best-effort */
+      }
+    }
     const msg = err instanceof Error ? err.message : genericServerErrorMessage();
+    if (msg === "EMAIL_ALREADY_REGISTERED") {
+      return c.json({ success: false, error: "Este e-mail já está registado. Usa outro ou convida o utilizador existente." }, 409);
+    }
     if (msg === "DUPLICATE_SLUG" || msg.toLowerCase().includes("duplicate") || msg.includes("23505")) {
-      return c.json({ success: false, error: "Já existe uma loja com este slug. Escolha outro." }, 409);
+      return c.json({ success: false, error: "Já existe uma loja com este endereço. Escolhe outro." }, 409);
     }
     logServerError("platform.post /stores", err);
     return c.json({ success: false, error: msg.length < 120 ? msg : genericServerErrorMessage() }, 400);

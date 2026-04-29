@@ -1,10 +1,20 @@
 /**
  * Leituras de pedidos e itens (sempre com `store_id` quando aplicável).
+ * Selects explícitos: menos dados trafegados Postgres → Worker → JSON e menos memória alocada no isolate.
+ * Manter colunas alinhadas a `rowToOrder` / `rowToOrderItem` em `../mappers.js`.
  */
 
 import { getSupabase } from "../../supabase.js";
 import type { Order, OrderDetail, OrderItem } from "../../schema.js";
 import { rowToOrder, rowToOrderItem } from "../mappers.js";
+
+/** Colunas necessárias para `rowToOrder` (sem `*`). */
+const ORDER_ROW_SELECT =
+  "id, store_id, user_id, guest_checkout_email, customer_name, customer_phone, status, total, currency, payment_method, payment_id, metadata, delivery_address, shipping_postal_code, shipping_fee, coupon_code, coupon_discount, shipping_city, shipping_state, tracking_code, shipping_method, paid_at, delivered_at, notes, created_at, updated_at";
+
+/** Colunas necessárias para `rowToOrderItem` (sem `*`). */
+const ORDER_ITEM_ROW_SELECT =
+  "id, order_id, store_id, product_id, product_name, product_image, quantity, price, created_at";
 
 export async function getOrderForCustomerAccess(
   env: Env,
@@ -15,7 +25,7 @@ export async function getOrderForCustomerAccess(
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(ORDER_ROW_SELECT)
     .eq("id", orderId)
     .eq("store_id", storeId)
     .maybeSingle();
@@ -50,7 +60,7 @@ export async function getOrdersByUserAndStore(
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(ORDER_ROW_SELECT)
     .eq("user_id", userId)
     .eq("store_id", storeId)
     .order("created_at", { ascending: false });
@@ -63,7 +73,7 @@ export async function getAllOrdersByStore(env: Env, storeId: string): Promise<Or
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(ORDER_ROW_SELECT)
     .eq("store_id", storeId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -78,7 +88,7 @@ export async function getOrderItemsByOrderAndStore(
   const supabase = getSupabase(env);
   const { data: rows, error } = await supabase
     .from("order_items")
-    .select("*")
+    .select(ORDER_ITEM_ROW_SELECT)
     .eq("order_id", orderId)
     .eq("store_id", storeId);
 
@@ -94,7 +104,7 @@ export async function getOrderByIdForStore(
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(ORDER_ROW_SELECT)
     .eq("id", orderId)
     .eq("store_id", storeId)
     .single();
@@ -121,7 +131,7 @@ export async function getOrderById(env: Env, orderId: string): Promise<Order | n
   const supabase = getSupabase(env);
   const { data: row, error } = await supabase
     .from("orders")
-    .select("*")
+    .select(ORDER_ROW_SELECT)
     .eq("id", orderId)
     .single();
   if (error || !row) return null;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+import { AdminImpersonationBanner } from "@/react-app/components/admin/AdminImpersonationBanner";
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-[#0d0d0f] flex items-center justify-center">
@@ -50,5 +51,10 @@ export const AdminGuard = () => {
     return null;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <AdminImpersonationBanner />
+      <Outlet />
+    </>
+  );
 };

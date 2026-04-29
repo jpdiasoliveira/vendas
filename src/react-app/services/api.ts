@@ -290,7 +290,54 @@ export type PlatformStoreOverview = {
   displayName: string;
   status: string;
   createdAt: string;
+  ownerEmail: string;
   domains: { domain: string; status: string; isPrimary: boolean }[];
+};
+
+export type PlatformNewStoresWeekBucketDto = {
+  weekStartIso: string;
+  label: string;
+  count: number;
+};
+
+export type PlatformCatalogFeatureDto = {
+  id: string;
+  code: string;
+  displayName: string;
+  description: string | null;
+  valueKind: "integer" | "boolean";
+  sortOrder: number;
+};
+
+export type PlatformCatalogEntitlementDto = {
+  featureId: string;
+  featureCode: string;
+  intValue: number | null;
+  boolValue: boolean | null;
+};
+
+export type PlatformCatalogPlanDto = {
+  planDefinitionId: string;
+  slug: string;
+  displayName: string;
+  sortOrder: number;
+  publicPriceVersion: {
+    id: string;
+    versionSeq: number;
+    trialPeriodDays: number;
+  } | null;
+  entitlements: PlatformCatalogEntitlementDto[];
+};
+
+export type PlatformPlansCatalogDto = {
+  features: PlatformCatalogFeatureDto[];
+  plans: PlatformCatalogPlanDto[];
+};
+
+export type PlatformEntitlementWriteRow = {
+  featureId: string;
+  intValue?: number | null;
+  boolValue?: boolean | null;
 };
 
 /**
