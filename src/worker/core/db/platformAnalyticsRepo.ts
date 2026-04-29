@@ -38,12 +38,6 @@ function isMissingRelation(err: unknown): boolean {
 /** Resumo para cards do Super Admin (tolerante a views/tabelas ainda não aplicadas no projeto). */
 export async function getPlatformAnalyticsOverview(env: Env): Promise<PlatformAnalyticsOverview> {
   const supabase = getSupabase(env);
-  const empty: PlatformAnalyticsOverview = {
-    mrrBrlEstimated: 0,
-    payingOrTrialingSubscriptions: 0,
-    activeStoresCount: 0,
-    gmvPaidBrlLast30d: 0,
-  };
 
   const { data: mrrRow, error: mrrErr } = await supabase
     .from("platform_view_admin_mrr_estimate_current")

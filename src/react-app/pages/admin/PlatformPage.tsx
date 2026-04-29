@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   RefreshCw,
   Shield,
-  Eraser,
   CalendarClock,
   LayoutDashboard,
   CircleDollarSign,
@@ -471,6 +470,7 @@ const PlatformPage = () => {
             Domínios customizados continuam disponíveis no fluxo de criação ou via API{" "}
             <code className="font-mono">POST /api/platform/stores/:id/domains</code>.
           </div>
+        </div>
         </div>
       </div>
 
