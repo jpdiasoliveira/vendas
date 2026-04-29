@@ -86,7 +86,6 @@ export async function seedDefaultCatalog(env: Env, storeId: string): Promise<voi
       .toString(36)
       .slice(2, 7)}`,
     sort_order: cat.sortOrder,
-    metadata: {},
     created_at: now,
     updated_at: now,
   }));

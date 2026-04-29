@@ -1,15 +1,40 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { adminApiFetch } from "@/react-app/services/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/react-app/contexts/AuthContext";
+import { adminApiFetch, getEffectiveStoreSlug } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
+import { adminProductsQueryKey } from "@/react-app/query/queryKeys";
+import { ADMIN_PANEL_GC_MS, ADMIN_PANEL_STALE_MS } from "@/react-app/query/adminPanelCache";
 import { DEFAULT_CATEGORIES, isStockCritical } from "@/react-app/utils/adminProductDisplay";
 import { isProductFeaturedOnHome } from "@/react-app/utils/productFeaturedOnHome";
 
 export const useAdminProducts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const storeSlug = getEffectiveStoreSlug();
+
+  const productsQuery = useQuery({
+    queryKey: adminProductsQueryKey(storeSlug || "_"),
+    queryFn: () => adminApiFetch<Product[]>("/api/admin/products"),
+    staleTime: ADMIN_PANEL_STALE_MS,
+    gcTime: ADMIN_PANEL_GC_MS,
+    retry: false,
+    enabled: !!user,
+  });
+
+  const products = productsQuery.data ?? [];
+  const loading = productsQuery.isPending && productsQuery.data === undefined;
+
+  const fetchProducts = useCallback(() => {
+    void productsQuery.refetch();
+  }, [productsQuery]);
+
+  const invalidateProducts = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+  }, [queryClient]);
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -20,29 +45,21 @@ export const useAdminProducts = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [togglingHomeId, setTogglingHomeId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const loadError =
+    productsQuery.error instanceof Error
+      ? productsQuery.error.message
+      : productsQuery.error
+        ? String(productsQuery.error)
+        : null;
+  const error = actionError ?? loadError;
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
   }, [toast]);
-
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApiFetch<Product[]>("/api/admin/products");
-      setProducts(Array.isArray(data) ? data : []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar produtos");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchProducts();
-  }, [fetchProducts]);
 
   const editIdFromUrl = searchParams.get("edit");
   useEffect(() => {
@@ -100,17 +117,17 @@ export const useAdminProducts = () => {
 
   const handleProductCreated = useCallback(() => {
     setToast("Produto cadastrado!");
-    void fetchProducts();
-  }, [fetchProducts]);
+    invalidateProducts();
+  }, [invalidateProducts]);
 
   const handleDeleteProduct = useCallback(
     async (id: string) => {
       await adminApiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
       setProductToDelete(null);
       setToast("Produto excluído.");
-      void fetchProducts();
+      invalidateProducts();
     },
-    [fetchProducts]
+    [invalidateProducts]
   );
 
   const handleToggleStatus = useCallback(
@@ -122,34 +139,35 @@ export const useAdminProducts = () => {
           method: "PUT",
           body: JSON.stringify({ status: nextStatus }),
         });
-        await fetchProducts();
+        invalidateProducts();
       } catch {
-        setError("Erro ao atualizar status. Tente novamente.");
+        setActionError("Erro ao atualizar status. Tente novamente.");
       } finally {
         setTogglingId(null);
       }
     },
-    [fetchProducts]
+    [invalidateProducts]
   );
 
   const handleToggleHomeFeatured = useCallback(
     async (product: Product) => {
       const next = !isProductFeaturedOnHome(product);
       setTogglingHomeId(product.id);
+      setActionError(null);
       try {
         await adminApiFetch(`/api/admin/products/${product.id}`, {
           method: "PUT",
           body: JSON.stringify({ featured_on_home: next }),
         });
         setToast(next ? "Produto em destaque na home." : "Removido da home.");
-        await fetchProducts();
+        invalidateProducts();
       } catch {
-        setError("Erro ao atualizar destaque na home. Tente novamente.");
+        setActionError("Erro ao atualizar destaque na home. Tente novamente.");
       } finally {
         setTogglingHomeId(null);
       }
     },
-    [fetchProducts]
+    [invalidateProducts]
   );
 
   return {

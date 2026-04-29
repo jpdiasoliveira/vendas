@@ -22,7 +22,12 @@ type ProductCardProps = {
   isHomeFeatured?: boolean;
 };
 
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/800x1000/e2e8f0/1B4332?text=Produto";
+/** SVG data-URL: sem pedido HTTP externo (via.placeholder.com pode falhar ou bloquear). */
+const PLACEHOLDER_IMAGE =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000"><rect fill="#e2e8f0" width="800" height="1000"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#1B4332" font-family="system-ui,sans-serif" font-size="28">Produto</text></svg>`
+  );
 
 const formatBRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);

@@ -136,7 +136,7 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={closeModal} aria-hidden />
       <div
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8"
+        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl sm:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="platform-new-store-title"
@@ -150,11 +150,11 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
           <X className="h-6 w-6" aria-hidden />
         </button>
 
-        <h2 id="platform-new-store-title" className="pr-10 font-playfair text-xl font-semibold text-[#1B4332]">
+        <h2 id="platform-new-store-title" className="pr-10 font-playfair text-2xl font-semibold tracking-tight text-[#1B4332]">
           Nova loja
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Fluxo de criação: dados do administrador, acesso, plano e identidade pública da loja.
+        <p className="mt-1 text-sm leading-relaxed text-slate-400">
+          Cria a loja, define o dono no Auth e escolhe o plano inicial — os campos estão agrupados por contexto.
         </p>
 
         {created ? (
@@ -164,7 +164,7 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
               <div>
                 <p className="font-semibold text-emerald-900">{created.displayName}</p>
                 <p className="mt-1 text-sm text-emerald-800">
-                  Endereço na plataforma: <span className="font-mono">{created.slug}</span>
+                  Link da loja: <span className="font-mono">{created.slug}</span>
                 </p>
                 {created.subscriptionWarning ? (
                   <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
@@ -189,136 +189,140 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
             </button>
           </div>
         ) : (
-          <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 space-y-8">
-            <section>
-              <h3 className="font-playfair text-xl font-semibold text-[#1B4332]">Informações do proprietário</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                O e-mail passa a ser o login principal do administrador desta loja.
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-1">
-                  <label htmlFor="pf-owner-name" className="mb-1 block text-sm font-medium text-slate-700">
-                    Nome do administrador
-                  </label>
-                  <input
-                    id="pf-owner-name"
-                    value={ownerAdminName}
-                    onChange={(e) => setOwnerAdminName(e.target.value)}
-                    placeholder="Ex: João Silva"
-                    required
-                    autoComplete="name"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <label htmlFor="pf-owner-email" className="mb-1 block text-sm font-medium text-slate-700">
-                    E-mail do administrador
-                  </label>
-                  <input
-                    id="pf-owner-email"
-                    type="email"
-                    value={ownerAdminEmail}
-                    onChange={(e) => setOwnerAdminEmail(e.target.value)}
-                    placeholder="admin@loja.com"
-                    required
-                    autoComplete="email"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="border-t border-slate-100 pt-8">
-              <h3 className="font-playfair text-xl font-semibold text-[#1B4332]">Configuração de acesso</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Define uma senha agora ou envia um convite para o administrador definir a senha no primeiro acesso.
-              </p>
-              <div className="mt-4 space-y-4">
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={sendPasswordSetupLink}
-                    onChange={(e) => {
-                      setSendPasswordSetupLink(e.target.checked);
-                      if (e.target.checked) setInitialPassword("");
-                    }}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#1B4332] focus:ring-[#1B4332]/30"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-slate-800">Enviar link de definição de senha por e-mail</span>
-                    <span className="mt-0.5 block text-xs text-slate-400">
-                      O Supabase envia um convite ao e-mail do administrador (requer SMTP ou fornecedor de e-mail
-                      configurado no projeto).
-                    </span>
-                  </span>
-                </label>
+          <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 space-y-6">
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+              <fieldset className="min-w-0 space-y-5 rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 sm:p-6">
+                <legend className="sr-only">Dados do dono</legend>
+                <h3 className="border-b border-slate-200 pb-2 font-playfair text-lg font-semibold text-[#1B4332]">
+                  Dados do dono
+                </h3>
 
                 <div>
-                  <label htmlFor="pf-password" className="mb-1 block text-sm font-medium text-slate-700">
-                    Senha inicial
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="pf-password"
-                      type={showPassword ? "text" : "password"}
-                      value={initialPassword}
-                      onChange={(e) => setInitialPassword(e.target.value)}
-                      disabled={sendPasswordSetupLink}
-                      autoComplete="new-password"
-                      placeholder={sendPasswordSetupLink ? "Desativado — convite por e-mail" : "Mínimo 8 caracteres"}
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 pr-11 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                    />
-                    <button
-                      type="button"
-                      tabIndex={-1}
-                      disabled={sendPasswordSetupLink}
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
-                    </button>
+                  <p className="text-sm font-semibold text-slate-700">Administrador</p>
+                  <p className="mt-0.5 text-xs text-slate-400">O e-mail será o login principal desta loja.</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-1">
+                      <label htmlFor="pf-owner-name" className="mb-1 block text-sm font-medium text-slate-700">
+                        Nome
+                      </label>
+                      <input
+                        id="pf-owner-name"
+                        value={ownerAdminName}
+                        onChange={(e) => setOwnerAdminName(e.target.value)}
+                        placeholder="Ex: João Silva"
+                        required
+                        autoComplete="name"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
+                      />
+                    </div>
+                    <div className="sm:col-span-1">
+                      <label htmlFor="pf-owner-email" className="mb-1 block text-sm font-medium text-slate-700">
+                        E-mail
+                      </label>
+                      <input
+                        id="pf-owner-email"
+                        type="email"
+                        value={ownerAdminEmail}
+                        onChange={(e) => setOwnerAdminEmail(e.target.value)}
+                        placeholder="admin@loja.com"
+                        required
+                        autoComplete="email"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
 
-            <section className="border-t border-slate-100 pt-8">
-              <h3 className="font-playfair text-xl font-semibold text-[#1B4332]">Plano e assinatura</h3>
-              <p className="mt-1 text-xs text-slate-400">Plano inicial da loja na plataforma (podes alterar depois conforme política comercial).</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {planOptions.map((opt) => {
-                  const selected = planSlug === opt.slug;
-                  return (
-                    <label
-                      key={opt.slug}
-                      className={`relative flex cursor-pointer flex-col rounded-xl border px-4 py-3 transition ${
-                        selected
-                          ? "border-[#1B4332] bg-[#1B4332]/5 ring-2 ring-[#1B4332]/25"
-                          : "border-slate-200 bg-white hover:border-slate-300"
-                      }`}
-                    >
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Acesso</p>
+                  <p className="mt-0.5 text-xs text-slate-400">Senha agora ou convite por e-mail.</p>
+                  <div className="mt-3 space-y-3">
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                       <input
-                        type="radio"
-                        name="planSlug"
-                        value={opt.slug}
-                        checked={selected}
-                        onChange={() => setPlanSlug(opt.slug)}
-                        className="sr-only"
+                        type="checkbox"
+                        checked={sendPasswordSetupLink}
+                        onChange={(e) => {
+                          setSendPasswordSetupLink(e.target.checked);
+                          if (e.target.checked) setInitialPassword("");
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#1B4332] focus:ring-[#1B4332]/30"
                       />
-                      <span className="text-sm font-semibold text-slate-900">{PLATFORM_PLAN_LABELS[opt.slug]}</span>
-                      <span className="mt-1 text-xs text-slate-400">{opt.hint}</span>
+                      <span>
+                        <span className="block text-sm font-medium text-slate-800">Enviar link para definir senha</span>
+                        <span className="mt-0.5 block text-xs text-slate-400">
+                          Requer e-mail configurado no Supabase.
+                        </span>
+                      </span>
                     </label>
-                  );
-                })}
-              </div>
-            </section>
+                    <div>
+                      <label htmlFor="pf-password" className="mb-1 block text-sm font-medium text-slate-700">
+                        Senha inicial
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="pf-password"
+                          type={showPassword ? "text" : "password"}
+                          value={initialPassword}
+                          onChange={(e) => setInitialPassword(e.target.value)}
+                          disabled={sendPasswordSetupLink}
+                          autoComplete="new-password"
+                          placeholder={sendPasswordSetupLink ? "Desativado" : "Mínimo 8 caracteres"}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          disabled={sendPasswordSetupLink}
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
+                          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <section className="border-t border-slate-100 pt-8">
-              <h3 className="font-playfair text-xl font-semibold text-[#1B4332]">Identidade da loja</h3>
-              <p className="mt-1 text-xs text-slate-400">Nome público, endereço na plataforma e domínios opcionais.</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Plano inicial</p>
+                  <div className="mt-3 grid gap-2">
+                    {planOptions.map((opt) => {
+                      const selected = planSlug === opt.slug;
+                      return (
+                        <label
+                          key={opt.slug}
+                          className={`flex cursor-pointer flex-col rounded-xl border px-3 py-2.5 transition ${
+                            selected
+                              ? "border-[#1B4332] bg-[#1B4332]/5 ring-1 ring-[#1B4332]/30"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="planSlug"
+                            value={opt.slug}
+                            checked={selected}
+                            onChange={() => setPlanSlug(opt.slug)}
+                            className="sr-only"
+                          />
+                          <span className="text-sm font-semibold text-slate-900">{PLATFORM_PLAN_LABELS[opt.slug]}</span>
+                          <span className="text-xs text-slate-400">{opt.hint}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset className="min-w-0 space-y-5 rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6">
+                <legend className="sr-only">Dados da loja</legend>
+                <h3 className="border-b border-slate-200 pb-2 font-playfair text-lg font-semibold text-[#1B4332]">
+                  Dados da loja
+                </h3>
+                <p className="text-xs text-slate-400">Nome público, link na plataforma e domínios opcionais.</p>
+
+                <div>
                   <label htmlFor="pf-name" className="mb-1 block text-sm font-medium text-slate-700">
                     Nome da loja
                   </label>
@@ -332,9 +336,10 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
                   />
                 </div>
-                <div className="sm:col-span-2">
+
+                <div>
                   <label htmlFor="pf-slug" className="mb-1 block text-sm font-medium text-slate-700">
-                    Endereço da loja (URL)
+                    Link da loja (URL)
                   </label>
                   <input
                     id="pf-slug"
@@ -346,11 +351,12 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 font-mono text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
                   />
                   <p className="mt-1 text-xs text-slate-400">
-                    Apenas letras minúsculas, números e hífens — espaços e caracteres especiais são removidos ao
-                    escrever. Pré-visualização: <span className="font-mono text-slate-600">{slugPreview || "—"}</span>
+                    Só letras minúsculas, números e hífens. Pré-visualização:{" "}
+                    <span className="font-mono text-slate-600">{slugPreview || "—"}</span>
                   </p>
                 </div>
-                <div className="sm:col-span-2">
+
+                <div>
                   <label htmlFor="pf-domains" className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-700">
                     <Shield className="h-4 w-4 text-slate-500" aria-hidden />
                     Domínios customizados (opcional)
@@ -359,13 +365,13 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
                     id="pf-domains"
                     value={customDomainInput}
                     onChange={(e) => setCustomDomainInput(e.target.value)}
-                    placeholder="ex.: lojaexemplo.com.br, www.lojaexemplo.com.br"
+                    placeholder="lojaexemplo.com.br, www.lojaexemplo.com.br"
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332]/40 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20"
                   />
-                  <p className="mt-1 text-xs text-slate-400">Separa vários domínios por vírgula.</p>
+                  <p className="mt-1 text-xs text-slate-400">Vários domínios separados por vírgula.</p>
                 </div>
-              </div>
-            </section>
+              </fieldset>
+            </div>
 
             {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 

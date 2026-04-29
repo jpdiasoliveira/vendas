@@ -106,7 +106,8 @@ export const useAdminOrders = () => {
 
   useEffect(() => {
     if (activeTab !== "ativos") return;
-    const interval = setInterval(() => {
+
+    const tick = () => {
       void (async () => {
         const list = await fetchOrders(true);
         const active = list.filter((o) => ACTIVE_STATUSES.includes(getOrderStatus(o)));
@@ -117,8 +118,31 @@ export const useAdminOrders = () => {
         previousActiveOrderIdsRef.current = currentIds;
         setOrders(list);
       })();
-    }, 45_000);
-    return () => clearInterval(interval);
+    };
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
+    const arm = () => {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = undefined;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      intervalId = setInterval(tick, 45_000);
+    };
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") arm();
+      else if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+
+    arm();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [activeTab, fetchOrders]);
 
   const openDetail = useCallback((id: string) => {

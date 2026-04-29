@@ -5,6 +5,8 @@
  */
 
 import { getAccessToken } from "@/react-app/services/authSession";
+import { queryClient } from "@/react-app/query/queryClient";
+import { adminMeQueryKey, storeSettingsQueryKey } from "@/react-app/query/queryKeys";
 
 const PLATFORM_CREATE_SECRET = import.meta.env.VITE_PLATFORM_CREATE_STORE_SECRET ?? "";
 const STORE_OVERRIDE_KEY = "saas_store_slug_override";
@@ -56,17 +58,65 @@ export function setStoreSlugOverride(slug: string): void {
   const normalized = normalizeSlug(slug);
   if (!normalized) return;
   localStorage.setItem(STORE_OVERRIDE_KEY, normalized);
+  void queryClient.invalidateQueries({ queryKey: storeSettingsQueryKey });
+  void queryClient.invalidateQueries({ queryKey: adminMeQueryKey });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
 }
 
 export function clearStoreSlugOverride(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORE_OVERRIDE_KEY);
+  void queryClient.invalidateQueries({ queryKey: storeSettingsQueryKey });
+  void queryClient.invalidateQueries({ queryKey: adminMeQueryKey });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
 }
 
 export function getStoreSlugOverride(): string | null {
   if (typeof window === "undefined") return null;
   const value = normalizeSlug(localStorage.getItem(STORE_OVERRIDE_KEY));
   return value || null;
+}
+
+export type StaffStoreMembershipClient = {
+  storeId: string;
+  slug: string;
+  role: string;
+};
+
+/**
+ * Lojas em que a sessão atual tem papel de equipa (sem `x-store-slug`).
+ * Usado após login para alinhar o tenant em localhost (evita `VITE_DEFAULT_STORE_SLUG` errado).
+ */
+export async function fetchMyStaffStores(): Promise<StaffStoreMembershipClient[]> {
+  const url = buildApiUrl("/api/me/staff-stores");
+  const token = await getAccessToken();
+  if (!token) return [];
+  const headers = new Headers();
+  headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetchOrNetworkError(url, { headers, cache: "no-store" });
+  const body = await parseJsonOrThrow(response);
+  if (!response.ok) return [];
+  const b = body as { success?: boolean; data?: { stores?: StaffStoreMembershipClient[] } };
+  if (b.success !== true || !Array.isArray(b.data?.stores)) return [];
+  return b.data.stores;
+}
+
+/**
+ * Se o slug efetivo (override, host ou `VITE_DEFAULT_STORE_SLUG`) não for uma loja do utilizador,
+ * grava override para a primeira loja em que é `owner`, senão a primeira da lista.
+ */
+export function syncStaffStoreSlugAfterLogin(stores: StaffStoreMembershipClient[]): void {
+  if (typeof window === "undefined" || stores.length === 0) return;
+  const slugSet = new Set(stores.map((s) => normalizeSlug(s.slug)));
+  const effective = normalizeSlug(getEffectiveStoreSlug());
+  if (effective && slugSet.has(effective)) return;
+  const ownerFirst =
+    stores.find((s) => s.role.trim().toLowerCase() === "owner") ?? stores[0];
+  if (ownerFirst?.slug) setStoreSlugOverride(ownerFirst.slug);
 }
 
 /** Monta a URL absoluta do endpoint (respeitando proxy em dev). */

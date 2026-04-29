@@ -20,6 +20,12 @@ import {
 } from "@/react-app/services/auth.service";
 import { getSession, getAccessToken as getAccessTokenFromSession } from "@/react-app/services/authSession";
 import { supabase } from "@/react-app/services/supabase";
+import {
+  fetchMyStaffStores,
+  syncStaffStoreSlugAfterLogin,
+} from "@/react-app/services/api";
+import { queryClient } from "@/react-app/query/queryClient";
+import { adminMeQueryKey, storeSettingsQueryKey } from "@/react-app/query/queryKeys";
 
 export type AuthContextValue = {
   user: UserContext | null;
@@ -62,6 +68,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stores = await fetchMyStaffStores();
+        if (!cancelled) syncStaffStoreSlugAfterLogin(stores);
+      } catch (err) {
+        console.error("AuthContext: falha ao sincronizar slug da loja", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
   const user = sessionToUser(session);
 
   // signIn: delega ao serviço de auth (Supabase). useCallback([]): referência estável para o objeto memoizado `value` abaixo.
@@ -72,6 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // signOut: encerra sessão no cliente. useCallback: não recriar função a cada render do Provider.
   const signOut = useCallback(async () => {
     await serviceLogout();
+    queryClient.removeQueries({ queryKey: adminMeQueryKey });
+    void queryClient.invalidateQueries({ queryKey: storeSettingsQueryKey });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
   }, []);
 
   // getAccessToken: lê token atual (ex.: chamadas admin). useCallback: mesma referência entre renders.

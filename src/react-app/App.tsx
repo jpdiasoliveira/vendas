@@ -20,11 +20,14 @@ import PlatformSettingsPage from "@/react-app/pages/admin/platform/PlatformSetti
 import OrderConfirmationPage from "@/react-app/pages/OrderConfirmation";
 import OrderPublicTrackPage from "@/react-app/pages/OrderPublicTrackPage";
 import AdminCategoriesPage from "@/react-app/pages/AdminCategories";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { CartProvider } from "@/react-app/contexts/CartContext";
 import { StoreSettingsProvider, useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { AuthProvider } from "@/react-app/contexts/AuthContext";
 import { AuthProvider as MochaAuthProvider } from "@getmocha/users-service/react";
 import { AdminGuard } from "@/react-app/components/auth/AdminGuard";
+import { AdminLayout } from "@/react-app/components/admin/AdminLayout";
+import { queryClient } from "@/react-app/query/queryClient";
 import { AlertCircle } from "lucide-react";
 
 const isPlatformCentralPath = (pathname: string) => pathname.startsWith("/admin/platform");
@@ -93,41 +96,45 @@ const StoreBootGate = ({ children }: { children: ReactNode }) => {
 
 export default function App() {
   return (
-    <MochaAuthProvider>
-      <StoreSettingsProvider>
-        <CartProvider>
-          <Router>
-            <AuthProvider>
-              <StoreBootGate>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                  <Route path="/pedidos" element={<OrdersPage />} />
-                  <Route path="/order/:orderId/confirmation" element={<OrderConfirmationPage />} />
-                  <Route path="/pedido/acompanhar" element={<OrderPublicTrackPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/admin" element={<AdminGuard />}>
-                    <Route path="pedidos" element={<AdminOrdersPage />} />
-                    <Route path="produtos" element={<AdminProductsPage />} />
-                    <Route path="categorias" element={<AdminCategoriesPage />} />
-                    <Route path="configuracoes" element={<AdminSettingsPage />} />
-                    <Route path="historico" element={<AuditLogsPage />} />
-                    <Route path="platform" element={<PlatformLayout />}>
-                      <Route index element={<Navigate to="/admin/platform/dashboard" replace />} />
-                      <Route path="dashboard" element={<PlatformDashboardPage />} />
-                      <Route path="lojas" element={<PlatformStoresPage />} />
-                      <Route path="planos" element={<PlatformPlansPage />} />
-                      <Route path="configuracoes" element={<PlatformSettingsPage />} />
+    <QueryClientProvider client={queryClient}>
+      <MochaAuthProvider>
+        <StoreSettingsProvider>
+          <CartProvider>
+            <Router>
+              <AuthProvider>
+                <StoreBootGate>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                    <Route path="/pedidos" element={<OrdersPage />} />
+                    <Route path="/order/:orderId/confirmation" element={<OrderConfirmationPage />} />
+                    <Route path="/pedido/acompanhar" element={<OrderPublicTrackPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/admin" element={<AdminGuard />}>
+                      <Route element={<AdminLayout />}>
+                        <Route path="pedidos" element={<AdminOrdersPage />} />
+                        <Route path="produtos" element={<AdminProductsPage />} />
+                        <Route path="categorias" element={<AdminCategoriesPage />} />
+                        <Route path="configuracoes" element={<AdminSettingsPage />} />
+                        <Route path="historico" element={<AuditLogsPage />} />
+                      </Route>
+                      <Route path="platform" element={<PlatformLayout />}>
+                        <Route index element={<Navigate to="/admin/platform/dashboard" replace />} />
+                        <Route path="dashboard" element={<PlatformDashboardPage />} />
+                        <Route path="lojas" element={<PlatformStoresPage />} />
+                        <Route path="planos" element={<PlatformPlansPage />} />
+                        <Route path="configuracoes" element={<PlatformSettingsPage />} />
+                      </Route>
+                      <Route path="plataforma" element={<Navigate to="/admin/platform/dashboard" replace />} />
+                      <Route path="plataforma/nova-loja" element={<Navigate to="/admin/platform/dashboard" replace />} />
                     </Route>
-                    <Route path="plataforma" element={<Navigate to="/admin/platform/dashboard" replace />} />
-                    <Route path="plataforma/nova-loja" element={<Navigate to="/admin/platform/dashboard" replace />} />
-                  </Route>
-                </Routes>
-              </StoreBootGate>
-            </AuthProvider>
-          </Router>
-        </CartProvider>
-      </StoreSettingsProvider>
-    </MochaAuthProvider>
+                  </Routes>
+                </StoreBootGate>
+              </AuthProvider>
+            </Router>
+          </CartProvider>
+        </StoreSettingsProvider>
+      </MochaAuthProvider>
+    </QueryClientProvider>
   );
 }

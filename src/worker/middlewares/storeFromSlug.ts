@@ -15,6 +15,7 @@ const SKIP_STORE_PATHS = [
   "/api/login",
   "/api/health",
   "/api/platform",
+  "/api/me",
 ];
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);

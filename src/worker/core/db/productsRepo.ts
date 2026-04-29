@@ -7,7 +7,12 @@ import type { CartItemPayload, Product } from "../schema.js";
 import { rowToProduct } from "./mappers.js";
 import { OrderBusinessError } from "../orderErrors.js";
 
-const PRODUCT_SELECT_WITH_CATEGORY = "*, categories(name)";
+/**
+ * Colunas explícitas de `products` + embed só `categories(name)`.
+ * Evita `*` com resource embutido (PostgREST pode inferir colunas erradas na relação) e não pede nada em `categories` além do nome.
+ */
+const PRODUCT_SELECT_WITH_CATEGORY =
+  "id, store_id, category_id, name, slug, description, price, price_wholesale, min_quantity_wholesale, stock, status, image_url, metadata, created_at, updated_at, categories(name)";
 
 /** Total de SKUs da loja (para enforcement de `max_products`). */
 export async function countProductsByStore(env: Env, storeId: string): Promise<number> {

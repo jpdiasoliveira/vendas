@@ -19,4 +19,6 @@ export type Variables = {
   user: AuthUser | unknown;
   /** Injetado pelo storeMiddleware, exceto em rotas skip (ex.: /api/platform/*). */
   store?: Store;
+  /** `sub` do JWT Supabase (rotas /api/me/* com verifyJwtOnly, sem tenant). */
+  jwtSubject?: string;
 };

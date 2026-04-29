@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
     "@hono/zod-validator": "^0.5.0",
     "@supabase/supabase-js": "^2.98.0",
     "hono": "4.7.7",

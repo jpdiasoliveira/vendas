@@ -1,15 +1,17 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
   useCallback,
+  useEffect,
   useMemo,
   type ReactNode,
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/react-app/services/api";
 import type { StoreCapabilities, StorePublicProfile } from "@/react-app/types";
 import { hexToRgbTriplet, mixHexColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import { storeSettingsQueryKey } from "@/react-app/query/queryKeys";
+import { ADMIN_PANEL_GC_MS, ADMIN_PANEL_STALE_MS } from "@/react-app/query/adminPanelCache";
 
 export interface StoreSettingsData {
   displayName: string;
@@ -43,34 +45,27 @@ function ensureMetaTag(name: string): HTMLMetaElement | null {
 }
 
 export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [settings, setSettings] = useState<StoreSettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: storeSettingsQueryKey,
+    queryFn: () => apiFetch<StoreSettingsData>("/api/store/settings"),
+    staleTime: ADMIN_PANEL_STALE_MS,
+    gcTime: ADMIN_PANEL_GC_MS,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
-  // fetchSettings: GET /api/store/settings e atualiza estado. useCallback([]): `refetch` estável para consumidores e para o useMemo do `contextValue`.
-  const fetchSettings = useCallback(async (opts?: { silent?: boolean }) => {
-    const silent = opts?.silent === true;
-    if (!silent) {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      const data = await apiFetch<StoreSettingsData>("/api/store/settings");
-      setSettings(data ?? null);
-      if (silent) setError(null);
-    } catch (err) {
-      if (!silent) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar configurações");
-        setSettings(null);
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, []);
+  const settings = query.data ?? null;
+  const loading = query.isPending;
+  const error =
+    query.error instanceof Error
+      ? query.error.message
+      : query.error
+        ? String(query.error)
+        : null;
 
-  useEffect(() => {
-    void fetchSettings();
-  }, [fetchSettings]);
+  const refetch = useCallback(async (_opts?: { silent?: boolean }) => {
+    await query.refetch();
+  }, [query]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -108,30 +103,14 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     if (themeMeta) themeMeta.setAttribute("content", primary);
   }, [settings?.displayName, settings?.publicProfile?.shippingInfo, settings?.publicProfile?.tagline, settings?.primaryColor]);
 
-  useEffect(() => {
-    let tid: ReturnType<typeof setTimeout> | undefined;
-    const onVis = () => {
-      if (document.visibilityState !== "visible") return;
-      clearTimeout(tid);
-      tid = setTimeout(() => void fetchSettings({ silent: true }), 400);
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      clearTimeout(tid);
-    };
-  }, [fetchSettings]);
-
-  // contextValue: estado da loja + refetch; mesma ideia do Auth/Cart — referência estável evita re-render em massa (ex.: Navbar + Home) quando o Provider reexecuta sem mudança semântica.
-  // useMemo([settings, loading, error, fetchSettings]): só novo objeto quando um destes campos muda; `fetchSettings` já é estável via useCallback.
   const contextValue = useMemo<StoreSettingsContextType>(
     () => ({
       settings,
       loading,
       error,
-      refetch: fetchSettings,
+      refetch,
     }),
-    [settings, loading, error, fetchSettings]
+    [settings, loading, error, refetch]
   );
 
   return (

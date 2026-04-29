@@ -12,6 +12,7 @@ import auth from "./routes/auth.js";
 import admin from "./routes/admin.js";
 import store from "./routes/store.js";
 import platform from "./routes/platform.js";
+import me from "./routes/me.js";
 
 /**
  * @file index.ts
@@ -51,6 +52,7 @@ app.route('/api/orders', orders);
 app.route("/api/shipping", shipping);
 app.route("/api/coupons", coupons);
 app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curtas ex: '/api/users/me'
+app.route("/api/me", me);
 app.route("/api/webhooks", webhooks);
 app.route("/api/admin", admin);
 app.route("/api/store", store);

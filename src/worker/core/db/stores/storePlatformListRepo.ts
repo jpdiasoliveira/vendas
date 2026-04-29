@@ -68,27 +68,54 @@ export async function listPlatformStores(env: Env): Promise<PlatformStoreOvervie
     }
   }
 
+  const ownerEmailByStore = new Map<string, string>();
+
+  let rpcOk = false;
+  if (ids.length > 0) {
+    const { data: rpcRows, error: rpcErr } = await supabase.rpc("platform_owner_emails_for_store_ids", {
+      p_store_ids: ids,
+    });
+    if (!rpcErr && Array.isArray(rpcRows)) {
+      rpcOk = true;
+      for (const row of rpcRows as { store_id?: string; owner_email?: string | null }[]) {
+        const sid = String(row.store_id ?? "");
+        if (sid) ownerEmailByStore.set(sid, String(row.owner_email ?? ""));
+      }
+    }
+  }
+
+  const ownerIdsNeedingAuth = new Set<string>();
+  for (const [sid, uid] of ownerByStore) {
+    if (!uid) continue;
+    const rpcEmail = (ownerEmailByStore.get(sid) ?? "").trim();
+    if (!rpcOk || !rpcEmail) ownerIdsNeedingAuth.add(uid);
+  }
+
   const emailByUserId = new Map<string, string>();
-  const uniqueOwnerIds = [...new Set(ownerByStore.values())].filter(Boolean);
-  const chunkSize = 12;
-  for (let i = 0; i < uniqueOwnerIds.length; i += chunkSize) {
-    const slice = uniqueOwnerIds.slice(i, i + chunkSize);
-    await Promise.all(
-      slice.map(async (uid) => {
-        try {
-          const { data, error } = await supabase.auth.admin.getUserById(uid);
-          if (!error && data?.user?.email) emailByUserId.set(uid, String(data.user.email));
-        } catch {
-          /* ignore */
-        }
-      })
-    );
+  if (ownerIdsNeedingAuth.size > 0) {
+    const toFetch = [...ownerIdsNeedingAuth];
+    const chunkSize = 12;
+    for (let i = 0; i < toFetch.length; i += chunkSize) {
+      const slice = toFetch.slice(i, i + chunkSize);
+      await Promise.all(
+        slice.map(async (uid) => {
+          try {
+            const { data, error } = await supabase.auth.admin.getUserById(uid);
+            if (!error && data?.user?.email) emailByUserId.set(uid, String(data.user.email));
+          } catch {
+            /* ignore */
+          }
+        })
+      );
+    }
   }
 
   return stores.map((row) => {
     const sid = String(row.id);
     const ownerId = ownerByStore.get(sid) ?? "";
-    const ownerEmail = ownerId ? emailByUserId.get(ownerId) ?? "" : "";
+    const fromRpc = (ownerEmailByStore.get(sid) ?? "").trim();
+    const ownerEmail =
+      fromRpc || (ownerId ? emailByUserId.get(ownerId) ?? "" : "");
     return {
       id: sid,
       slug: String(row.slug ?? ""),

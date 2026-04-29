@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/react-app/contexts/AuthContext";
 import { clearStoreSlugOverride, getStoreSlugOverride } from "@/react-app/services/api";
+import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 
 /**
- * Quando existe `saas_store_slug_override` no `localStorage`, todas as chamadas `adminApiFetch`/`apiFetch`
- * enviam `x-store-slug` com esse valor — o Worker trata como se estivesses nessa loja.
- * Este banner aparece nas rotas sob `/admin/` (exceto `/admin/platform/*`, onde a Central já tem a sua faixa).
- *
- * "Sair do modo gerenciamento": remove o override e volta à Central — sem pedir password ao lojista.
+ * Só para **operador da Central** (`VITE_PLATFORM_OPERATOR_EMAILS`) com override de loja no browser:
+ * lembra que as APIs vão nesse tenant e oferece saída para a Central.
+ * Dono da loja (slug por login/sync) não vê esta faixa — não é “personificação”.
  */
 export const AdminImpersonationBanner = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [slug, setSlug] = useState<string | null>(() => getStoreSlugOverride());
@@ -29,6 +30,7 @@ export const AdminImpersonationBanner = () => {
 
   if (location.pathname.startsWith("/admin/platform")) return null;
   if (!slug) return null;
+  if (!isPlatformOperatorEmail(user?.email)) return null;
 
   const exitToCentral = () => {
     clearStoreSlugOverride();
@@ -38,25 +40,22 @@ export const AdminImpersonationBanner = () => {
 
   return (
     <div
-      className="border-b border-amber-600/40 bg-gradient-to-r from-amber-950 via-[#422006] to-amber-950 px-4 py-2.5 text-amber-50 shadow-md"
+      className="border-b border-amber-700/30 bg-amber-950/80 px-4 py-1.5 text-amber-100/95 shadow-sm"
       role="status"
+      aria-label={`Loja em foco: ${slug}`}
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-start gap-2 sm:items-center">
-          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-300 sm:mt-0" aria-hidden />
-          <p className="text-sm leading-snug">
-            <strong className="text-amber-100">Modo personificação:</strong> estás a ver e a gerir o painel como se
-            fosses desta loja: <span className="font-mono text-amber-200">{slug}</span>. As ações contam para esta
-            vitrine até saíres deste modo.
-          </p>
-        </div>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-xs tabular-nums text-amber-200/90">
+          <span className="text-amber-400/80">Loja:</span>{" "}
+          <span className="font-mono text-amber-100">{slug}</span>
+        </p>
         <button
           type="button"
           onClick={exitToCentral}
-          className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-amber-400/50 bg-amber-500/20 px-3 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-500/30 sm:self-center"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-50 transition hover:bg-amber-500/25"
         >
-          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-          Sair do modo gerenciamento e voltar para a Central
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Voltar à Central
         </button>
       </div>
     </div>

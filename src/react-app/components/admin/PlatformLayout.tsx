@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { PlatformShellProvider, usePlatformShell } from "@/react-app/contexts/PlatformShellContext";
 import { PlatformGlobalCommandBar } from "@/react-app/components/admin/PlatformGlobalCommandBar";
+import { PlatformOperatorSessionHint } from "@/react-app/components/admin/PlatformOperatorSessionHint";
 import { PlatformNewStoreModal } from "@/react-app/components/admin/PlatformNewStoreModal";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 import { clearStoreSlugOverride, getStoreSlugOverride } from "@/react-app/services/api";
@@ -69,9 +70,9 @@ const PlatformLayoutInner = () => {
         className="fixed bottom-0 left-0 top-0 z-[90] flex w-[260px] shrink-0 flex-col border-r border-slate-800/40 bg-slate-950 text-slate-100 shadow-xl"
         aria-label="Navegação da Central de Comando"
       >
-        <div className="flex h-[86px] w-full shrink-0 flex-col justify-center border-b border-white/10 px-3">
+        <div className="flex min-h-[62px] w-full shrink-0 flex-col justify-center border-b border-white/10 px-3 py-2.5">
           <p className="font-playfair text-lg font-semibold leading-tight text-white">Central</p>
-          <p className="mt-1 text-xs leading-snug text-slate-400">Gestão global da plataforma</p>
+          <p className="mt-0.5 text-xs leading-snug text-slate-400">Gestão global da plataforma</p>
         </div>
 
         <div className="px-3 pt-4">
@@ -106,12 +107,15 @@ const PlatformLayoutInner = () => {
 
         <div className="mt-auto border-t border-white/10 px-3 py-4">
           <p className="truncate px-2 text-xs font-medium uppercase tracking-wider text-slate-400">Operador</p>
-          <p
-            className={`mt-1.5 truncate px-2 text-sm leading-snug text-slate-200 ${operatorEmail ? "font-mono" : "italic text-slate-400"}`}
-            title={operatorEmail ?? undefined}
-          >
-            {operatorEmail ?? "E-mail não disponível"}
-          </p>
+          <div className="mt-1.5 flex items-start gap-2 px-2">
+            <p
+              className={`min-w-0 flex-1 truncate text-sm leading-snug text-slate-200 ${operatorEmail ? "font-mono" : "italic text-slate-400"}`}
+              title={operatorEmail ?? undefined}
+            >
+              {operatorEmail ?? "E-mail não disponível"}
+            </p>
+            <PlatformOperatorSessionHint operatorEmail={operatorEmail} />
+          </div>
           <button
             type="button"
             onClick={() => setShowLogoutModal(true)}
@@ -131,11 +135,7 @@ const PlatformLayoutInner = () => {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pl-[260px]">
-        <PlatformGlobalCommandBar
-          operatorEmail={user?.email ?? null}
-          storeOverrideSlug={overrideSlug}
-          onClearStoreOverride={clearOverride}
-        />
+        <PlatformGlobalCommandBar storeOverrideSlug={overrideSlug} onClearStoreOverride={clearOverride} />
         <main className="min-h-0 flex-1 overflow-auto">
           <Outlet />
         </main>

@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff, Copy } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
+import {
+  fetchMyStaffStores,
+  syncStaffStoreSlugAfterLogin,
+} from "@/react-app/services/api";
 
 const LAST_AUTH_ERROR_KEY = "lastAuthError";
 
@@ -45,8 +49,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      // Pequena espera para o Supabase emitir onAuthStateChange e o AuthContext atualizar antes de navegar
-      await new Promise((r) => setTimeout(r, 300));
+      // Alinha slug da loja com memberships (localhost + VITE_DEFAULT_STORE_SLUG vs. loja nova do dono).
+      const staffStores = await fetchMyStaffStores();
+      syncStaffStoreSlugAfterLogin(staffStores);
+      await new Promise((r) => setTimeout(r, 150));
       const next = safeInternalPath(searchParams.get("next")?.trim() ?? null);
       navigate(next ?? "/admin/pedidos", { replace: true });
     } catch (err: unknown) {

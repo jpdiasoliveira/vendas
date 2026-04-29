@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Loader2, Save, ImagePlus } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
-import type { Category } from "@/react-app/types";
 import { useCurrencyMask } from "@/react-app/hooks/useCurrencyMask";
 import { useCapabilities } from "@/react-app/hooks/useCapabilities";
+import { useAdminCategoriesQuery } from "@/react-app/hooks/useAdminCategoriesQuery";
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -25,8 +25,9 @@ export const AddProductModal = ({
   const priceMask = useCurrencyMask();
   const [stock, setStock] = useState("0");
   const [categoryId, setCategoryId] = useState("");
-  const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const categoriesQuery = useAdminCategoriesQuery({ enabled: isOpen });
+  const categoryOptions = categoriesQuery.data ?? [];
+  const categoriesLoading = categoriesQuery.isPending && categoriesQuery.data === undefined;
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,26 +63,6 @@ export const AddProductModal = ({
 
   const inputBase =
     "w-full rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 bg-white transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-200 focus:outline-none";
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-    setCategoriesLoading(true);
-    adminApiFetch<Category[]>("/api/admin/categories")
-      .then((list) => {
-        if (!cancelled) setCategoryOptions(Array.isArray(list) ? list : []);
-      })
-      .catch((err) => {
-        console.error("[AddProductModal.loadCategories]", err);
-        if (!cancelled) setCategoryOptions([]);
-      })
-      .finally(() => {
-        if (!cancelled) setCategoriesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 

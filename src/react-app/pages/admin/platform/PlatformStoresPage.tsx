@@ -114,7 +114,7 @@ const PlatformStoresPage = () => {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome da loja, endereço ou e-mail do proprietário…"
+            placeholder="Buscar por nome, link da loja ou e-mail do proprietário…"
             className="w-full rounded-2xl border border-slate-800/15 bg-white py-3 pl-11 pr-4 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:border-[var(--brand-primary)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20"
             autoComplete="off"
           />
@@ -136,7 +136,7 @@ const PlatformStoresPage = () => {
             <thead className="border-b border-[color:var(--brand-primary)]/10 bg-white/95 font-semibold text-[#1B4332]">
               <tr>
                 <th className="px-4 py-3 sm:px-5">Loja</th>
-                <th className="px-4 py-3 sm:px-5">Endereço da Loja</th>
+                <th className="px-4 py-3 sm:px-5">Link da Loja</th>
                 <th className="px-4 py-3 sm:px-5">Proprietário</th>
                 <th className="px-4 py-3 sm:px-5">Status</th>
                 <th className="px-4 py-3 sm:px-5">Vendas pagas (30 dias)</th>
@@ -176,7 +176,7 @@ const PlatformStoresPage = () => {
                       <td className="px-4 py-3 sm:px-5">
                         <StoreStatusBadge status={storeRow.status} />
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs sm:px-5 sm:text-sm">
+                      <td className="px-4 py-3 font-mono text-sm sm:px-5">
                         {brl(rank?.gmvPaidBrlLast30d ?? 0)}
                       </td>
                       <td className="px-4 py-3 sm:px-5">{rank?.paidOrdersLast30d ?? 0}</td>

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router";
 import { RefreshCw, Home, LayoutDashboard, DollarSign, Flame, ScrollText } from "lucide-react";
 import type { Order, Product } from "@/react-app/types";
 import { buildOrderConfirmationShareUrl } from "@/react-app/utils/orderConfirmationUrl";
-import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { OrderDetailsModal } from "@/react-app/components/admin/OrderDetailsModal";
 import { InsertTrackingModal } from "@/react-app/components/admin/InsertTrackingModal";
 import { HistoryOrderDetailModal } from "@/react-app/components/admin/HistoryOrderDetailModal";
@@ -73,7 +72,7 @@ const AdminOrdersPage = () => {
   }, [loadDashboardSummary]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+    <div className="px-2.5 pb-12 pt-6 sm:px-3 lg:px-4">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -93,18 +92,16 @@ const AdminOrdersPage = () => {
               </div>
             </div>
           </div>
-          <div className="w-full min-w-0 sm:w-auto">
-            <AdminNav>
-              <button
-                type="button"
-                onClick={() => void m.fetchOrders()}
-                disabled={m.loading}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white/80 px-4 py-3 text-base font-medium text-[var(--brand-primary)] shadow-sm transition-all hover:bg-white disabled:opacity-60"
-              >
-                <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
-                Atualizar
-              </button>
-            </AdminNav>
+          <div className="flex w-full min-w-0 justify-end sm:w-auto">
+            <button
+              type="button"
+              onClick={() => void m.fetchOrders()}
+              disabled={m.loading}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white/80 px-4 py-3 text-base font-medium text-[var(--brand-primary)] shadow-sm transition-all hover:bg-white disabled:opacity-60"
+            >
+              <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
+              Atualizar
+            </button>
           </div>
         </div>
 

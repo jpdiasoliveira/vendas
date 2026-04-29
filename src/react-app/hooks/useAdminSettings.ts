@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
-import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/react-app/contexts/AuthContext";
+import { adminApiFetch, adminUploadImage, getEffectiveStoreSlug } from "@/react-app/services/api";
 import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import type { StorePublicProfile } from "@/react-app/types";
 import { parsePublicProfile } from "@/worker/core/storePublicProfile";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
 import { formatBRL, parseBRL } from "@/react-app/utils/adminSettingsBrl";
+import { adminStoreSettingsFormQueryKey } from "@/react-app/query/queryKeys";
+import { ADMIN_PANEL_GC_MS, ADMIN_PANEL_STALE_MS } from "@/react-app/query/adminPanelCache";
 
 const emptyProfile = (): StorePublicProfile => parsePublicProfile({});
 
@@ -15,8 +19,28 @@ export type AdminProfileImageField = "storyImageUrl" | "lifestyleLeftImageUrl" |
 
 export const useAdminSettings = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { refetch: refetchStoreSettings } = useStoreSettings();
-  const [loading, setLoading] = useState(true);
+  const storeSlug = getEffectiveStoreSlug();
+
+  const settingsQuery = useQuery({
+    queryKey: adminStoreSettingsFormQueryKey(storeSlug || "_"),
+    queryFn: () => adminApiFetch<StoreSettingsData>("/api/admin/settings"),
+    staleTime: ADMIN_PANEL_STALE_MS,
+    gcTime: ADMIN_PANEL_GC_MS,
+    retry: false,
+    enabled: !!user,
+  });
+
+  const loading = settingsQuery.isPending && settingsQuery.data === undefined;
+  const loadError =
+    settingsQuery.isError
+      ? settingsQuery.error instanceof Error
+        ? settingsQuery.error.message
+        : String(settingsQuery.error)
+      : null;
+
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -38,36 +62,22 @@ export const useAdminSettings = () => {
   const saveSuccessRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let mounted = true;
-    adminApiFetch<StoreSettingsData>("/api/admin/settings")
-      .then((data) => {
-        if (!mounted) return;
-        setDisplayName(data?.displayName ?? "");
-        setLogoUrl(data?.logoUrl ?? "");
-        setBannerUrl(data?.bannerUrl ?? "");
-        setMinimumOrderValue(data?.minimumOrderValue != null ? formatBRL(data.minimumOrderValue) : "");
-        setPrimaryColor(
-          data?.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(data.primaryColor) ? data.primaryColor : "#1B4332"
-        );
-        const parsed = parsePublicProfile(data?.publicProfile ?? {});
-        setPublicProfile({
-          ...parsed,
-          contactWhatsapp: parsed.contactWhatsapp
-            ? formatBrazilPhoneInput(parsed.contactWhatsapp)
-            : null,
-          contactPhone: parsed.contactPhone ? formatBrazilPhoneInput(parsed.contactPhone) : null,
-        });
-      })
-      .catch((err: unknown) => {
-        if (mounted) setError(err instanceof Error ? err.message : "Erro ao carregar configurações");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    const data = settingsQuery.data;
+    if (!data) return;
+    setDisplayName(data.displayName ?? "");
+    setLogoUrl(data.logoUrl ?? "");
+    setBannerUrl(data.bannerUrl ?? "");
+    setMinimumOrderValue(data.minimumOrderValue != null ? formatBRL(data.minimumOrderValue) : "");
+    setPrimaryColor(
+      data.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(data.primaryColor) ? data.primaryColor : "#1B4332"
+    );
+    const parsed = parsePublicProfile(data.publicProfile ?? {});
+    setPublicProfile({
+      ...parsed,
+      contactWhatsapp: parsed.contactWhatsapp ? formatBrazilPhoneInput(parsed.contactWhatsapp) : null,
+      contactPhone: parsed.contactPhone ? formatBrazilPhoneInput(parsed.contactPhone) : null,
+    });
+  }, [settingsQuery.data]);
 
   useEffect(() => {
     if (!success) return;
@@ -213,6 +223,7 @@ export const useAdminSettings = () => {
         if (bannerUrlFinal) setBannerUrl(bannerUrlFinal);
         setCheckoutLoginAck(null);
         setSuccess(true);
+        void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
         await refetchStoreSettings({ silent: true });
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Erro ao salvar");
@@ -230,8 +241,11 @@ export const useAdminSettings = () => {
       primaryColor,
       publicProfile,
       refetchStoreSettings,
+      queryClient,
     ]
   );
+
+  const combinedError = error ?? loadError;
 
   return {
     navigate,
@@ -240,7 +254,7 @@ export const useAdminSettings = () => {
     uploadingImage,
     uploadingBanner,
     uploadingProfileImage,
-    error,
+    error: combinedError,
     success,
     displayName,
     setDisplayName,

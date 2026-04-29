@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import { Home, LayoutDashboard, Save, Image as ImageIcon, ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
-import { AdminNav } from "@/react-app/components/admin/AdminNav";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
 import { AdminStorefrontPreviewPanel } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
@@ -94,9 +93,6 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 </p>
               </div>
             </div>
-          </div>
-          <div className="w-full min-w-0 sm:w-auto">
-            <AdminNav />
           </div>
         </div>
 

@@ -1,12 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
-import { AdminNav } from "@/react-app/components/admin/AdminNav";
+import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
 import { Loader2, Plus, Trash2, Pencil, FolderTree } from "lucide-react";
+import { useAdminCategoriesQuery } from "@/react-app/hooks/useAdminCategoriesQuery";
 
 const AdminCategoriesPage = () => {
-  const [list, setList] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const categoriesQuery = useAdminCategoriesQuery();
+  const list = categoriesQuery.data ?? [];
+  const loading = categoriesQuery.isPending && categoriesQuery.data === undefined;
+  const loadError =
+    categoriesQuery.isError
+      ? categoriesQuery.error instanceof Error
+        ? categoriesQuery.error.message
+        : String(categoriesQuery.error)
+      : null;
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -15,22 +24,11 @@ const AdminCategoriesPage = () => {
   const [editName, setEditName] = useState("");
   const [editOrder, setEditOrder] = useState("0");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApiFetch<Category[]>("/api/admin/categories");
-      setList(Array.isArray(data) ? data : []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar categorias");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const invalidateCategories = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+  }, [queryClient]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const combinedError = error ?? loadError;
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -47,7 +45,7 @@ const AdminCategoriesPage = () => {
       });
       setNewName("");
       setNewOrder("0");
-      await load();
+      invalidateCategories();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao criar");
     } finally {
@@ -72,7 +70,7 @@ const AdminCategoriesPage = () => {
         }),
       });
       setEditingId(null);
-      await load();
+      invalidateCategories();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao salvar");
     }
@@ -83,17 +81,16 @@ const AdminCategoriesPage = () => {
     setError(null);
     try {
       await adminApiFetch(`/api/admin/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
-      await load();
+      invalidateCategories();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao excluir");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F3] px-4 pb-12 pt-6 sm:px-6">
+    <div className="px-2.5 pb-12 pt-6 sm:px-3 lg:px-4">
       <div className="mx-auto max-w-3xl">
-        <AdminNav />
-        <div className="mt-6 rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-3">
             <FolderTree className="h-8 w-8 text-[#1B4332]" aria-hidden />
             <div>
@@ -102,8 +99,8 @@ const AdminCategoriesPage = () => {
             </div>
           </div>
 
-          {error ? (
-            <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+          {combinedError ? (
+            <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{combinedError}</div>
           ) : null}
 
           <section className="mb-8 rounded-2xl border border-[#1B4332]/10 bg-[#FAF8F3]/50 p-4">

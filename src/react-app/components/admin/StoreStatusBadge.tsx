@@ -11,8 +11,8 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Ativa",
-  trialing: "Período de Teste",
-  past_due: "Pendência Financeira",
+  trialing: "Em Teste",
+  past_due: "Aguardando Pagamento",
   suspended: "Suspensa",
   archived: "Arquivada",
   cancelled: "Encerrada",

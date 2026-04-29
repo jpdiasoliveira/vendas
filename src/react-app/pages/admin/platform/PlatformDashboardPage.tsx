@@ -105,19 +105,25 @@ const PlatformDashboardPage = () => {
       <div className="mb-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-6 shadow-md">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Receita recorrente estimada</p>
-          <p className="font-playfair text-2xl font-semibold tabular-nums text-[#1B4332]">{brl(overview.mrrBrlEstimated)}</p>
+          <p className="font-playfair text-3xl font-semibold tabular-nums leading-tight text-[#1B4332]">
+            {brl(overview.mrrBrlEstimated)}
+          </p>
           <p className="mt-2 text-xs leading-relaxed text-slate-400">
             {mrrSubscriptionsCaption(overview.payingOrTrialingSubscriptions)}
           </p>
         </div>
         <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-6 shadow-md">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Lojas ativas</p>
-          <p className="font-playfair text-2xl font-semibold tabular-nums text-[#1B4332]">{overview.activeStoresCount}</p>
+          <p className="font-playfair text-3xl font-semibold tabular-nums leading-tight text-[#1B4332]">
+            {overview.activeStoresCount}
+          </p>
           <p className="mt-2 text-xs leading-relaxed text-slate-400">Lojas com operação ativa neste momento.</p>
         </div>
         <div className="rounded-2xl border border-[color:var(--brand-primary)]/15 bg-white/95 p-6 shadow-md">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Vendas pagas (30 dias)</p>
-          <p className="font-playfair text-2xl font-semibold tabular-nums text-[#1B4332]">{brl(overview.gmvPaidBrlLast30d)}</p>
+          <p className="font-playfair text-3xl font-semibold tabular-nums leading-tight text-[#1B4332]">
+            {brl(overview.gmvPaidBrlLast30d)}
+          </p>
           <p className="mt-2 text-xs leading-relaxed text-slate-400">
             Soma em reais dos pedidos já pagos nos últimos 30 dias.
           </p>

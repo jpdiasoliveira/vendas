@@ -1,11 +1,11 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Package, ShoppingBag, Activity, LogOut, Settings, Building2, FolderTree } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
-import { adminApiFetch } from "@/react-app/services/api";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
+import { useAdminMeQuery } from "@/react-app/hooks/useAdminMeQuery";
 
 type AdminNavProps = {
   /** Ações da página (ex.: Atualizar) — ficam antes de Sair, alinhadas à direita. */
@@ -17,15 +17,10 @@ export const AdminNav = ({ children }: AdminNavProps) => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { settings } = useStoreSettings();
-  const [role, setRole] = useState<string | null>(null);
+  const { data: me } = useAdminMeQuery();
+  const role = me?.role ?? null;
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const storeName = settings?.displayName?.trim() || "Loja";
-
-  useEffect(() => {
-    adminApiFetch<{ id: string; role: string }>("/api/admin/me")
-      .then((data) => setRole(data.role))
-      .catch(() => setRole(null));
-  }, []);
 
   const isAdminOrOwner = role === "admin" || role === "owner";
   const showPlatform = isPlatformOperatorEmail(user?.email);
@@ -51,38 +46,39 @@ export const AdminNav = ({ children }: AdminNavProps) => {
     }`;
 
   return (
-    <nav className="flex w-full min-w-0 flex-col gap-3 font-inter" aria-label="Painel administrativo">
-      <div className="flex items-center gap-2.5 border-b border-[color:var(--brand-primary)]/10 pb-2.5">
-        {settings?.logoUrl?.trim() ? (
-          <img src={settings.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
-        ) : null}
-        <p className="min-w-0 text-balance font-semibold leading-snug text-[var(--brand-primary)] sm:text-lg">{storeName}</p>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Seções do painel">
-          {links.map(({ to, label, icon: Icon }) => {
-            const isActive = location.pathname === to;
-            return (
-              <Link key={to} to={to} className={linkClass(isActive)} role="tab" aria-selected={isActive}>
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
-            );
-          })}
+    <nav className="flex w-full min-w-0 flex-col gap-0 font-inter" aria-label="Painel administrativo">
+      {/* Barra superior: loja à esquerda, utilitários (Sair) à direita — evita competir com a linha de abas. */}
+      <div className="flex items-center justify-between gap-3 border-b border-[color:var(--brand-primary)]/10 pb-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {settings?.logoUrl?.trim() ? (
+            <img src={settings.logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
+          ) : null}
+          <p className="min-w-0 truncate font-semibold leading-snug text-[var(--brand-primary)] sm:text-lg">{storeName}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
+        <div className="flex shrink-0 items-center gap-2">
           {children}
           <button
             type="button"
             onClick={() => setShowLogoutModal(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/10 bg-white/60 px-3 py-2 text-sm font-medium text-[#6D4C41] transition-colors hover:bg-white hover:text-[var(--brand-primary)] sm:px-4"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[color:var(--brand-primary)]/15 bg-white/80 px-2.5 py-1.5 text-xs font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-white hover:text-[var(--brand-primary)] sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 sm:text-sm"
             aria-label="Sair do painel"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <LogOut className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
             Sair
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap justify-start gap-2 pt-3" role="tablist" aria-label="Seções do painel">
+        {links.map(({ to, label, icon: Icon }) => {
+          const isActive = location.pathname === to;
+          return (
+            <Link key={to} to={to} className={linkClass(isActive)} role="tab" aria-selected={isActive}>
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </Link>
+          );
+        })}
       </div>
       <LogoutConfirmModal
         isOpen={showLogoutModal}
