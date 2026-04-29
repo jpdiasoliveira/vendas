@@ -1,9 +1,26 @@
+import { useCallback, useMemo } from "react";
 import { Home, LayoutDashboard, Save, Image as ImageIcon, ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
+import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
+import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
+import { AdminStorefrontPreviewPanel } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
+import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
+import { useStorefrontPreviewFocus } from "@/react-app/components/admin/useStorefrontPreviewFocus";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
+import { parseBRL } from "@/react-app/utils/adminSettingsBrl";
 import type { AdminSettingsViewModel } from "@/react-app/hooks/useAdminSettings";
+import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
 
 export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
+  const { activeSection, previewFocus, previewBlur } = useStorefrontPreviewFocus();
+  const fp = useCallback(
+    (id: StorefrontPreviewSectionId) => ({
+      onFocus: () => previewFocus(id),
+      onBlur: previewBlur,
+    }),
+    [previewFocus, previewBlur]
+  );
+
   const {
     navigate,
     error,
@@ -11,6 +28,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     saving,
     uploadingImage,
     uploadingBanner,
+    uploadingProfileImage,
     displayName,
     setDisplayName,
     logoUrl,
@@ -31,13 +49,33 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     bannerPreview,
     handleLogoFile,
     handleBannerFile,
+    handleProfileImageFile,
     handleSubmit,
     inputCls,
     saveSuccessRef,
   } = m;
 
+  const previewMerge = useMemo<Partial<StoreSettingsData>>(
+    () => ({
+      displayName: displayName.trim() || "Sua Loja",
+      logoUrl: (() => {
+        const v = (imagePreview ?? logoUrl).trim();
+        return v || null;
+      })(),
+      bannerUrl: (() => {
+        const v = (bannerPreview ?? bannerUrl).trim();
+        return v || null;
+      })(),
+      primaryColor: primaryColor || null,
+      minimumOrderValue: parseBRL(minimumOrderValue),
+      publicProfile,
+    }),
+    [displayName, logoUrl, imagePreview, bannerUrl, bannerPreview, primaryColor, minimumOrderValue, publicProfile]
+  );
+
   return (
-      <div className="mx-auto w-full max-w-7xl">
+    <div className="relative w-full">
+      <div className="mx-auto w-full max-w-[min(100%,1920px)] lg:mx-0 lg:max-w-[calc(50vw-12px)] lg:pr-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <button
@@ -69,8 +107,9 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
         )}
         <form
           onSubmit={handleSubmit}
-          className="w-full bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 p-6 space-y-8 font-inter"
+          className="w-full bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 p-4 sm:p-5 font-inter"
         >
+          <div className="min-w-0 space-y-8">
           <section className="space-y-4">
             <h2 className="text-lg font-semibold text-[#1B4332] border-b border-[#1B4332]/15 pb-2">
               Identidade visual
@@ -86,6 +125,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Ex: Sua Loja"
                 className={inputCls}
+                {...fp("navbar")}
               />
             </div>
             <div>
@@ -104,6 +144,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 placeholder="Opcional — aparece abaixo do nome na barra e no rodapé"
                 className={inputCls}
+                {...fp("navbar")}
               />
               <p className="text-xs text-[#6D4C41]/80 mt-1">Se ficar vazio, a linha extra não é exibida.</p>
             </div>
@@ -117,8 +158,18 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               <div className="rounded-2xl border border-[#1B4332]/12 bg-[#FAF8F3]/50 p-4 sm:p-5">
                 <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch lg:gap-6">
                   <div className="flex min-h-0 min-w-0 flex-col justify-between gap-4 lg:min-h-[12.5rem]">
-                    <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white">
-                      <input type="file" accept="image/*" className="sr-only" onChange={handleLogoFile} />
+                    <label
+                      className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white"
+                      onMouseDown={() => previewFocus("navbar")}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleLogoFile}
+                        onFocus={() => previewFocus("navbar")}
+                        onBlur={previewBlur}
+                      />
                       <ImagePlus className="h-5 w-5 shrink-0 text-[#6D4C41]" />
                       <span className="text-sm font-medium text-[#6D4C41]">Enviar imagem do logo</span>
                     </label>
@@ -133,6 +184,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                         onChange={(e) => setLogoUrl(e.target.value)}
                         placeholder="https://..."
                         className={`w-full ${inputCls} break-all`}
+                        {...fp("navbar")}
                       />
                     </div>
                   </div>
@@ -193,6 +245,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   className="w-12 h-12 rounded-lg border border-[#1B4332]/20 cursor-pointer bg-white"
+                  {...fp("navbar")}
                 />
                 <input
                   type="text"
@@ -205,6 +258,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }}
                   placeholder="#1B4332"
                   className={`flex-1 font-mono text-sm ${inputCls}`}
+                  {...fp("navbar")}
                 />
               </div>
               <p className="text-xs text-[#6D4C41]/80 mt-1">
@@ -217,8 +271,18 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               <p className="text-xs text-[#6D4C41]/80 -mt-1">
                 Imagem larga atrás do texto principal (hero). Envie arquivo ou cole a URL pública.
               </p>
-              <label className="flex w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white">
-                <input type="file" accept="image/*" className="sr-only" onChange={handleBannerFile} />
+              <AdminPreviewLinkHint section="hero" />
+              <label
+                className="flex w-full max-w-md cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#1B4332]/25 bg-white/80 px-4 py-3.5 transition-colors hover:border-[#1B4332]/45 hover:bg-white"
+                onMouseDown={() => previewFocus("hero")}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleBannerFile}
+                  {...fp("hero")}
+                />
                 <ImagePlus className="h-5 w-5 shrink-0 text-[#6D4C41]" />
                 <span className="text-sm font-medium text-[#6D4C41]">Enviar imagem do banner</span>
               </label>
@@ -238,8 +302,107 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 onChange={(e) => setBannerUrl(e.target.value)}
                 placeholder="https://… (opcional)"
                 className={inputCls}
+                {...fp("hero")}
               />
             </div>
+
+            <div className="space-y-4 rounded-2xl border border-[#1B4332]/12 bg-[#FAF8F3]/40 p-4">
+              <h3 className="text-sm font-semibold text-[#1B4332]">Textos da página inicial (hero)</h3>
+              <p className="text-xs text-[#6D4C41]/85">
+                Estes textos aparecem no bloco grande da home. Deixe em branco para voltar ao texto padrão de
+                demonstração.
+              </p>
+              <p className="text-[11px] text-[#6D4C41]/80 -mt-1">
+                O mesmo bloco da pré-visualização inclui o banner acima — tudo é o «hero» no topo da página.
+              </p>
+              <div>
+                <label htmlFor="heroBadge" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                  Selo (linha pequena acima do título)
+                </label>
+                <input
+                  id="heroBadge"
+                  type="text"
+                  value={publicProfile.heroBadge ?? ""}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({
+                      ...prev,
+                      heroBadge: e.target.value.trim() === "" ? undefined : e.target.value,
+                    }))
+                  }
+                  placeholder="Ex.: Premium Orgânico"
+                  className={inputCls}
+                  {...fp("hero")}
+                />
+              </div>
+              <div>
+                <label htmlFor="heroTitle" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                  Título principal
+                </label>
+                <input
+                  id="heroTitle"
+                  type="text"
+                  value={publicProfile.heroTitle ?? ""}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({
+                      ...prev,
+                      heroTitle: e.target.value.trim() === "" ? undefined : e.target.value,
+                    }))
+                  }
+                  placeholder="Título em destaque"
+                  className={inputCls}
+                  {...fp("hero")}
+                />
+              </div>
+              <div>
+                <label htmlFor="heroSubtitle" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                  Subtítulo
+                </label>
+                <textarea
+                  id="heroSubtitle"
+                  rows={2}
+                  value={publicProfile.heroSubtitle ?? ""}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({
+                      ...prev,
+                      heroSubtitle: e.target.value.trim() === "" ? undefined : e.target.value,
+                    }))
+                  }
+                  placeholder="Uma frase que resume a oferta"
+                  className={inputCls}
+                  {...fp("hero")}
+                />
+              </div>
+              <div>
+                <label htmlFor="heroCtaLabel" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                  Texto do botão
+                </label>
+                <input
+                  id="heroCtaLabel"
+                  type="text"
+                  value={publicProfile.heroCtaLabel ?? ""}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({
+                      ...prev,
+                      heroCtaLabel: e.target.value.trim() === "" ? undefined : e.target.value,
+                    }))
+                  }
+                  placeholder="Ex.: Compre agora"
+                  className={inputCls}
+                  {...fp("hero")}
+                />
+              </div>
+            </div>
+
+            <AdminSettingsHomeBlocksForm
+              displayName={displayName}
+              publicProfile={publicProfile}
+              setPublicProfile={setPublicProfile}
+              inputCls={inputCls}
+              previewFocus={previewFocus}
+              previewBlur={previewBlur}
+              uploadingProfileImage={uploadingProfileImage}
+              onProfileImageFile={handleProfileImageFile}
+            />
 
             <div>
               <label htmlFor="minimumOrderValue" className="block text-sm font-medium text-[#6D4C41] mb-1">
@@ -261,6 +424,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }}
                 placeholder="0,00"
                 className={inputCls}
+                {...fp("footerEnd")}
               />
             </div>
           </section>
@@ -274,6 +438,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 type="checkbox"
                 className="mt-1 rounded border-[#1B4332]/30 text-[#1B4332] focus:ring-[#1B4332]/30"
                 checked={publicProfile.requireLoginToCheckout !== false}
+                {...fp("footerEnd")}
                 onChange={(e) => {
                   const checked = e.target.checked;
                   setPublicProfile((p) => ({
@@ -326,6 +491,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }
                   placeholder="(47) 99999-9999 ou link wa.me"
                   className={inputCls}
+                  {...fp("footerContact")}
                 />
               </div>
               <div>
@@ -343,6 +509,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }
                   placeholder="(61) 3333-0000"
                   className={inputCls}
+                  {...fp("footerContact")}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -355,6 +522,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }
                   placeholder="contato@sualoja.com"
                   className={inputCls}
+                  {...fp("footerContact")}
                 />
               </div>
               <div>
@@ -367,6 +535,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }
                   placeholder="https://instagram.com/..."
                   className={inputCls}
+                  {...fp("footerContact")}
                 />
               </div>
               <div>
@@ -379,6 +548,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }
                   placeholder="https://facebook.com/..."
                   className={inputCls}
+                  {...fp("footerContact")}
                 />
               </div>
             </div>
@@ -398,6 +568,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 rows={3}
                 placeholder="Ex.: Seg a Sex 9h–18h"
                 className={`${inputCls} resize-y min-h-[80px]`}
+                {...fp("footerIntro")}
               />
             </div>
             <div>
@@ -410,6 +581,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 rows={4}
                 placeholder="Onde entregamos, valores de frete se houver, prazo médio..."
                 className={`${inputCls} resize-y min-h-[100px]`}
+                {...fp("footerIntro")}
               />
             </div>
           </section>
@@ -431,6 +603,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
+                {...fp("footerPolicies")}
               />
             </div>
             <div>
@@ -442,6 +615,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
+                {...fp("footerPolicies")}
               />
             </div>
             <div>
@@ -453,16 +627,17 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
+                {...fp("footerPolicies")}
               />
             </div>
           </section>
 
           <button
             type="submit"
-            disabled={saving || uploadingImage || uploadingBanner}
+            disabled={saving || uploadingImage || uploadingBanner || uploadingProfileImage != null}
             className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white py-3.5 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving || uploadingImage || uploadingBanner ? (
+            {saving || uploadingImage || uploadingBanner || uploadingProfileImage != null ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Save className="h-5 w-5" />
@@ -471,9 +646,11 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               ? "Enviando logo..."
               : uploadingBanner
                 ? "Enviando banner..."
-                : saving
-                  ? "Salvando..."
-                  : "Salvar configurações"}
+                : uploadingProfileImage != null
+                  ? "Enviando imagem da home..."
+                  : saving
+                    ? "Salvando..."
+                    : "Salvar configurações"}
           </button>
 
           {success ? (
@@ -492,7 +669,28 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               </div>
             </div>
           ) : null}
+          </div>
         </form>
       </div>
+
+      <div
+        className="mt-10 flex flex-col border-t border-[#1B4332]/15 pt-8 lg:fixed lg:bottom-0 lg:right-0 lg:top-24 lg:z-[100] lg:mt-0 lg:w-1/2 lg:overflow-hidden lg:border-l lg:border-t-0 lg:border-[#1B4332]/20 lg:bg-[#FAF8F3]/98 lg:pt-0 lg:shadow-[-8px_0_32px_rgba(27,67,50,0.07)]"
+        role="complementary"
+        aria-label="Pré-visualização da vitrine"
+      >
+        <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:px-2 lg:pb-2">
+          <div className="mb-3 shrink-0 lg:hidden">
+            <h2 className="text-lg font-semibold text-[#1B4332] font-playfair">Pré-visualização da home</h2>
+            <p className="mt-1 text-xs text-[#6D4C41]">
+              No computador esta área fica <strong className="text-[#1B4332]">fixa à direita</strong> enquanto desce o
+              formulário — vê sempre o bloco que está a editar.
+            </p>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <AdminStorefrontPreviewPanel merge={previewMerge} activeSection={activeSection} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

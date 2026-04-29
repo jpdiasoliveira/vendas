@@ -7,6 +7,41 @@
 export type StorePublicProfile = {
   /** Linha curta abaixo do nome da loja (navbar / rodapé). */
   tagline?: string | null;
+  /** Selo acima do título na secção hero da home (ex.: «Premium Orgânico»). */
+  heroBadge?: string | null;
+  /** Título principal do hero na home. */
+  heroTitle?: string | null;
+  /** Parágrafo abaixo do título no hero. */
+  heroSubtitle?: string | null;
+  /** Texto do botão do hero (ex.: «Compre agora»). */
+  heroCtaLabel?: string | null;
+  /** Secção «Nossa História»: selo pequeno, título, corpo (parágrafos separados por linha em branco), imagem, chips. */
+  storyEyebrow?: string | null;
+  storyHeading?: string | null;
+  storyBody?: string | null;
+  storyImageUrl?: string | null;
+  storyChip1?: string | null;
+  storyChip2?: string | null;
+  lifestyleEyebrow?: string | null;
+  lifestyleTitle?: string | null;
+  lifestyleSubtitle?: string | null;
+  lifestyleLeftImageUrl?: string | null;
+  lifestyleLeftTitle?: string | null;
+  lifestyleLeftText?: string | null;
+  lifestyleRightImageUrl?: string | null;
+  lifestyleRightTitle?: string | null;
+  lifestyleRightText?: string | null;
+  benefit1Title?: string | null;
+  benefit1Text?: string | null;
+  benefit2Title?: string | null;
+  benefit2Text?: string | null;
+  benefit3Title?: string | null;
+  benefit3Text?: string | null;
+  newsletterEyebrow?: string | null;
+  newsletterTitle?: string | null;
+  newsletterSubtitle?: string | null;
+  newsletterPlaceholder?: string | null;
+  newsletterCtaLabel?: string | null;
   contactPhone?: string | null;
   contactWhatsapp?: string | null;
   contactEmail?: string | null;
@@ -72,6 +107,36 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
 
   return {
     tagline: firstStr(o, ["tagline", "tag_line", "subtitle"]),
+    heroBadge: firstStr(o, ["heroBadge", "hero_badge"]),
+    heroTitle: firstStr(o, ["heroTitle", "hero_title"]),
+    heroSubtitle: firstStr(o, ["heroSubtitle", "hero_subtitle"]),
+    heroCtaLabel: firstStr(o, ["heroCtaLabel", "hero_cta_label", "hero_cta"]),
+    storyEyebrow: firstStr(o, ["storyEyebrow", "story_eyebrow"]),
+    storyHeading: firstStr(o, ["storyHeading", "story_heading"]),
+    storyBody: firstStr(o, ["storyBody", "story_body"]),
+    storyImageUrl: firstStr(o, ["storyImageUrl", "story_image_url"]),
+    storyChip1: firstStr(o, ["storyChip1", "story_chip_1"]),
+    storyChip2: firstStr(o, ["storyChip2", "story_chip_2"]),
+    lifestyleEyebrow: firstStr(o, ["lifestyleEyebrow", "lifestyle_eyebrow"]),
+    lifestyleTitle: firstStr(o, ["lifestyleTitle", "lifestyle_title"]),
+    lifestyleSubtitle: firstStr(o, ["lifestyleSubtitle", "lifestyle_subtitle"]),
+    lifestyleLeftImageUrl: firstStr(o, ["lifestyleLeftImageUrl", "lifestyle_left_image_url"]),
+    lifestyleLeftTitle: firstStr(o, ["lifestyleLeftTitle", "lifestyle_left_title"]),
+    lifestyleLeftText: firstStr(o, ["lifestyleLeftText", "lifestyle_left_text"]),
+    lifestyleRightImageUrl: firstStr(o, ["lifestyleRightImageUrl", "lifestyle_right_image_url"]),
+    lifestyleRightTitle: firstStr(o, ["lifestyleRightTitle", "lifestyle_right_title"]),
+    lifestyleRightText: firstStr(o, ["lifestyleRightText", "lifestyle_right_text"]),
+    benefit1Title: firstStr(o, ["benefit1Title", "benefit_1_title"]),
+    benefit1Text: firstStr(o, ["benefit1Text", "benefit_1_text"]),
+    benefit2Title: firstStr(o, ["benefit2Title", "benefit_2_title"]),
+    benefit2Text: firstStr(o, ["benefit2Text", "benefit_2_text"]),
+    benefit3Title: firstStr(o, ["benefit3Title", "benefit_3_title"]),
+    benefit3Text: firstStr(o, ["benefit3Text", "benefit_3_text"]),
+    newsletterEyebrow: firstStr(o, ["newsletterEyebrow", "newsletter_eyebrow"]),
+    newsletterTitle: firstStr(o, ["newsletterTitle", "newsletter_title"]),
+    newsletterSubtitle: firstStr(o, ["newsletterSubtitle", "newsletter_subtitle"]),
+    newsletterPlaceholder: firstStr(o, ["newsletterPlaceholder", "newsletter_placeholder"]),
+    newsletterCtaLabel: firstStr(o, ["newsletterCtaLabel", "newsletter_cta_label"]),
     contactPhone: firstStr(o, ["contactPhone", "contact_phone"]),
     contactWhatsapp: firstStr(o, ["contactWhatsapp", "contact_whatsapp", "whatsapp"]),
     contactEmail: firstStr(o, ["contactEmail", "contact_email"]),
@@ -90,6 +155,36 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
 export function toPublicProfileJson(p: StorePublicProfile): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (p.tagline != null) out.tagline = p.tagline;
+  if (p.heroBadge != null) out.heroBadge = p.heroBadge;
+  if (p.heroTitle != null) out.heroTitle = p.heroTitle;
+  if (p.heroSubtitle != null) out.heroSubtitle = p.heroSubtitle;
+  if (p.heroCtaLabel != null) out.heroCtaLabel = p.heroCtaLabel;
+  if (p.storyEyebrow != null) out.storyEyebrow = p.storyEyebrow;
+  if (p.storyHeading != null) out.storyHeading = p.storyHeading;
+  if (p.storyBody != null) out.storyBody = p.storyBody;
+  if (p.storyImageUrl != null) out.storyImageUrl = p.storyImageUrl;
+  if (p.storyChip1 != null) out.storyChip1 = p.storyChip1;
+  if (p.storyChip2 != null) out.storyChip2 = p.storyChip2;
+  if (p.lifestyleEyebrow != null) out.lifestyleEyebrow = p.lifestyleEyebrow;
+  if (p.lifestyleTitle != null) out.lifestyleTitle = p.lifestyleTitle;
+  if (p.lifestyleSubtitle != null) out.lifestyleSubtitle = p.lifestyleSubtitle;
+  if (p.lifestyleLeftImageUrl != null) out.lifestyleLeftImageUrl = p.lifestyleLeftImageUrl;
+  if (p.lifestyleLeftTitle != null) out.lifestyleLeftTitle = p.lifestyleLeftTitle;
+  if (p.lifestyleLeftText != null) out.lifestyleLeftText = p.lifestyleLeftText;
+  if (p.lifestyleRightImageUrl != null) out.lifestyleRightImageUrl = p.lifestyleRightImageUrl;
+  if (p.lifestyleRightTitle != null) out.lifestyleRightTitle = p.lifestyleRightTitle;
+  if (p.lifestyleRightText != null) out.lifestyleRightText = p.lifestyleRightText;
+  if (p.benefit1Title != null) out.benefit1Title = p.benefit1Title;
+  if (p.benefit1Text != null) out.benefit1Text = p.benefit1Text;
+  if (p.benefit2Title != null) out.benefit2Title = p.benefit2Title;
+  if (p.benefit2Text != null) out.benefit2Text = p.benefit2Text;
+  if (p.benefit3Title != null) out.benefit3Title = p.benefit3Title;
+  if (p.benefit3Text != null) out.benefit3Text = p.benefit3Text;
+  if (p.newsletterEyebrow != null) out.newsletterEyebrow = p.newsletterEyebrow;
+  if (p.newsletterTitle != null) out.newsletterTitle = p.newsletterTitle;
+  if (p.newsletterSubtitle != null) out.newsletterSubtitle = p.newsletterSubtitle;
+  if (p.newsletterPlaceholder != null) out.newsletterPlaceholder = p.newsletterPlaceholder;
+  if (p.newsletterCtaLabel != null) out.newsletterCtaLabel = p.newsletterCtaLabel;
   if (p.contactPhone != null) out.contactPhone = p.contactPhone;
   if (p.contactWhatsapp != null) out.contactWhatsapp = p.contactWhatsapp;
   if (p.contactEmail != null) out.contactEmail = p.contactEmail;

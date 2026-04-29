@@ -10,6 +10,9 @@ import { formatBRL, parseBRL } from "@/react-app/utils/adminSettingsBrl";
 
 const emptyProfile = (): StorePublicProfile => parsePublicProfile({});
 
+/** Campos da home em `public_profile` que aceitam upload de imagem (URL preenchida após envio). */
+export type AdminProfileImageField = "storyImageUrl" | "lifestyleLeftImageUrl" | "lifestyleRightImageUrl";
+
 export const useAdminSettings = () => {
   const navigate = useNavigate();
   const { refetch: refetchStoreSettings } = useStoreSettings();
@@ -17,6 +20,7 @@ export const useAdminSettings = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingProfileImage, setUploadingProfileImage] = useState<AdminProfileImageField | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -99,6 +103,26 @@ export const useAdminSettings = () => {
     setBannerFile(file ?? null);
   }, []);
 
+  const handleProfileImageFile = useCallback((field: AdminProfileImageField) => {
+    return (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      setError(null);
+      setUploadingProfileImage(field);
+      adminUploadImage(file)
+        .then(({ publicUrl }) => {
+          setPublicProfile((prev) => ({ ...prev, [field]: publicUrl }));
+        })
+        .catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : "Erro ao enviar imagem");
+        })
+        .finally(() => {
+          setUploadingProfileImage(null);
+        });
+    };
+  }, []);
+
   const inputCls =
     "w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]";
 
@@ -141,6 +165,36 @@ export const useAdminSettings = () => {
             publicProfile: {
               ...publicProfile,
               tagline: publicProfile.tagline?.trim() || undefined,
+              heroBadge: publicProfile.heroBadge?.trim() || undefined,
+              heroTitle: publicProfile.heroTitle?.trim() || undefined,
+              heroSubtitle: publicProfile.heroSubtitle?.trim() || undefined,
+              heroCtaLabel: publicProfile.heroCtaLabel?.trim() || undefined,
+              storyEyebrow: publicProfile.storyEyebrow?.trim() || undefined,
+              storyHeading: publicProfile.storyHeading?.trim() || undefined,
+              storyBody: publicProfile.storyBody?.trim() || undefined,
+              storyImageUrl: publicProfile.storyImageUrl?.trim() || undefined,
+              storyChip1: publicProfile.storyChip1?.trim() || undefined,
+              storyChip2: publicProfile.storyChip2?.trim() || undefined,
+              lifestyleEyebrow: publicProfile.lifestyleEyebrow?.trim() || undefined,
+              lifestyleTitle: publicProfile.lifestyleTitle?.trim() || undefined,
+              lifestyleSubtitle: publicProfile.lifestyleSubtitle?.trim() || undefined,
+              lifestyleLeftImageUrl: publicProfile.lifestyleLeftImageUrl?.trim() || undefined,
+              lifestyleLeftTitle: publicProfile.lifestyleLeftTitle?.trim() || undefined,
+              lifestyleLeftText: publicProfile.lifestyleLeftText?.trim() || undefined,
+              lifestyleRightImageUrl: publicProfile.lifestyleRightImageUrl?.trim() || undefined,
+              lifestyleRightTitle: publicProfile.lifestyleRightTitle?.trim() || undefined,
+              lifestyleRightText: publicProfile.lifestyleRightText?.trim() || undefined,
+              benefit1Title: publicProfile.benefit1Title?.trim() || undefined,
+              benefit1Text: publicProfile.benefit1Text?.trim() || undefined,
+              benefit2Title: publicProfile.benefit2Title?.trim() || undefined,
+              benefit2Text: publicProfile.benefit2Text?.trim() || undefined,
+              benefit3Title: publicProfile.benefit3Title?.trim() || undefined,
+              benefit3Text: publicProfile.benefit3Text?.trim() || undefined,
+              newsletterEyebrow: publicProfile.newsletterEyebrow?.trim() || undefined,
+              newsletterTitle: publicProfile.newsletterTitle?.trim() || undefined,
+              newsletterSubtitle: publicProfile.newsletterSubtitle?.trim() || undefined,
+              newsletterPlaceholder: publicProfile.newsletterPlaceholder?.trim() || undefined,
+              newsletterCtaLabel: publicProfile.newsletterCtaLabel?.trim() || undefined,
               requireLoginToCheckout: publicProfile.requireLoginToCheckout !== false,
             },
           }),
@@ -185,6 +239,7 @@ export const useAdminSettings = () => {
     saving,
     uploadingImage,
     uploadingBanner,
+    uploadingProfileImage,
     error,
     success,
     displayName,
@@ -207,6 +262,7 @@ export const useAdminSettings = () => {
     setCheckoutLoginAck,
     handleLogoFile,
     handleBannerFile,
+    handleProfileImageFile,
     handleSubmit,
     inputCls,
     saveSuccessRef,

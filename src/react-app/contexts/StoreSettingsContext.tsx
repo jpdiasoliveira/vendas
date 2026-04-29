@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import { apiFetch } from "@/react-app/services/api";
@@ -133,4 +134,59 @@ export const useStoreSettings = () => {
     throw new Error("useStoreSettings must be used within a StoreSettingsProvider");
   }
   return ctx;
+};
+
+function mergeStorePreviewSettings(
+  base: StoreSettingsData | null,
+  patch: Partial<StoreSettingsData> | null
+): StoreSettingsData | null {
+  if (!patch || Object.keys(patch).length === 0) return base;
+  if (!base) {
+    return {
+      displayName: patch.displayName?.trim() || "Sua Loja",
+      logoUrl: patch.logoUrl ?? null,
+      bannerUrl: patch.bannerUrl ?? null,
+      primaryColor: patch.primaryColor ?? null,
+      minimumOrderValue: patch.minimumOrderValue ?? null,
+      publicProfile: (patch.publicProfile ?? {}) as StorePublicProfile,
+      capabilities: patch.capabilities,
+    };
+  }
+  return {
+    ...base,
+    ...patch,
+    displayName: patch.displayName !== undefined ? patch.displayName : base.displayName,
+    logoUrl: patch.logoUrl !== undefined ? patch.logoUrl : base.logoUrl,
+    bannerUrl: patch.bannerUrl !== undefined ? patch.bannerUrl : base.bannerUrl,
+    primaryColor: patch.primaryColor !== undefined ? patch.primaryColor : base.primaryColor,
+    minimumOrderValue: patch.minimumOrderValue !== undefined ? patch.minimumOrderValue : base.minimumOrderValue,
+    publicProfile: {
+      ...(base.publicProfile ?? {}),
+      ...(patch.publicProfile ?? {}),
+    } as StorePublicProfile,
+    capabilities: patch.capabilities !== undefined ? patch.capabilities : base.capabilities,
+  };
+}
+
+/** Sobrepõe campos do rascunho do admin sobre `useStoreSettings()` (mesmos componentes da vitrine). */
+export const StoreSettingsPreviewMergeProvider = ({
+  merge,
+  children,
+}: {
+  merge: Partial<StoreSettingsData> | null;
+  children: ReactNode;
+}) => {
+  const parent = useStoreSettings();
+  const mergedSettings = useMemo(
+    () => mergeStorePreviewSettings(parent.settings, merge),
+    [parent.settings, merge]
+  );
+  const value = useMemo<StoreSettingsContextType>(
+    () => ({
+      ...parent,
+      settings: mergedSettings,
+    }),
+    [parent, mergedSettings]
+  );
+  return <StoreSettingsContext.Provider value={value}>{children}</StoreSettingsContext.Provider>;
 };

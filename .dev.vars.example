@@ -31,3 +31,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # Vitrine (Vite): mesmo e-mail da lista acima para exibir o menu «Plataforma» no admin
 # VITE_PLATFORM_OPERATOR_EMAILS=operador@empresa.com,joao@empresa.com
 # VITE_PLATFORM_CREATE_STORE_SECRET=seu-segredo-demo
+#
+# Vite (.env ou .env.local na raiz do repo — não é .dev.vars): em http://localhost:5173 sem subdomínio,
+# define a loja usada em x-store-slug (evita 404 em /api/store/settings):
+# VITE_DEFAULT_STORE_SLUG=natfoods

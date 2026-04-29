@@ -62,12 +62,15 @@ export const storeMiddleware = async (
   const storeSlug = resolveStoreSlug(c);
   const requestHost = parseHostFromRequest(c);
 
-  if (!storeSlug && !requestHost) {
+  const hostIsLocal = requestHost ? LOCAL_HOSTS.has(requestHost) : false;
+
+  /* Em localhost o header Host não identifica tenant; sem x-store-slug não há loja. */
+  if (!storeSlug && (!requestHost || hostIsLocal)) {
     return c.json(
       {
         success: false,
         error:
-          "Não foi possível identificar a loja. Use subdomínio, domínio customizado mapeado ou envie x-store-slug.",
+          "Não foi possível identificar a loja. Em desenvolvimento (localhost): envie x-store-slug, defina VITE_DEFAULT_STORE_SLUG no Vite ou use o override no navegador. Em produção: subdomínio, domínio mapeado ou x-store-slug.",
       },
       400
     );
@@ -75,8 +78,9 @@ export const storeMiddleware = async (
 
   let store;
   try {
-    if (requestHost) {
-      store = await getStoreByDomain(c.env, requestHost);
+    const hostForLookup = requestHost && !hostIsLocal ? requestHost : "";
+    if (hostForLookup) {
+      store = await getStoreByDomain(c.env, hostForLookup);
     }
     if (!store && storeSlug) {
       store = await getStoreBySlug(c.env, storeSlug);

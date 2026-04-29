@@ -4,6 +4,7 @@ import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import type { StorePublicProfile } from "@/react-app/types";
+import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
 
 function whatsappHref(raw: string | null | undefined): string | null {
   const t = (raw ?? "").trim();
@@ -24,6 +25,8 @@ function externalHttpUrl(raw: string | null | undefined): string | null {
 
 type FooterProps = {
   onConsultOrder?: () => void;
+  /** Pré-visualização admin: destaca blocos do rodapé ligados ao formulário. */
+  previewHighlightClassName?: (section: StorefrontPreviewSectionId) => string;
 };
 
 type PolicyKey = "delivery" | "returns" | "privacy";
@@ -103,7 +106,7 @@ const ContactDetailsBlock = ({ p, wa, ig, fb, igHref, fbHref, mail, phone }: Con
   </div>
 );
 
-export const Footer = ({ onConsultOrder }: FooterProps) => {
+export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProps) => {
   const { settings } = useStoreSettings();
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
@@ -173,13 +176,18 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                   {tagline ? <p className="text-sm text-white/70">{tagline}</p> : null}
                 </div>
               </div>
-              <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
-                {p?.shippingInfo?.trim() ||
-                  "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
-              </p>
-              {p?.businessHours?.trim() ? (
-                <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p.businessHours}</p>
-              ) : null}
+              <div
+                data-preview-section="footerIntro"
+                className={previewHighlightClassName?.("footerIntro") ?? ""}
+              >
+                <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
+                  {p?.shippingInfo?.trim() ||
+                    "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
+                </p>
+                {p?.businessHours?.trim() ? (
+                  <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p.businessHours}</p>
+                ) : null}
+              </div>
               <p className="sr-only">Atalhos para WhatsApp, redes e e-mail</p>
               <div className="flex flex-wrap gap-3">
                 {wa ? (
@@ -285,24 +293,33 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
             </div>
 
             <div>
-              <h5 className="font-bold text-lg mb-4 font-playfair">Informações</h5>
-              {hasContactChannel ? (
-                <div className="mb-6">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#FFD166]/90 font-inter">
-                    Contato e redes
-                  </p>
-                  <ContactDetailsBlock
-                    p={p}
-                    wa={wa}
-                    ig={ig}
-                    fb={fb}
-                    igHref={igHref}
-                    fbHref={fbHref}
-                    mail={mail}
-                    phone={phone}
-                  />
-                </div>
-              ) : null}
+              <div
+                data-preview-section="footerContact"
+                className={previewHighlightClassName?.("footerContact") ?? ""}
+              >
+                <h5 className="font-bold text-lg mb-4 font-playfair">Informações</h5>
+                {hasContactChannel ? (
+                  <div className="mb-6">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#FFD166]/90 font-inter">
+                      Contato e redes
+                    </p>
+                    <ContactDetailsBlock
+                      p={p}
+                      wa={wa}
+                      ig={ig}
+                      fb={fb}
+                      igHref={igHref}
+                      fbHref={fbHref}
+                      mail={mail}
+                      phone={phone}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              <div
+                data-preview-section="footerPolicies"
+                className={previewHighlightClassName?.("footerPolicies") ?? ""}
+              >
               {hasLegal ? (
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70 font-inter">
                   Políticas
@@ -350,6 +367,7 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
                   </li>
                 ) : null}
               </ul>
+              </div>
             </div>
           </div>
 
@@ -408,7 +426,10 @@ export const Footer = ({ onConsultOrder }: FooterProps) => {
             </div>
           ) : null}
 
-          <div className="border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm">
+          <div
+            data-preview-section="footerEnd"
+            className={`border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm ${previewHighlightClassName?.("footerEnd") ?? ""}`}
+          >
             <p>
               &copy; {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
             </p>

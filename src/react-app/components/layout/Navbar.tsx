@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type RefObject } from "react";
 import { Leaf, User, Package, LogOut, ShoppingCart, Menu, X, LayoutDashboard, Loader2, Search } from "lucide-react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
@@ -14,6 +14,8 @@ interface NavbarProps {
   onOpenGuestOrderLookup?: () => void;
   scrollToProducts: () => void;
   scrollToTop: () => void;
+  /** Pré-visualização no admin: `sticky`, scroll deste contentor e UI compacta (sem menu móvel). */
+  previewScrollContainerRef?: RefObject<HTMLElement | null>;
 }
 
 const touchBtn = "min-h-[44px] min-w-[44px] inline-flex items-center justify-center";
@@ -24,6 +26,7 @@ export const Navbar = ({
   onOpenGuestOrderLookup,
   scrollToProducts,
   scrollToTop,
+  previewScrollContainerRef,
 }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -39,11 +42,23 @@ export const Navbar = ({
   const logoUrl = settings?.logoUrl?.trim();
   const primaryColor = settings?.primaryColor || "#1B4332";
 
+  const embeddedPreview = Boolean(previewScrollContainerRef);
+
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => {
+      const el = previewScrollContainerRef?.current;
+      const y = el ? el.scrollTop : window.scrollY;
+      setScrolled(y > 50);
+    };
+    const el = previewScrollContainerRef?.current;
+    if (el) {
+      el.addEventListener("scroll", handleScroll, { passive: true });
+      handleScroll();
+      return () => el.removeEventListener("scroll", handleScroll);
+    }
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [previewScrollContainerRef]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -73,9 +88,9 @@ export const Navbar = ({
 
   return (
     <nav
-      className={`fixed top-0 z-40 w-full transition-all duration-500 ${
+      className={`${embeddedPreview ? "sticky top-0" : "fixed top-0"} z-40 w-full transition-all duration-500 ${
         scrolled ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5" : "bg-white/40 backdrop-blur-md"
-      }`}
+      } ${embeddedPreview ? "pointer-events-none select-none" : ""}`}
     >
       <div className={storefrontShellClass}>
         <div className="flex h-20 min-h-[5rem] w-full min-w-0 items-center gap-2">
@@ -125,16 +140,18 @@ export const Navbar = ({
           </div>
 
           <div className="flex min-w-0 flex-1 basis-0 items-center justify-end gap-1 sm:gap-2">
-            <button
-              type="button"
-              className={`${touchBtn} shrink-0 rounded-xl border border-[color:var(--brand-primary)]/15 bg-white/80 text-[var(--brand-primary)] md:hidden`}
-              onClick={() => setMobileNavOpen((o) => !o)}
-              aria-expanded={mobileNavOpen}
-              aria-controls="mobile-nav-menu"
-              aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
-            >
-              {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            {!embeddedPreview ? (
+              <button
+                type="button"
+                className={`${touchBtn} shrink-0 rounded-xl border border-[color:var(--brand-primary)]/15 bg-white/80 text-[var(--brand-primary)] md:hidden`}
+                onClick={() => setMobileNavOpen((o) => !o)}
+                aria-expanded={mobileNavOpen}
+                aria-controls="mobile-nav-menu"
+                aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
+              >
+                {mobileNavOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            ) : null}
             {user ? (
               <>
                 <div className="relative">
@@ -247,7 +264,7 @@ export const Navbar = ({
         </div>
       </div>
 
-      {mobileNavOpen && (
+      {!embeddedPreview && mobileNavOpen && (
         <>
           <div
             className="fixed inset-x-0 top-20 bottom-0 z-[35] bg-black/40 md:hidden"

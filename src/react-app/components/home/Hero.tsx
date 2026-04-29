@@ -2,12 +2,28 @@ import { ChevronRight, Sparkles } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { STOREFRONT_EDGE_PADDING_CLASS } from "@/react-app/utils/storefrontLayout";
 import { hexToRgbTriplet, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import {
+  DEFAULT_HERO_BADGE,
+  DEFAULT_HERO_CTA,
+  DEFAULT_HERO_IMAGE,
+  DEFAULT_HERO_SUBTITLE,
+  DEFAULT_HERO_TITLE,
+} from "@/react-app/constants/storefrontHomeCopy";
 
-const DEFAULT_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1534530005641-d1d6e66eae56?w=1920&q=80&auto=format&fit=crop";
-
-export const Hero = ({ onShopClick }: { onShopClick: () => void }) => {
+export const Hero = ({
+  onShopClick,
+  previewLayout = false,
+}: {
+  onShopClick: () => void;
+  /** Coluna estreita da pré-visualização admin — altura do primeiro ecrã mais compacta. */
+  previewLayout?: boolean;
+}) => {
   const { settings } = useStoreSettings();
+  const p = settings?.publicProfile;
+  const heroBadge = p?.heroBadge?.trim() || DEFAULT_HERO_BADGE;
+  const heroTitle = p?.heroTitle?.trim() || DEFAULT_HERO_TITLE;
+  const heroSubtitle = p?.heroSubtitle?.trim() || DEFAULT_HERO_SUBTITLE;
+  const heroCta = p?.heroCtaLabel?.trim() || DEFAULT_HERO_CTA;
   const bannerSrc = settings?.bannerUrl?.trim() || DEFAULT_HERO_IMAGE;
   const primary = normalizeStorePrimaryColor(settings?.primaryColor ?? undefined);
   const rgb = hexToRgbTriplet(primary);
@@ -19,7 +35,11 @@ export const Hero = ({ onShopClick }: { onShopClick: () => void }) => {
       : undefined;
 
   return (
-    <section className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
+    <section
+      className={`relative flex items-center justify-center overflow-hidden ${
+        previewLayout ? "min-h-[min(68dvh,460px)] sm:min-h-[min(72dvh,500px)]" : "min-h-[100dvh]"
+      }`}
+    >
       <div className="absolute inset-0 overflow-hidden">
         <img
           src={bannerSrc}
@@ -40,13 +60,13 @@ export const Hero = ({ onShopClick }: { onShopClick: () => void }) => {
         <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 md:p-8 border border-white/20 shadow-2xl animate-[float_6s_ease-in-out_infinite]">
           <div className="inline-flex items-center space-x-2 bg-[#FFD166]/20 backdrop-blur-sm px-3 py-2 rounded-full mb-4 border border-[#FFD166]/30">
             <Sparkles className="h-4 w-4 text-[#FFD166] shrink-0" />
-            <span className="text-sm text-white font-inter font-medium">Premium Orgânico</span>
+            <span className="text-sm text-white font-inter font-medium">{heroBadge}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-3 font-playfair leading-tight drop-shadow-2xl">
-            O Sabor Autêntico da Amazônia em cada Snack
+            {heroTitle}
           </h2>
           <p className="text-base md:text-lg text-white mb-5 font-inter font-normal drop-shadow-lg leading-relaxed">
-            Banana chips orgânicos premium, cultivados com respeito à natureza
+            {heroSubtitle}
           </p>
           <button
             type="button"
@@ -55,7 +75,7 @@ export const Hero = ({ onShopClick }: { onShopClick: () => void }) => {
             className="min-h-[48px] min-w-[min(100%,200px)] justify-center bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-8 py-3.5 rounded-full text-base font-bold hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 transform font-inter inline-flex items-center space-x-2 group relative overflow-hidden w-full sm:w-auto"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-            <span className="relative z-10">Compre Agora</span>
+            <span className="relative z-10">{heroCta}</span>
             <ChevronRight className="h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform duration-300" />
           </button>
         </div>

@@ -12,7 +12,7 @@ const API_BASE = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function normalizeSlug(raw: string | null | undefined): string {
   return (raw ?? "")
@@ -31,7 +31,7 @@ function inferStoreSlugFromHostname(hostname: string): string {
   return normalizeSlug(parts[0]);
 }
 
-/** Slug da vitrine/admin: override local tem prioridade; fallback automático por subdomínio. */
+/** Slug da vitrine/admin: override local tem prioridade; fallback automático por subdomínio; em localhost opcional VITE_DEFAULT_STORE_SLUG. */
 export function getEffectiveStoreSlug(): string {
   if (typeof window !== "undefined") {
     try {
@@ -42,6 +42,11 @@ export function getEffectiveStoreSlug(): string {
     }
     const fromHost = inferStoreSlugFromHostname(window.location.hostname);
     if (fromHost) return fromHost;
+    const host = window.location.hostname.trim().toLowerCase();
+    if (LOCAL_HOSTS.has(host)) {
+      const devDefault = normalizeSlug(import.meta.env.VITE_DEFAULT_STORE_SLUG ?? "");
+      if (devDefault) return devDefault;
+    }
   }
   return "";
 }
