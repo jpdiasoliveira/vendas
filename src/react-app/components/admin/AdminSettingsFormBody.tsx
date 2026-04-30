@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   Home,
   LayoutDashboard,
@@ -12,7 +18,10 @@ import {
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
 import { AdminStorefrontPreviewPanel } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
-import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
+import {
+  adminPreviewScrollTargetId,
+  type StorefrontPreviewSectionId,
+} from "@/react-app/components/admin/storefrontPreviewLink";
 import { useStorefrontPreviewFocus } from "@/react-app/components/admin/useStorefrontPreviewFocus";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
 import { clampStoreLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
@@ -23,10 +32,15 @@ import { extractLogoPaletteFromSrc } from "@/react-app/utils/extractLogoPalette"
 import { normalizeStoreAccentColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
 
 export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
-  const { activeSection, previewFocus, previewBlur } = useStorefrontPreviewFocus();
+  const { activeSection, previewScrollTick, previewFocus, previewBlur } = useStorefrontPreviewFocus();
   const fp = useCallback(
     (id: StorefrontPreviewSectionId) => ({
-      onFocus: () => previewFocus(id),
+      "aria-controls": adminPreviewScrollTargetId(id),
+      "data-admin-preview-section": id,
+      onPointerDownCapture: () => previewFocus(id),
+      onFocus: () => {
+        previewFocus(id);
+      },
       onBlur: previewBlur,
     }),
     [previewFocus, previewBlur]
@@ -122,7 +136,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
   );
 
   return (
-    <div className="relative w-full">
+    <div className="w-full min-w-0">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -166,11 +180,12 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-        <div className="min-w-0">
+      <div className="flex w-full min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+        {/* lg:contents: o <form> passa a ser filho direto do grid — evita wrapper intermédio a interferir com sticky. */}
+        <div className="min-w-0 lg:contents">
         <form
           onSubmit={handleSubmit}
-          className="w-full rounded-2xl border border-[#1B4332]/10 bg-white/70 p-4 font-inter shadow-sm backdrop-blur-sm sm:p-5"
+          className="min-w-0 w-full rounded-2xl border border-[#1B4332]/10 bg-white/70 p-4 font-inter shadow-sm backdrop-blur-sm sm:p-5"
           style={
             {
               ["--brand-primary"]: normalizeStorePrimaryColor(primaryColor),
@@ -813,7 +828,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
-                {...fp("footerPolicies")}
+                {...fp("footerPolicyDelivery")}
               />
             </div>
             <div>
@@ -825,7 +840,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
-                {...fp("footerPolicies")}
+                {...fp("footerPolicyReturns")}
               />
             </div>
             <div>
@@ -837,7 +852,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 className={`${inputCls} resize-y min-h-[100px]`}
-                {...fp("footerPolicies")}
+                {...fp("footerPolicyPrivacy")}
               />
             </div>
           </section>
@@ -867,20 +882,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
         </div>
 
       <aside
-        className="mt-10 flex min-h-0 flex-col border-t border-[#1B4332]/10 pt-8 lg:mt-0 lg:h-[min(calc(100dvh-4.75rem),56rem)] lg:self-start lg:overflow-hidden lg:pt-0 lg:sticky lg:top-16 lg:z-30"
+        className="mt-10 flex min-h-[min(42dvh,22rem)] min-w-0 flex-col border-t border-[#1B4332]/10 pt-8 lg:sticky lg:top-[4.75rem] lg:z-30 lg:h-[calc(100vh-32px)] lg:min-h-0 lg:self-start lg:border-l lg:border-t-0 lg:border-[#1B4332]/10 lg:pl-6 lg:pt-0"
         role="complementary"
         aria-label="Pré-visualização da vitrine"
       >
-        <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:h-full lg:overflow-hidden lg:px-3 lg:pb-3 lg:pt-3">
+        <div className="flex h-full min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:px-0 lg:pb-3 lg:pt-0">
           <div className="mb-3 shrink-0 lg:hidden">
             <h2 className="text-lg font-semibold text-[#1B4332] font-playfair">Pré-visualização da home</h2>
             <p className="mt-1 text-xs text-[#6D4C41]">
-              No computador esta coluna fica <strong className="text-[#1B4332]">alinhada ao formulário</strong> e
-              acompanha o scroll — vê sempre o bloco que está a editar.
+              No computador esta coluna <strong className="text-[#1B4332]">estica à altura do formulário</strong>{" "}
+              para a pré-visualização acompanhar o lado esquerdo enquanto percorres a página.
             </p>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <AdminStorefrontPreviewPanel merge={previewMerge} activeSection={activeSection} />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <AdminStorefrontPreviewPanel
+              merge={previewMerge}
+              activeSection={activeSection}
+              previewScrollTick={previewScrollTick}
+            />
           </div>
         </div>
       </aside>

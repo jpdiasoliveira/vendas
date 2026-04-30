@@ -1,9 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
 
-/** Ao focar um campo, marca a secção; ao sair, limpa após um curto atraso (permite saltar entre campos da mesma secção). */
+/**
+ * Ao focar um campo, marca a secção; ao sair, limpa após um curto atraso.
+ * `previewScrollTick` incrementa a cada ativação para voltar a rolar a pré-visualização
+ * ao clicar no mesmo campo (o browser não dispara `focus` de novo se já estiver focado).
+ */
 export const useStorefrontPreviewFocus = () => {
   const [activeSection, setActiveSection] = useState<StorefrontPreviewSectionId | null>(null);
+  const [previewScrollTick, setPreviewScrollTick] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const previewFocus = useCallback((id: StorefrontPreviewSectionId) => {
@@ -12,6 +17,7 @@ export const useStorefrontPreviewFocus = () => {
       blurTimer.current = null;
     }
     setActiveSection(id);
+    setPreviewScrollTick((t) => t + 1);
   }, []);
 
   const previewBlur = useCallback(() => {
@@ -22,5 +28,5 @@ export const useStorefrontPreviewFocus = () => {
     }, 160);
   }, []);
 
-  return { activeSection, previewFocus, previewBlur };
+  return { activeSection, previewScrollTick, previewFocus, previewBlur };
 };

@@ -38,17 +38,18 @@
   }
 }
 
-/* Smooth scrolling + mobile: evita arrastar layout horizontal (Padrão Ktech / mobile-first) */
+/* Smooth scrolling + mobile: evita arrastar layout horizontal (Padrão Ktech / mobile-first).
+   Usar clip em vez de hidden: hidden+visible força overflow-y:auto e quebra position:sticky em várias árvores. */
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @layer base {
   body {
     @apply font-inter text-base antialiased;
     color: var(--brand-text, #6D4C41);
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 }
 

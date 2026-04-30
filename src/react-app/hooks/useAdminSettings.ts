@@ -81,16 +81,9 @@ export const useAdminSettings = () => {
 
   useEffect(() => {
     if (!success) return;
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     const t = setTimeout(() => setSuccess(false), 8000);
-    return () => {
-      cancelAnimationFrame(id);
-      clearTimeout(t);
-    };
+    return () => clearTimeout(t);
   }, [success]);
 
   useEffect(() => {
@@ -136,7 +129,7 @@ export const useAdminSettings = () => {
   }, []);
 
   const inputCls =
-    "w-full px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]";
+    "w-full scroll-mt-24 px-4 py-2.5 rounded-xl border border-[#1B4332]/20 bg-white text-[#1B4332] placeholder:text-[#6D4C41]/60 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332]";
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {

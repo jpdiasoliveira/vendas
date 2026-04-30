@@ -23,7 +23,7 @@ export const AdminLayout = () => {
       </div>
     </header>
     <main className="min-w-0 flex-1 px-2.5 pb-16 pt-4 sm:px-3 sm:pt-5 sm:pb-20 lg:px-4 lg:pb-24">
-      <div className="mx-auto w-full max-w-[min(100%,1920px)]">
+      <div className="mx-auto w-full min-w-0 max-w-[min(100%,1920px)]">
         <Outlet />
       </div>
     </main>

@@ -5,7 +5,13 @@ import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import { isStoreLogoKnockoutWhite, storeLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 import type { StorePublicProfile } from "@/react-app/types";
-import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
+import {
+  adminStorefrontPreviewSectionId,
+  PREVIEW_POLITICA_ENTREGA_ID,
+  PREVIEW_POLITICA_PRIVACIDADE_ID,
+  PREVIEW_POLITICA_TROCAS_ID,
+  type StorefrontPreviewSectionId,
+} from "@/react-app/components/admin/storefrontPreviewLink";
 
 function whatsappHref(raw: string | null | undefined): string | null {
   const t = (raw ?? "").trim();
@@ -28,6 +34,8 @@ type FooterProps = {
   onConsultOrder?: () => void;
   /** Pré-visualização admin: destaca blocos do rodapé ligados ao formulário. */
   previewHighlightClassName?: (section: StorefrontPreviewSectionId) => string;
+  /** Pré-visualização admin: expõe IDs estáveis para scroll sync com o formulário. */
+  assignAdminPreviewDomIds?: boolean;
 };
 
 type PolicyKey = "delivery" | "returns" | "privacy";
@@ -107,7 +115,13 @@ const ContactDetailsBlock = ({ p, wa, ig, fb, igHref, fbHref, mail, phone }: Con
   </div>
 );
 
-export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProps) => {
+export const Footer = ({
+  onConsultOrder,
+  previewHighlightClassName,
+  assignAdminPreviewDomIds = false,
+}: FooterProps) => {
+  const previewId = (suffix: string) =>
+    assignAdminPreviewDomIds ? adminStorefrontPreviewSectionId(suffix) : undefined;
   const { settings } = useStoreSettings();
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
@@ -183,6 +197,7 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
                 </div>
               </div>
               <div
+                id={previewId("footerIntro")}
                 data-preview-section="footerIntro"
                 className={previewHighlightClassName?.("footerIntro") ?? ""}
               >
@@ -300,6 +315,7 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
 
             <div>
               <div
+                id={previewId("footerContact")}
                 data-preview-section="footerContact"
                 className={previewHighlightClassName?.("footerContact") ?? ""}
               >
@@ -323,6 +339,7 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
                 ) : null}
               </div>
               <div
+                id={previewId("footerPolicies")}
                 data-preview-section="footerPolicies"
                 className={previewHighlightClassName?.("footerPolicies") ?? ""}
               >
@@ -377,26 +394,69 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
             </div>
           </div>
 
-          {(p?.deliveryPolicy?.trim() || p?.returnsPolicy?.trim() || p?.privacyPolicy?.trim()) && (
-            <div className="border-t border-white/20 pt-10 space-y-10 text-left font-inter text-sm text-white/85 mb-10">
-              {p?.deliveryPolicy?.trim() ? (
-                <section id="politica-entrega">
+          {(hasLegal || assignAdminPreviewDomIds) && (
+            <div
+              id={previewId("footerPoliciesBody")}
+              data-preview-section="footerPoliciesBody"
+              className="border-t border-white/20 pt-10 space-y-10 text-left font-inter text-sm text-white/85 mb-10"
+            >
+              {(p?.deliveryPolicy?.trim() || assignAdminPreviewDomIds) && (
+                <section
+                  id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_ENTREGA_ID : "politica-entrega"}
+                  className={
+                    assignAdminPreviewDomIds
+                      ? (previewHighlightClassName?.("footerPolicyDelivery") ?? "")
+                      : ""
+                  }
+                >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Política de entrega</h3>
-                  <p className="whitespace-pre-line leading-relaxed">{p.deliveryPolicy}</p>
+                  {p?.deliveryPolicy?.trim() ? (
+                    <p className="whitespace-pre-line leading-relaxed">{p.deliveryPolicy}</p>
+                  ) : assignAdminPreviewDomIds ? (
+                    <p className="text-white/45 text-sm leading-relaxed">
+                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                    </p>
+                  ) : null}
                 </section>
-              ) : null}
-              {p?.returnsPolicy?.trim() ? (
-                <section id="politica-trocas">
+              )}
+              {(p?.returnsPolicy?.trim() || assignAdminPreviewDomIds) && (
+                <section
+                  id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_TROCAS_ID : "politica-trocas"}
+                  className={
+                    assignAdminPreviewDomIds
+                      ? (previewHighlightClassName?.("footerPolicyReturns") ?? "")
+                      : ""
+                  }
+                >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Trocas e devoluções</h3>
-                  <p className="whitespace-pre-line leading-relaxed">{p.returnsPolicy}</p>
+                  {p?.returnsPolicy?.trim() ? (
+                    <p className="whitespace-pre-line leading-relaxed">{p.returnsPolicy}</p>
+                  ) : assignAdminPreviewDomIds ? (
+                    <p className="text-white/45 text-sm leading-relaxed">
+                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                    </p>
+                  ) : null}
                 </section>
-              ) : null}
-              {p?.privacyPolicy?.trim() ? (
-                <section id="politica-privacidade">
+              )}
+              {(p?.privacyPolicy?.trim() || assignAdminPreviewDomIds) && (
+                <section
+                  id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_PRIVACIDADE_ID : "politica-privacidade"}
+                  className={
+                    assignAdminPreviewDomIds
+                      ? (previewHighlightClassName?.("footerPolicyPrivacy") ?? "")
+                      : ""
+                  }
+                >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Privacidade</h3>
-                  <p className="whitespace-pre-line leading-relaxed">{p.privacyPolicy}</p>
+                  {p?.privacyPolicy?.trim() ? (
+                    <p className="whitespace-pre-line leading-relaxed">{p.privacyPolicy}</p>
+                  ) : assignAdminPreviewDomIds ? (
+                    <p className="text-white/45 text-sm leading-relaxed">
+                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                    </p>
+                  ) : null}
                 </section>
-              ) : null}
+              )}
             </div>
           )}
 
@@ -433,6 +493,7 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
           ) : null}
 
           <div
+            id={previewId("footerEnd")}
             data-preview-section="footerEnd"
             className={`border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm ${previewHighlightClassName?.("footerEnd") ?? ""}`}
           >

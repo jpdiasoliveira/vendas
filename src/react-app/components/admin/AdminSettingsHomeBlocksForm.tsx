@@ -3,7 +3,10 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import type { StorePublicProfile } from "@/contracts/storePublicProfile";
 import { lifestyleTitleFromStore } from "@/react-app/constants/storefrontHomeCopy";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
-import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
+import {
+  adminPreviewScrollTargetId,
+  type StorefrontPreviewSectionId,
+} from "@/react-app/components/admin/storefrontPreviewLink";
 import type { AdminProfileImageField } from "@/react-app/hooks/useAdminSettings";
 
 type AdminSettingsHomeBlocksFormProps = {
@@ -91,7 +94,12 @@ export const AdminSettingsHomeBlocksForm = ({
   const name = displayName.trim() || "Sua Loja";
 
   const fp = (id: StorefrontPreviewSectionId) => ({
-    onFocus: () => previewFocus(id),
+    "aria-controls": adminPreviewScrollTargetId(id),
+    "data-admin-preview-section": id,
+    onPointerDownCapture: () => previewFocus(id),
+    onFocus: () => {
+      previewFocus(id);
+    },
     onBlur: previewBlur,
   });
 

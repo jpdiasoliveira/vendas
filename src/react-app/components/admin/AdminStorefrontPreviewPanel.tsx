@@ -17,6 +17,10 @@ import {
   normalizeStorePrimaryColor,
 } from "@/react-app/utils/brandColor";
 import {
+  adminStorefrontPreviewSectionId,
+  PREVIEW_POLITICA_ENTREGA_ID,
+  PREVIEW_POLITICA_PRIVACIDADE_ID,
+  PREVIEW_POLITICA_TROCAS_ID,
   storefrontPreviewSectionLabels,
   type StorefrontPreviewSectionId,
 } from "@/react-app/components/admin/storefrontPreviewLink";
@@ -24,6 +28,8 @@ import {
 type AdminStorefrontPreviewPanelProps = {
   merge: Partial<StoreSettingsData> | null;
   activeSection: StorefrontPreviewSectionId | null;
+  /** Incrementa ao clicar/focar para voltar a alinhar a pré-visualização (ex.: mesmo textarea). */
+  previewScrollTick: number;
 };
 
 const highlightCls = (active: boolean) =>
@@ -31,14 +37,75 @@ const highlightCls = (active: boolean) =>
     ? "z-[1] shadow-xl ring-[3px] ring-[#FFD166] ring-offset-[3px] ring-offset-[#FAF8F3] transition-shadow duration-200 scroll-mt-4 rounded-sm"
     : "transition-shadow duration-200 scroll-mt-4 rounded-sm";
 
-/** Rola o scrollport interno (`overflow-y` do painel) até centrar a secção em edição. */
-const scrollSectionIntoPreview = (container: HTMLDivElement, sectionEl: HTMLElement) => {
-  if (container.clientHeight < 8) return;
-  sectionEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+/** Elemento com ID dentro do contentor de scroll da pré-visualização. */
+const findInPreviewById = (container: HTMLElement, domId: string): HTMLElement | null => {
+  const el = document.getElementById(domId);
+  return el != null && container.contains(el) ? el : null;
 };
 
-export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStorefrontPreviewPanelProps) => {
-  const scrollElRef = useRef<HTMLDivElement>(null);
+const findPreviewSectionEl = (container: HTMLElement, suffix: string): HTMLElement | null =>
+  findInPreviewById(container, adminStorefrontPreviewSectionId(suffix));
+
+/** Soma `offsetTop` até ao contentor de scroll (cadeia `offsetParent`). */
+const offsetTopWithinScrollContainer = (container: HTMLElement, el: HTMLElement): number | null => {
+  let sum = 0;
+  let n: HTMLElement | null = el;
+  while (n && n !== container) {
+    sum += n.offsetTop;
+    n = n.offsetParent as HTMLElement | null;
+    if (n && !container.contains(n)) return null;
+  }
+  return n === container ? sum : null;
+};
+
+const FLASH_CLASS = "bg-yellow-100/50";
+let adminPreviewFlashTimer: ReturnType<typeof setTimeout> | null = null;
+let adminPreviewLastFlashed: HTMLElement | null = null;
+
+const flashPreviewSection = (el: HTMLElement) => {
+  if (adminPreviewFlashTimer != null) {
+    clearTimeout(adminPreviewFlashTimer);
+    adminPreviewFlashTimer = null;
+  }
+  if (adminPreviewLastFlashed && adminPreviewLastFlashed !== el) {
+    adminPreviewLastFlashed.classList.remove(FLASH_CLASS);
+  }
+  el.classList.add(FLASH_CLASS);
+  adminPreviewLastFlashed = el;
+  adminPreviewFlashTimer = setTimeout(() => {
+    el.classList.remove(FLASH_CLASS);
+    if (adminPreviewLastFlashed === el) adminPreviewLastFlashed = null;
+    adminPreviewFlashTimer = null;
+  }, 480);
+};
+
+/** Scroll só dentro do painel: `offsetTop` relativo ao contentor + `scrollTo` suave. */
+const scrollPreviewSectionPure = (container: HTMLDivElement, target: HTMLElement): void => {
+  if (container.clientHeight < 8) return;
+  const relTop = offsetTopWithinScrollContainer(container, target);
+  if (relTop == null) return;
+  const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+  const top = Math.max(0, Math.min(maxScroll, relTop - container.clientHeight / 2));
+  container.scrollTo({ top, behavior: "smooth" });
+  flashPreviewSection(target);
+};
+
+/** Quando passa a haver texto numa política, o bloco `footerPoliciesBody` monta — precisamos voltar a alinhar o scroll. */
+const policiesBodyPresenceKey = (merge: Partial<StoreSettingsData> | null) => {
+  const pp = merge?.publicProfile;
+  const d = pp?.deliveryPolicy?.trim() ? "1" : "0";
+  const r = pp?.returnsPolicy?.trim() ? "1" : "0";
+  const p = pp?.privacyPolicy?.trim() ? "1" : "0";
+  return `${d}${r}${p}`;
+};
+
+export const AdminStorefrontPreviewPanel = ({
+  merge,
+  activeSection,
+  previewScrollTick,
+}: AdminStorefrontPreviewPanelProps) => {
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  const policiesKey = policiesBodyPresenceKey(merge);
 
   const lifestyleActive =
     activeSection === "lifestyleHead" ||
@@ -50,48 +117,52 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
     : activeSection;
 
   useLayoutEffect(() => {
+    return () => {
+      if (adminPreviewFlashTimer != null) {
+        clearTimeout(adminPreviewFlashTimer);
+        adminPreviewFlashTimer = null;
+      }
+      if (adminPreviewLastFlashed) {
+        adminPreviewLastFlashed.classList.remove(FLASH_CLASS);
+        adminPreviewLastFlashed = null;
+      }
+    };
+  }, []);
+
+  useLayoutEffect(() => {
     if (!activeSection || !scrollTargetSection) return;
-    const container = scrollElRef.current;
+    const container = previewScrollRef.current;
     if (!container) return;
 
+    const policyFallback = (): HTMLElement | null => {
+      const body = findPreviewSectionEl(container, "footerPoliciesBody");
+      if (body) return body;
+      const links = findPreviewSectionEl(container, "footerPolicies");
+      if (links) return links;
+      return findPreviewSectionEl(container, "footerContact");
+    };
+
     const resolveSectionEl = (): HTMLElement | null => {
-      let el = container.querySelector<HTMLElement>(`[data-preview-section="${scrollTargetSection}"]`);
-      if (!el && scrollTargetSection === "footerPolicies") {
-        el = container.querySelector<HTMLElement>(`[data-preview-section="footerContact"]`);
+      const s = scrollTargetSection;
+      if (s === "footerPolicyDelivery") {
+        return findInPreviewById(container, PREVIEW_POLITICA_ENTREGA_ID) ?? policyFallback();
       }
-      return el;
+      if (s === "footerPolicyReturns") {
+        return findInPreviewById(container, PREVIEW_POLITICA_TROCAS_ID) ?? policyFallback();
+      }
+      if (s === "footerPolicyPrivacy") {
+        return findInPreviewById(container, PREVIEW_POLITICA_PRIVACIDADE_ID) ?? policyFallback();
+      }
+      if (s === "footerPolicies") {
+        return policyFallback();
+      }
+      return findPreviewSectionEl(container, s);
     };
 
-    const run = () => {
-      const el = resolveSectionEl();
-      if (!el) return;
-      scrollSectionIntoPreview(container, el);
-    };
-
-    const schedule = () => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(run);
-      });
-    };
-
-    schedule();
-
-    const retryLater = window.setTimeout(run, 200);
-    const retryAgain = window.setTimeout(run, 500);
-
-    let prevH = 0;
-    const ro = new ResizeObserver(() => {
-      const h = container.clientHeight;
-      if (h >= 8 && prevH < 8 && resolveSectionEl()) schedule();
-      prevH = h;
-    });
-    ro.observe(container);
-    return () => {
-      window.clearTimeout(retryLater);
-      window.clearTimeout(retryAgain);
-      ro.disconnect();
-    };
-  }, [activeSection]);
+    const targetEl = resolveSectionEl();
+    if (!targetEl) return;
+    scrollPreviewSectionPure(container, targetEl);
+  }, [activeSection, scrollTargetSection, previewScrollTick, policiesKey]);
 
   const brand = normalizeStorePrimaryColor(merge?.primaryColor ?? undefined);
   const accent = normalizeStoreAccentColor(merge?.publicProfile?.accentColor ?? undefined);
@@ -111,15 +182,18 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
   const noop = () => {};
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-3 shadow-sm sm:p-4">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-3 shadow-sm sm:p-4">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-0 h-px w-px overflow-hidden bg-yellow-100/50 opacity-0"
+      />
       <div className="shrink-0">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80 sm:text-sm">
           Pré-visualização (componentes da home, sem produtos)
         </h3>
         <p className="mt-1 text-xs leading-snug text-[#6D4C41]/80 sm:text-sm">
-          Ao focar um campo, <strong className="text-[#1B4332]">este painel</strong> rola por dentro e centra o
-          bloco certo — no PC a coluna fica <strong className="text-[#1B4332]">ao lado do formulário</strong> e
-          acompanha o scroll. Barra, rodapé e blocos são os mesmos da vitrine (rascunho em tempo real).
+          O quadro à direita rola <strong className="text-[#1B4332]">só dentro desta moldura</strong>; em ecrã largo
+          a coluna fica <strong className="text-[#1B4332]">sticky</strong> ao lado do formulário.
         </p>
         {activeSection ? (
           <div
@@ -134,48 +208,83 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
       </div>
 
       <div
-        ref={scrollElRef}
-        className="mt-3 flex min-h-[min(260px,42vh)] flex-1 overflow-y-auto overscroll-contain scroll-smooth py-1 pr-1 [-webkit-overflow-scrolling:touch]"
+        ref={previewScrollRef}
+        className="relative mt-3 flex-1 min-h-0 max-lg:min-h-[min(280px,40dvh)] overflow-y-auto overscroll-contain py-1 pr-1 [-webkit-overflow-scrolling:touch]"
       >
         <StoreSettingsPreviewMergeProvider merge={merge}>
           <div
-            className="pointer-events-none select-none overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]"
+            className="pointer-events-none relative min-w-0 select-none overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]"
             style={brandCss}
           >
-            <div data-preview-section="navbar" className={highlightCls(activeSection === "navbar")}>
+            <div
+              id={adminStorefrontPreviewSectionId("navbar")}
+              data-preview-section="navbar"
+              className={highlightCls(activeSection === "navbar")}
+            >
               <Navbar
-                previewScrollContainerRef={scrollElRef}
+                previewScrollContainerRef={previewScrollRef}
                 onOpenCart={noop}
                 onOpenLogin={noop}
                 onOpenGuestOrderLookup={noop}
                 scrollToProducts={noop}
-                scrollToTop={() => scrollElRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+                scrollToTop={() => previewScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
               />
             </div>
 
-            <div data-preview-section="hero" className={highlightCls(activeSection === "hero")}>
+            <div
+              id={adminStorefrontPreviewSectionId("hero")}
+              data-preview-section="hero"
+              className={highlightCls(activeSection === "hero")}
+            >
               <Hero onShopClick={noop} previewLayout />
             </div>
 
-            <div data-preview-section="story" className={highlightCls(activeSection === "story")}>
+            <div
+              id={adminStorefrontPreviewSectionId("story")}
+              data-preview-section="story"
+              className={highlightCls(activeSection === "story")}
+            >
               <Story />
             </div>
 
-            <div data-preview-section="lifestyle" className={highlightCls(lifestyleActive)}>
+            <div
+              id={adminStorefrontPreviewSectionId("lifestyle")}
+              data-preview-section="lifestyle"
+              className={highlightCls(lifestyleActive)}
+            >
               <Lifestyle />
             </div>
 
-            <div data-preview-section="benefits" className={highlightCls(activeSection === "benefits")}>
+            <div
+              id={adminStorefrontPreviewSectionId("benefits")}
+              data-preview-section="benefits"
+              className={highlightCls(activeSection === "benefits")}
+            >
               <Benefits />
             </div>
 
-            <div data-preview-section="newsletter" className={highlightCls(activeSection === "newsletter")}>
+            <div
+              id={adminStorefrontPreviewSectionId("newsletter")}
+              data-preview-section="newsletter"
+              className={highlightCls(activeSection === "newsletter")}
+            >
               <Newsletter />
             </div>
 
             <Footer
               onConsultOrder={noop}
-              previewHighlightClassName={(id) => highlightCls(activeSection === id)}
+              assignAdminPreviewDomIds
+              previewHighlightClassName={(id) =>
+                highlightCls(
+                  activeSection === id ||
+                    (id === "footerPolicies" &&
+                      activeSection != null &&
+                      (activeSection === "footerPolicyDelivery" ||
+                        activeSection === "footerPolicyReturns" ||
+                        activeSection === "footerPolicyPrivacy" ||
+                        activeSection === "footerPolicies"))
+                )
+              }
             />
           </div>
         </StoreSettingsPreviewMergeProvider>

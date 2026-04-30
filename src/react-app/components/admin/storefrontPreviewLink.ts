@@ -1,5 +1,33 @@
 /** Secções da mini pré-visualização da home (ligação com os campos do formulário). */
 
+/** Prefixo único para IDs na pré-visualização admin (scroll sync, inspeção, aria-controls). */
+export const ADMIN_STOREFRONT_PREVIEW_ID_PREFIX = "admin-storefront-preview";
+
+/** DOM id estável na mini pré-visualização (ex.: `admin-storefront-preview-hero`). */
+export const adminStorefrontPreviewSectionId = (section: string): string =>
+  `${ADMIN_STOREFRONT_PREVIEW_ID_PREFIX}-${section}`;
+
+/** Alvos de scroll no texto longo das políticas (admin); existem no DOM mesmo com campos vazios. */
+export const PREVIEW_POLITICA_ENTREGA_ID = "preview-politica-entrega";
+export const PREVIEW_POLITICA_TROCAS_ID = "preview-politica-trocas";
+export const PREVIEW_POLITICA_PRIVACIDADE_ID = "preview-politica-privacidade";
+
+/**
+ * ID do nó alvo para scroll sync (vários campos do formulário → um bloco na pré-visualização).
+ */
+export const adminPreviewScrollTargetId = (section: StorefrontPreviewSectionId): string => {
+  if (section === "lifestyleHead" || section === "lifestyleLeft" || section === "lifestyleRight") {
+    return adminStorefrontPreviewSectionId("lifestyle");
+  }
+  if (section === "footerPolicyDelivery") return PREVIEW_POLITICA_ENTREGA_ID;
+  if (section === "footerPolicyReturns") return PREVIEW_POLITICA_TROCAS_ID;
+  if (section === "footerPolicyPrivacy") return PREVIEW_POLITICA_PRIVACIDADE_ID;
+  if (section === "footerPolicies") {
+    return adminStorefrontPreviewSectionId("footerPoliciesBody");
+  }
+  return adminStorefrontPreviewSectionId(section);
+};
+
 export type StorefrontPreviewSectionId =
   | "navbar"
   | "hero"
@@ -12,6 +40,9 @@ export type StorefrontPreviewSectionId =
   | "footerIntro"
   | "footerContact"
   | "footerPolicies"
+  | "footerPolicyDelivery"
+  | "footerPolicyReturns"
+  | "footerPolicyPrivacy"
   | "footerEnd";
 
 export const storefrontPreviewSectionLabels: Record<StorefrontPreviewSectionId, string> = {
@@ -26,6 +57,9 @@ export const storefrontPreviewSectionLabels: Record<StorefrontPreviewSectionId, 
   footerIntro: "Rodapé — texto de entrega / frete e horário de atendimento.",
   footerContact: "Rodapé — coluna «Informações» (telefone, WhatsApp, e-mail, redes).",
   footerPolicies: "Rodapé — links e textos de políticas (entrega, trocas, privacidade).",
+  footerPolicyDelivery: "Rodapé — política de entrega (texto longo).",
+  footerPolicyReturns: "Rodapé — trocas e devoluções (texto longo).",
+  footerPolicyPrivacy: "Rodapé — privacidade / LGPD (texto longo).",
   footerEnd:
     "Rodapé — linha final da página. Valor mínimo de pedido e «exigir login» aplicam-se ao checkout; o painel leva-te ao fim do rodapé para contexto.",
 };
