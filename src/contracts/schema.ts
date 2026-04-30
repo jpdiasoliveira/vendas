@@ -1,7 +1,7 @@
 /**
  * Source of Truth: interfaces globais baseadas no banco.
  * DB: snake_case (PostgreSQL/Supabase). Código: camelCase (TypeScript).
- * O mapeamento snake_case <-> camelCase fica na camada database.ts.
+ * Partilhado entre Worker e app Vite (LSP só carrega `src/contracts` no projeto da UI).
  */
 
 import type { StorePublicProfile } from "./storePublicProfile.js";

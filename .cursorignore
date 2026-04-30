@@ -1,0 +1,15 @@
+﻿# Indexacao / RAM — nao indexar artefactos pesados
+node_modules/
+dist/
+.wrangler/
+.git/
+*.log
+.turbo/
+.cache/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.vite/
+**/.vite/
+playwright-report/
+test-results/

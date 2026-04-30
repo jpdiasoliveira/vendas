@@ -251,7 +251,7 @@ export default function OrderConfirmationPage() {
                     href={trackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#1B4332] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2D5F4A]"
+                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[color:var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-accent)]"
                   >
                     Abrir rastreio (Correios ou busca)
                     <ExternalLink className="h-4 w-4 shrink-0" />

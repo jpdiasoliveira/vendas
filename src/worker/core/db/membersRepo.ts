@@ -3,7 +3,7 @@
  */
 
 import { getSupabase } from "../supabase.js";
-import type { StoreMember } from "../schema.js";
+import type { StoreMember } from "../../../contracts/schema.js";
 
 /** Loja ativa em que o utilizador tem papel de equipa (painel admin). */
 export type StaffStoreMembershipDto = {

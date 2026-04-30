@@ -3,7 +3,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
-import type { Order } from "../../schema.js";
+import type { Order } from "../../../../contracts/schema.js";
 import { getOrderByIdForStore } from "./orderReads.js";
 import { increaseStockForOrder, tryAtomicDecrementStockForOrder } from "./orderStock.js";
 import {

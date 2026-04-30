@@ -1,6 +1,6 @@
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
-import type { StorePublicProfile } from "@/worker/core/storePublicProfile";
+import type { StorePublicProfile } from "@/contracts/storePublicProfile";
 import { lifestyleTitleFromStore } from "@/react-app/constants/storefrontHomeCopy";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";

@@ -72,8 +72,7 @@ const AdminOrdersPage = () => {
   }, [loadDashboardSummary]);
 
   return (
-    <div className="px-2.5 pb-12 pt-6 sm:px-3 lg:px-4">
-      <div className="mx-auto w-full max-w-7xl">
+    <>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -84,11 +83,13 @@ const AdminOrdersPage = () => {
             >
               <Home className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="h-8 w-8 text-[var(--brand-primary)]" />
+            <div className="flex items-center gap-3">
+              <LayoutDashboard className="h-9 w-9 shrink-0 text-[var(--brand-primary)] sm:h-10 sm:w-10" />
               <div>
-                <h1 className="font-playfair text-2xl font-bold text-[var(--brand-primary)]">Painel de Vendas</h1>
-                <p className="font-inter text-sm text-[#6D4C41]">Acompanhe os pedidos da sua loja</p>
+                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[var(--brand-primary)] sm:text-4xl">
+                  Painel de Vendas
+                </h1>
+                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Acompanhe os pedidos da sua loja</p>
               </div>
             </div>
           </div>
@@ -97,7 +98,7 @@ const AdminOrdersPage = () => {
               type="button"
               onClick={() => void m.fetchOrders()}
               disabled={m.loading}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-white/80 px-4 py-3 text-base font-medium text-[var(--brand-primary)] shadow-sm transition-all hover:bg-white disabled:opacity-60"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/25 bg-white/90 px-3 py-2.5 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[color:var(--brand-primary)]/35 hover:bg-white hover:text-[var(--brand-primary)] disabled:opacity-60"
             >
               <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
               Atualizar
@@ -227,7 +228,6 @@ const AdminOrdersPage = () => {
             )}
           </>
         )}
-      </div>
 
       <OrderDetailsModal
         isOpen={m.modalOpen}
@@ -248,7 +248,7 @@ const AdminOrdersPage = () => {
         orderId={m.historyDetailOrderId}
         onClose={() => m.setHistoryDetailOrderId(null)}
       />
-    </div>
+    </>
   );
 };
 

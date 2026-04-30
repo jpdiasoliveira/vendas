@@ -176,7 +176,7 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
             <button
               type="button"
               onClick={useThisStore}
-              className="w-full rounded-xl bg-[#1B4332] py-2.5 text-sm font-semibold text-white hover:bg-[#2D5F4A]"
+              className="w-full rounded-xl bg-[color:var(--brand-primary)] py-2.5 text-sm font-semibold text-white hover:bg-[color:var(--brand-accent)]"
             >
               Usar esta loja neste navegador
             </button>
@@ -386,7 +386,7 @@ export const PlatformNewStoreModal = ({ isOpen, onClose, onCreated }: PlatformNe
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-[#1B4332] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2D5F4A] disabled:opacity-60 sm:min-w-[8rem]"
+                className="rounded-xl bg-[color:var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[color:var(--brand-accent)] disabled:opacity-60 sm:min-w-[8rem]"
               >
                 {saving ? "A criar…" : "Criar loja"}
               </button>

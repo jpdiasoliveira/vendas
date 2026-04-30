@@ -59,7 +59,10 @@ const ACTION_LABELS: Record<string, string> = {
 
 export interface GetAuditLogsOptions {
   search?: string;
+  /** Filtro por um único `action_key`. */
   action?: string;
+  /** Filtro por vários `action_key` (ex.: chip Criação / Exclusão). Ignora `action` se definido. */
+  actions?: string[];
 }
 
 export async function getAuditLogs(
@@ -77,7 +80,10 @@ export async function getAuditLogs(
   if (search) {
     query = query.ilike("nome_recurso", `%${search}%`);
   }
-  if (options?.action?.trim()) {
+  const actionsList = (options?.actions ?? []).map((a) => a.trim()).filter(Boolean);
+  if (actionsList.length > 0) {
+    query = query.in("action_key", actionsList);
+  } else if (options?.action?.trim()) {
     query = query.eq("action_key", options.action.trim());
   }
 

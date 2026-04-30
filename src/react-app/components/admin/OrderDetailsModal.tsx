@@ -300,7 +300,7 @@ export const OrderDetailsModal = ({
                     type="button"
                     onClick={handleSubmitStatus}
                     disabled={updating}
-                    className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B4332] px-5 py-3 text-base font-medium text-white transition-colors hover:bg-[#2D5F4A] disabled:opacity-60 sm:w-auto"
+                    className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--brand-primary)] px-5 py-3 text-base font-medium text-white transition-colors hover:bg-[color:var(--brand-accent)] disabled:opacity-60 sm:w-auto"
                   >
                     {updating ? (
                       <Loader2 className="h-5 w-5 animate-spin shrink-0" />

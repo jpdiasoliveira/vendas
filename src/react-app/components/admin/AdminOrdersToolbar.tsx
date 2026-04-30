@@ -128,12 +128,12 @@ export const AdminOrdersToolbar = ({
           </div>
           <button
             type="button"
-            onClick={() =>
-              exportClosingPdf({
+            onClick={() => {
+              void exportClosingPdf({
                 orders: displayedOrders,
                 periodLabel: PERIOD_LABELS[historyPeriodFilter],
-              })
-            }
+              });
+            }}
             className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[color:var(--brand-primary)]/20 bg-[var(--brand-primary-soft)] px-4 py-3 text-base font-medium text-[var(--brand-primary)] shadow-sm transition-colors hover:brightness-95"
             aria-label="Exportar relatório de fechamento em PDF"
           >

@@ -1,8 +1,7 @@
 /**
- * Tipos do frontend: espelho do schema do Worker (Source of Truth).
- * Re-exporta de src/worker/core/schema para garantir consistência.
+ * Tipos do frontend: contrato partilhado em `src/contracts` (Worker + Vite).
  */
-export type { StorePublicProfile } from "@/worker/core/storePublicProfile";
+export type { StorePublicProfile } from "@/contracts/storePublicProfile";
 
 export type {
   Store,
@@ -18,9 +17,9 @@ export type {
   ApiSuccess,
   ApiError,
   ApiResponse,
-} from "@/worker/core/schema";
+} from "@/contracts/schema";
 
 /** Pedido com itens (resposta de GET /api/orders/:id) */
-export type OrderWithItems = import("@/worker/core/schema").Order & {
-  items?: import("@/worker/core/schema").OrderItem[];
+export type OrderWithItems = import("@/contracts/schema").Order & {
+  items?: import("@/contracts/schema").OrderItem[];
 };

@@ -1,4 +1,4 @@
-import type { StorePublicProfile } from "@/worker/core/storePublicProfile";
+import type { StorePublicProfile } from "@/contracts/storePublicProfile";
 import {
   DEFAULT_BENEFIT1_TEXT,
   DEFAULT_BENEFIT1_TITLE,

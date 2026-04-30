@@ -23,7 +23,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
       />
       <div className="fixed right-0 top-0 z-[100] h-[100dvh] max-h-[100dvh] w-full max-w-full transform bg-white shadow-2xl transition-transform duration-300 ease-out md:w-[min(480px,100%)]">
         <div className="flex h-full max-h-[inherit] min-h-0 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between gap-3 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] p-4 text-white sm:p-6">
+          <div className="flex shrink-0 items-center justify-between gap-3 bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] p-4 text-white sm:p-6">
             <div className="flex items-center space-x-3">
               <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
                 <ShoppingBag className="h-6 w-6" />

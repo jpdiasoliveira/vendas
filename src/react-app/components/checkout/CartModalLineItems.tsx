@@ -65,7 +65,7 @@ export const CartModalLineItems = ({
                 <button
                   type="button"
                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white transition-transform hover:shadow-lg active:scale-95"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] text-white transition-transform hover:shadow-lg active:scale-95"
                   aria-label="Diminuir quantidade"
                 >
                   <Minus className="h-5 w-5" />
@@ -74,7 +74,7 @@ export const CartModalLineItems = ({
                 <button
                   type="button"
                   onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white transition-transform hover:shadow-lg active:scale-95"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] text-white transition-transform hover:shadow-lg active:scale-95"
                   aria-label="Aumentar quantidade"
                 >
                   <Plus className="h-5 w-5" />

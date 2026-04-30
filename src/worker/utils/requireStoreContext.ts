@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { Store } from "../core/schema.js";
+import type { Store } from "../../contracts/schema.js";
 import type { Variables } from "../types.js";
 
 /**

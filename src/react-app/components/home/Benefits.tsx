@@ -10,7 +10,7 @@ export const Benefits = () => {
 
   return (
     <section className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1B4332] via-[#2D5F4A] to-[#1B4332]"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-[color:var(--brand-primary)] via-[color:var(--brand-accent)] to-[color:var(--brand-primary)]" />
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
         <div className="absolute top-10 left-10 w-64 h-64 bg-[#FFD166]/20 rounded-full blur-3xl animate-[float_8s_ease-in-out_infinite]"></div>
         <div className="absolute bottom-10 right-10 w-64 h-64 bg-[#FFD166]/20 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite_reverse]"></div>

@@ -3,7 +3,7 @@
  */
 
 import { getSupabase } from "../supabase.js";
-import type { Category } from "../schema.js";
+import type { Category } from "../../../contracts/schema.js";
 import { rowToCategory } from "./mappers.js";
 
 const CATEGORY_SELECT = "id, store_id, name, slug, sort_order, created_at, updated_at";

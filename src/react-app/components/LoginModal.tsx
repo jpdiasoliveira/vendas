@@ -41,7 +41,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <button
             type="button"
             onClick={goEmailLogin}
-            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#1B4332]/20 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-4 font-inter font-medium text-white transition-all hover:shadow-lg"
+            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-[#1B4332]/20 bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] px-6 py-4 font-inter font-medium text-white transition-all hover:shadow-lg"
           >
             <Mail className="h-5 w-5 shrink-0" />
             <span>Entrar com e-mail e senha</span>

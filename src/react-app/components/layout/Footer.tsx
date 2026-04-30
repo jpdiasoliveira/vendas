@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search, X } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import { isStoreLogoKnockoutWhite, storeLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 import type { StorePublicProfile } from "@/react-app/types";
 import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
 
@@ -114,6 +115,8 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
   const displayName = settings?.displayName?.trim() || "Sua Loja";
   const tagline = p?.tagline?.trim();
   const logoSrc = settings?.logoUrl?.trim() || null;
+  const logoH = storeLogoHeightPx(settings);
+  const logoKnockout = isStoreLogoKnockoutWhite(settings);
   const wa = whatsappHref(p?.contactWhatsapp);
   const ig = p?.instagramUrl?.trim();
   const fb = p?.facebookUrl?.trim();
@@ -163,7 +166,10 @@ export const Footer = ({ onConsultOrder, previewHighlightClassName }: FooterProp
                   <img
                     src={logoSrc}
                     alt=""
-                    className="h-14 w-14 rounded-xl object-contain bg-white/10 border border-white/20"
+                    style={{ height: `${Math.min(96, logoH + 16)}px`, width: "auto" }}
+                    className={`rounded-xl border border-white/25 object-contain ${
+                      logoKnockout ? "mix-blend-multiply" : ""
+                    }`}
                   />
                 ) : (
                   <div className="relative">

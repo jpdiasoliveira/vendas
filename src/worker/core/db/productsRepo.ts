@@ -3,7 +3,7 @@
  */
 
 import { getSupabase } from "../supabase.js";
-import type { CartItemPayload, Product } from "../schema.js";
+import type { CartItemPayload, Product } from "../../../contracts/schema.js";
 import { rowToProduct } from "./mappers.js";
 import { OrderBusinessError } from "../orderErrors.js";
 

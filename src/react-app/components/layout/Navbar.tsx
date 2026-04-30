@@ -7,6 +7,11 @@ import { useAdminStoreRole } from "@/react-app/hooks/useAdminStoreRole";
 import { useNavigate } from "react-router";
 import LogoutConfirmModal from "@/react-app/components/LogoutConfirmModal";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
+import {
+  isStoreLogoKnockoutWhite,
+  storeLogoHeightPx,
+  storeNavbarRowMinHeightPx,
+} from "@/react-app/utils/storeLogoDisplay";
 
 interface NavbarProps {
   onOpenCart: () => void;
@@ -41,6 +46,18 @@ export const Navbar = ({
   const tagline = settings?.publicProfile?.tagline?.trim();
   const logoUrl = settings?.logoUrl?.trim();
   const primaryColor = settings?.primaryColor || "#1B4332";
+  const logoH = storeLogoHeightPx(settings);
+  const navRowMinPx = storeNavbarRowMinHeightPx(logoH);
+  const logoKnockout = isStoreLogoKnockoutWhite(settings);
+  /** `backdrop-filter` cria contexto de composição: `mix-blend-multiply` no logo deixa de fundir com a página. Sem blur quando knockout está ativo. */
+  const navBackdropClasses =
+    logoUrl && logoKnockout
+      ? scrolled
+        ? "bg-white/75 shadow-lg shadow-[#1B4332]/5"
+        : "bg-white/55"
+      : scrolled
+        ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5"
+        : "bg-white/40 backdrop-blur-md";
 
   const embeddedPreview = Boolean(previewScrollContainerRef);
 
@@ -88,26 +105,34 @@ export const Navbar = ({
 
   return (
     <nav
-      className={`${embeddedPreview ? "sticky top-0" : "fixed top-0"} z-40 w-full transition-all duration-500 ${
-        scrolled ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5" : "bg-white/40 backdrop-blur-md"
-      } ${embeddedPreview ? "pointer-events-none select-none" : ""}`}
+      className={`${embeddedPreview ? "sticky top-0" : "fixed top-0"} z-40 w-full transition-all duration-500 ${navBackdropClasses} ${
+        embeddedPreview ? "pointer-events-none select-none" : ""
+      }`}
     >
       <div className={storefrontShellClass}>
-        <div className="flex h-20 min-h-[5rem] w-full min-w-0 items-center gap-2">
+        <div
+          className="flex w-full min-w-0 items-center gap-2 py-2 sm:py-2.5"
+          style={{ minHeight: `${navRowMinPx}px` }}
+        >
           <div className="flex min-w-0 flex-1 basis-0 items-center gap-2 group">
-            <div className="relative flex-shrink-0">
+            <div className="relative flex shrink-0 items-center justify-center">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt=""
-                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain group-hover:scale-105 transition-transform duration-300"
+                  style={{ height: `${logoH}px`, width: "auto" }}
+                  className={`max-h-[100px] w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] ${
+                    logoKnockout ? "mix-blend-multiply" : ""
+                  }`}
                 />
               ) : (
                 <>
-                  <Leaf
-                    className="h-9 w-9 sm:h-10 sm:w-10 text-[#1B4332] group-hover:rotate-12 transition-transform duration-300"
-                    style={{ color: primaryColor }}
-                  />
+                  <div className="relative shrink-0" style={{ width: logoH, height: logoH }}>
+                    <Leaf
+                      className="h-full w-full text-[#1B4332] transition-transform duration-300 group-hover:rotate-12"
+                      style={{ color: primaryColor }}
+                    />
+                  </div>
                   <div className="absolute inset-0 bg-[#FFD166]/20 blur-xl rounded-full group-hover:bg-[#FFD166]/30 transition-all" />
                 </>
               )}
@@ -254,7 +279,7 @@ export const Navbar = ({
                   <span className="relative z-10 hidden sm:inline">Carrinho</span>
                 </button>
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white text-xs font-bold rounded-full min-h-[22px] min-w-[22px] px-1 flex items-center justify-center shadow-lg z-10">
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] text-white text-xs font-bold rounded-full min-h-[22px] min-w-[22px] px-1 flex items-center justify-center shadow-lg z-10">
                     {itemCount}
                   </span>
                 )}
@@ -267,13 +292,15 @@ export const Navbar = ({
       {!embeddedPreview && mobileNavOpen && (
         <>
           <div
-            className="fixed inset-x-0 top-20 bottom-0 z-[35] bg-black/40 md:hidden"
+            className="fixed inset-x-0 bottom-0 z-[35] bg-black/40 md:hidden"
+            style={{ top: `${navRowMinPx}px` }}
             aria-hidden
             onClick={closeMobileNav}
           />
           <div
             id="mobile-nav-menu"
-            className="fixed left-0 right-0 top-20 z-[36] md:hidden border-b border-[#1B4332]/10 bg-white/98 backdrop-blur-xl shadow-xl max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto overscroll-contain"
+            className="fixed left-0 right-0 z-[36] md:hidden border-b border-[#1B4332]/10 bg-white/98 backdrop-blur-xl shadow-xl max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto overscroll-contain"
+            style={{ top: `${navRowMinPx}px` }}
             role="navigation"
             aria-label="Menu principal"
           >

@@ -5,6 +5,13 @@ export const normalizeStorePrimaryColor = (input: string | null | undefined): st
   return "#1B4332";
 };
 
+/** Cor de destaque (fim do gradiente em CTAs). Padrão harmoniza com a marca histórica. */
+export const normalizeStoreAccentColor = (input: string | null | undefined): string => {
+  const t = (input ?? "").trim();
+  if (/^#[0-9A-Fa-f]{6}$/i.test(t)) return t.startsWith("#") ? t : `#${t}`;
+  return "#2D5F4A";
+};
+
 function clampByte(v: number): number {
   return Math.max(0, Math.min(255, Math.round(v)));
 }

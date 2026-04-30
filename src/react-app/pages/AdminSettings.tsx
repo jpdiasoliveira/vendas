@@ -6,19 +6,11 @@ export default function AdminSettingsPage() {
 
   if (m.loading) {
     return (
-      <div className="px-2.5 pb-24 pt-6 sm:px-3 lg:px-4">
-        <div className="mx-auto w-full max-w-[min(100%,1920px)]">
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-12 text-center shadow-sm border border-[#1B4332]/10">
-            <p className="text-[#6D4C41] font-inter">Carregando configurações...</p>
-          </div>
-        </div>
+      <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
+        <p className="font-inter text-[#6D4C41]">Carregando configurações...</p>
       </div>
     );
   }
 
-  return (
-    <div className="px-2.5 pb-24 pt-6 sm:px-3 lg:px-4">
-      <AdminSettingsFormBody m={m} />
-    </div>
-  );
+  return <AdminSettingsFormBody m={m} />;
 }

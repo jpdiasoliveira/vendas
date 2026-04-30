@@ -19,6 +19,7 @@
   },
   "include": [
     "src/worker",
+    "src/contracts",
     "src/constants",
     "src/schemas"
   ]

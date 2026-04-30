@@ -1,7 +1,7 @@
 import { PlatformFeatureCodes } from "../../constants/platformFeatureCodes.js";
 import { getSubscriptionGraceDays } from "./db/platformRuntimeSettingsRepo.js";
 import { getSupabase } from "./supabase.js";
-import type { StoreCapabilities } from "./schema.js";
+import type { StoreCapabilities } from "../../contracts/schema.js";
 
 type EntitlementRpcRow = {
   feature_code: string;

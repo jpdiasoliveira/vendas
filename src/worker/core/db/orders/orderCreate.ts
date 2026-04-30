@@ -4,7 +4,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
-import type { CartItemPayload } from "../../schema.js";
+import type { CartItemPayload } from "../../../../contracts/schema.js";
 import {
   resolveOrderLinesForCheckout,
   type ResolvedCheckoutLine,

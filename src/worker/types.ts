@@ -1,4 +1,4 @@
-import type { Store } from "./core/schema.js";
+import type { Store } from "../contracts/schema.js";
 
 /**
  * Usuário autenticado no painel admin (validado via JWT + store_members).

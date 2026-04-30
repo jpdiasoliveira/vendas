@@ -8,8 +8,8 @@
 
 import { getSupabase } from "../../supabase.js";
 import { getStoreCapabilities } from "../../storeCapabilities.js";
-import type { Store, StoreSettings } from "../../schema.js";
-import { parsePublicProfile } from "../../storePublicProfile.js";
+import type { Store, StoreSettings } from "../../../../contracts/schema.js";
+import { parsePublicProfile } from "../../../../contracts/storePublicProfile.js";
 import { rowToStore } from "../mappers.js";
 import { isMissingStoreDomainsTable } from "./storeDomainHelpers.js";
 

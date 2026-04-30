@@ -117,7 +117,7 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
           <button
             type="button"
             onClick={handleAdd}
-            className="min-h-[44px] min-w-[44px] shrink-0 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-5 py-3 font-inter text-base font-medium text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-lg hover:shadow-[#1B4332]/30"
+            className="min-h-[44px] min-w-[44px] shrink-0 rounded-full bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] px-5 py-3 font-inter text-base font-medium text-white transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-lg hover:shadow-[rgb(var(--brand-primary-rgb)_/_0.3)]"
           >
             Adicionar
           </button>

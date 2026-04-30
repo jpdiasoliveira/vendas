@@ -1,10 +1,8 @@
 /**
  * Gera PDF de fechamento de vendas (Relatório Ktech).
- * Usa jspdf + jspdf-autotable; cores sóbrias (#1B4332 e cinza).
+ * jspdf + jspdf-autotable carregados sob demanda (dynamic import).
  */
 
-import { jsPDF } from "jspdf";
-import { autoTable } from "jspdf-autotable";
 import { formatCurrency, formatDate } from "@/react-app/utils/format";
 
 const GREEN = [27, 67, 50] as [number, number, number]; // #1B4332
@@ -44,7 +42,16 @@ export interface ExportClosingPdfOptions {
   storeName?: string;
 }
 
-export function exportClosingPdf({ orders, periodLabel, storeName = STORE_NAME }: ExportClosingPdfOptions): void {
+export async function exportClosingPdf({
+  orders,
+  periodLabel,
+  storeName = STORE_NAME,
+}: ExportClosingPdfOptions): Promise<void> {
+  const [{ jsPDF }, { autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+
   const doc = new jsPDF({ putOnlyUsedFonts: true });
   const margin = 14;
   let y = 20;

@@ -105,7 +105,7 @@ export const ProductDetailModal = ({
             onAddToCart();
             onClose();
           }}
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-3.5 text-base font-inter font-medium text-white shadow-lg transition-all hover:shadow-[#1B4332]/30"
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] px-6 py-3.5 text-base font-inter font-medium text-white shadow-lg transition-all hover:shadow-[rgb(var(--brand-primary-rgb)_/_0.3)]"
         >
           <ShoppingBag className="h-5 w-5" />
           Adicionar ao carrinho

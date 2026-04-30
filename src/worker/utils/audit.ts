@@ -5,7 +5,7 @@
 
 import { getSupabase } from "../core/supabase.js";
 import type { AuthUser } from "../types.js";
-import type { Store } from "../core/schema.js";
+import type { Store } from "../../contracts/schema.js";
 import { redactSecrets } from "./safeApiError.js";
 
 export type AuditContext = {

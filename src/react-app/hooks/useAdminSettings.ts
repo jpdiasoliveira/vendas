@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type FormEvent, type ChangeEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/react-app/contexts/AuthContext";
@@ -6,7 +6,8 @@ import { adminApiFetch, adminUploadImage, getEffectiveStoreSlug } from "@/react-
 import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import type { StorePublicProfile } from "@/react-app/types";
-import { parsePublicProfile } from "@/worker/core/storePublicProfile";
+import { parsePublicProfile } from "@/contracts/storePublicProfile";
+import { clampStoreLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
 import { formatBRL, parseBRL } from "@/react-app/utils/adminSettingsBrl";
 import { adminStoreSettingsFormQueryKey } from "@/react-app/query/queryKeys";
@@ -59,7 +60,6 @@ export const useAdminSettings = () => {
   const [primaryColor, setPrimaryColor] = useState("#1B4332");
   const [publicProfile, setPublicProfile] = useState<StorePublicProfile>(emptyProfile);
   const [checkoutLoginAck, setCheckoutLoginAck] = useState<string | null>(null);
-  const saveSuccessRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const data = settingsQuery.data;
@@ -82,7 +82,9 @@ export const useAdminSettings = () => {
   useEffect(() => {
     if (!success) return;
     const id = requestAnimationFrame(() => {
-      saveSuccessRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
     });
     const t = setTimeout(() => setSuccess(false), 8000);
     return () => {
@@ -206,6 +208,14 @@ export const useAdminSettings = () => {
               newsletterPlaceholder: publicProfile.newsletterPlaceholder?.trim() || undefined,
               newsletterCtaLabel: publicProfile.newsletterCtaLabel?.trim() || undefined,
               requireLoginToCheckout: publicProfile.requireLoginToCheckout !== false,
+              logoHeightPx: clampStoreLogoHeightPx(publicProfile.logoHeightPx ?? undefined),
+              logoKnockoutWhite: publicProfile.logoKnockoutWhite === true,
+              accentColor:
+                publicProfile.accentColor && /^#[0-9A-Fa-f]{6}$/i.test(publicProfile.accentColor.trim())
+                  ? publicProfile.accentColor.trim().startsWith("#")
+                    ? publicProfile.accentColor.trim()
+                    : `#${publicProfile.accentColor.trim()}`
+                  : undefined,
             },
           }),
         });
@@ -279,7 +289,6 @@ export const useAdminSettings = () => {
     handleProfileImageFile,
     handleSubmit,
     inputCls,
-    saveSuccessRef,
   };
 };
 

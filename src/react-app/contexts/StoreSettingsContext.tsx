@@ -9,7 +9,12 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/react-app/services/api";
 import type { StoreCapabilities, StorePublicProfile } from "@/react-app/types";
-import { hexToRgbTriplet, mixHexColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import {
+  hexToRgbTriplet,
+  mixHexColor,
+  normalizeStoreAccentColor,
+  normalizeStorePrimaryColor,
+} from "@/react-app/utils/brandColor";
 import { storeSettingsQueryKey } from "@/react-app/query/queryKeys";
 import { ADMIN_PANEL_GC_MS, ADMIN_PANEL_STALE_MS } from "@/react-app/query/adminPanelCache";
 
@@ -63,13 +68,15 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
         ? String(query.error)
         : null;
 
-  const refetch = useCallback(async (_opts?: { silent?: boolean }) => {
+  const refetch = useCallback(async (opts?: { silent?: boolean }) => {
+    void opts;
     await query.refetch();
   }, [query]);
 
   useEffect(() => {
     const root = document.documentElement;
     const primary = normalizeStorePrimaryColor(settings?.primaryColor ?? undefined);
+    const accent = normalizeStoreAccentColor(settings?.publicProfile?.accentColor ?? undefined);
     const rgb = hexToRgbTriplet(primary) ?? "27, 67, 50";
     const hover = mixHexColor(primary, "#000000", 0.12);
     const soft = mixHexColor(primary, "#ffffff", 0.82);
@@ -77,13 +84,15 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     root.style.setProperty("--brand-primary-rgb", rgb);
     root.style.setProperty("--brand-primary-hover", hover);
     root.style.setProperty("--brand-primary-soft", soft);
+    root.style.setProperty("--brand-accent", accent);
     return () => {
       root.style.removeProperty("--brand-primary");
       root.style.removeProperty("--brand-primary-rgb");
       root.style.removeProperty("--brand-primary-hover");
       root.style.removeProperty("--brand-primary-soft");
+      root.style.removeProperty("--brand-accent");
     };
-  }, [settings?.primaryColor]);
+  }, [settings?.primaryColor, settings?.publicProfile?.accentColor]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;

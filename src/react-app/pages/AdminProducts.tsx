@@ -21,8 +21,7 @@ const AdminProductsPage = () => {
     : undefined;
 
   return (
-    <div className="px-2.5 pb-12 pt-6 sm:px-3 lg:px-4">
-      <div className="mx-auto w-full max-w-7xl">
+    <>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -33,11 +32,13 @@ const AdminProductsPage = () => {
             >
               <Home className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2">
-              <Package className="h-8 w-8 text-[#1B4332]" />
+            <div className="flex items-center gap-3">
+              <Package className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
               <div>
-                <h1 className="font-playfair text-2xl font-bold text-[#1B4332]">Gestão de Produtos</h1>
-                <p className="font-inter text-sm text-[#6D4C41]">Preços, atacado e estoque</p>
+                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
+                  Gestão de Produtos
+                </h1>
+                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Preços, atacado e estoque</p>
               </div>
             </div>
           </div>
@@ -46,7 +47,7 @@ const AdminProductsPage = () => {
               type="button"
               onClick={() => void m.fetchProducts()}
               disabled={m.loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/20 bg-white/80 px-4 py-2.5 font-medium text-[#1B4332] shadow-sm transition-all hover:bg-white disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/25 bg-white/90 px-3 py-2.5 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[#1B4332]/35 hover:bg-white hover:text-[#1B4332] disabled:opacity-60"
             >
               <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
               Atualizar
@@ -93,7 +94,6 @@ const AdminProductsPage = () => {
             />
           </>
         )}
-      </div>
 
       <EditProductModal isOpen={m.modalOpen} product={m.editingProduct} onClose={m.closeModal} onSaved={m.fetchProducts} />
       <AddProductModal
@@ -129,7 +129,7 @@ const AdminProductsPage = () => {
           {m.toast}
         </div>
       )}
-    </div>
+    </>
   );
 };
 

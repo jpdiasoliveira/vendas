@@ -1,14 +1,26 @@
-import { useCallback, useMemo } from "react";
-import { Home, LayoutDashboard, Save, Image as ImageIcon, ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  Home,
+  LayoutDashboard,
+  Save,
+  Image as ImageIcon,
+  ImagePlus,
+  Loader2,
+  CheckCircle2,
+  Palette,
+} from "lucide-react";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
 import { AdminStorefrontPreviewPanel } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
 import type { StorefrontPreviewSectionId } from "@/react-app/components/admin/storefrontPreviewLink";
 import { useStorefrontPreviewFocus } from "@/react-app/components/admin/useStorefrontPreviewFocus";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
+import { clampStoreLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 import { parseBRL } from "@/react-app/utils/adminSettingsBrl";
 import type { AdminSettingsViewModel } from "@/react-app/hooks/useAdminSettings";
 import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
+import { extractLogoPaletteFromSrc } from "@/react-app/utils/extractLogoPalette";
+import { normalizeStoreAccentColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
 
 export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
   const { activeSection, previewFocus, previewBlur } = useStorefrontPreviewFocus();
@@ -51,8 +63,36 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     handleProfileImageFile,
     handleSubmit,
     inputCls,
-    saveSuccessRef,
   } = m;
+
+  const previewLogoH = clampStoreLogoHeightPx(publicProfile.logoHeightPx ?? undefined);
+  const previewLogoKnockout = publicProfile.logoKnockoutWhite === true;
+
+  const [logoPalette, setLogoPalette] = useState<{ dominant: string; vibrant: string } | null>(null);
+  const [logoPaletteLoading, setLogoPaletteLoading] = useState(false);
+
+  const logoSrcForPalette = (imagePreview ?? logoUrl).trim();
+
+  useEffect(() => {
+    if (!logoSrcForPalette || logoPreviewFailed) {
+      setLogoPalette(null);
+      setLogoPaletteLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLogoPaletteLoading(true);
+    setLogoPalette(null);
+    void extractLogoPaletteFromSrc(logoSrcForPalette).then((p) => {
+      if (cancelled) return;
+      setLogoPalette(p);
+      setLogoPaletteLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [logoSrcForPalette, logoPreviewFailed]);
+
+  const accentFormValue = normalizeStoreAccentColor(publicProfile.accentColor ?? undefined);
 
   const previewMerge = useMemo<Partial<StoreSettingsData>>(
     () => ({
@@ -69,13 +109,21 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
       minimumOrderValue: parseBRL(minimumOrderValue),
       publicProfile,
     }),
-    [displayName, logoUrl, imagePreview, bannerUrl, bannerPreview, primaryColor, minimumOrderValue, publicProfile]
+    [
+      displayName,
+      logoUrl,
+      imagePreview,
+      bannerUrl,
+      bannerPreview,
+      primaryColor,
+      minimumOrderValue,
+      publicProfile,
+    ]
   );
 
   return (
     <div className="relative w-full">
-      <div className="mx-auto w-full max-w-[min(100%,1920px)] lg:mx-0 lg:max-w-[calc(50vw-12px)] lg:pr-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/")}
@@ -84,11 +132,13 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             >
               <Home className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="h-8 w-8 text-[#1B4332]" />
+            <div className="flex items-center gap-3">
+              <LayoutDashboard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
               <div>
-                <h1 className="text-2xl font-bold text-[#1B4332] font-playfair">Configurações da Loja</h1>
-                <p className="text-sm text-[#6D4C41] font-inter">
+                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
+                  Configurações da Loja
+                </h1>
+                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
                   Aparência, contato, textos institucionais e regras de checkout
                 </p>
               </div>
@@ -96,14 +146,37 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 border border-red-200 rounded-2xl p-4 mb-6 font-inter">
-            {error}
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 font-inter text-red-700">{error}</div>
+      )}
+
+      {success ? (
+        <div
+          className="mb-6 flex gap-3 rounded-2xl border border-green-200 bg-green-50/95 px-4 py-4 text-green-900 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-green-600" aria-hidden />
+          <div className="min-w-0 font-inter">
+            <p className="font-semibold text-green-900">Configurações salvas com sucesso</p>
+            <p className="mt-1 text-sm text-green-800/90">
+              As alterações já estão aplicadas na vitrine e no checkout desta loja.
+            </p>
           </div>
-        )}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div className="min-w-0">
         <form
           onSubmit={handleSubmit}
-          className="w-full bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1B4332]/10 p-4 sm:p-5 font-inter"
+          className="w-full rounded-2xl border border-[#1B4332]/10 bg-white/70 p-4 font-inter shadow-sm backdrop-blur-sm sm:p-5"
+          style={
+            {
+              ["--brand-primary"]: normalizeStorePrimaryColor(primaryColor),
+              ["--brand-accent"]: normalizeStoreAccentColor(publicProfile.accentColor ?? undefined),
+            } as CSSProperties
+          }
         >
           <div className="min-w-0 space-y-8">
           <section className="space-y-4">
@@ -147,8 +220,12 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
 
             <div className="space-y-3">
               <label className="block text-sm font-medium text-[#6D4C41]">Logomarca</label>
-              <p className="text-xs text-[#6D4C41]/80 -mt-1">
+              <p className="-mt-1 text-xs text-[#6D4C41]/80">
                 Envie um arquivo ou informe a URL pública da imagem. A pré-visualização mostra como o logo tende a aparecer na barra do site.
+              </p>
+              <p className="text-xs leading-snug text-[#6D4C41]/85">
+                <strong className="text-[#1B4332]">Dica:</strong> para um acabamento profissional, utilize imagens em formato{" "}
+                <strong className="text-[#1B4332]">.PNG</strong> com fundo transparente.
               </p>
 
               <div className="rounded-2xl border border-[#1B4332]/12 bg-[#FAF8F3]/50 p-4 sm:p-5">
@@ -169,6 +246,10 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                       <ImagePlus className="h-5 w-5 shrink-0 text-[#6D4C41]" />
                       <span className="text-sm font-medium text-[#6D4C41]">Enviar imagem do logo</span>
                     </label>
+                    <p className="text-center text-[11px] leading-snug text-[#6D4C41]/75">
+                      Para um acabamento profissional, utilize imagens em formato <strong className="text-[#1B4332]">.PNG</strong>{" "}
+                      com fundo transparente.
+                    </p>
                     <div className="min-w-0">
                       <label htmlFor="logoUrl" className="mb-1 block text-xs font-medium text-[#6D4C41]/90">
                         URL da imagem (opcional se enviar arquivo)
@@ -194,10 +275,10 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                       aria-live="polite"
                     >
                       <div
-                        className="pointer-events-none absolute inset-x-0 top-0 h-9 rounded-t-[0.9rem] bg-[#1B4332]/[0.07]"
+                        className="pointer-events-none absolute inset-x-0 top-0 h-9 rounded-t-[0.9rem] bg-gradient-to-b from-[#1B4332]/[0.08] to-transparent"
                         aria-hidden
                       />
-                      <div className="relative flex h-[7.25rem] w-full max-w-[240px] items-center justify-center rounded-xl bg-white/95 px-3 py-2.5 shadow-sm ring-1 ring-[#1B4332]/10">
+                      <div className="relative flex h-[7.25rem] w-full max-w-[240px] items-center justify-center rounded-xl bg-[#FAF8F3]/85 px-3 py-2.5 shadow-inner ring-1 ring-[#1B4332]/12">
                         {imagePreview || logoUrl.trim() ? (
                           logoPreviewFailed ? (
                             <div className="flex flex-col items-center gap-1 px-2 text-center text-[#6D4C41]/70">
@@ -210,7 +291,10 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                             <img
                               src={imagePreview ?? logoUrl}
                               alt=""
-                              className="max-h-full max-w-full object-contain"
+                              style={{ height: `${Math.min(previewLogoH, 72)}px`, width: "auto" }}
+                              className={`max-h-[4.5rem] w-auto object-contain ${
+                                previewLogoKnockout ? "mix-blend-multiply" : ""
+                              }`}
                               onError={() => setLogoPreviewFailed(true)}
                             />
                           )
@@ -222,17 +306,106 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                         )}
                       </div>
                       <p className="mt-3 max-w-[14rem] text-center text-[11px] leading-relaxed text-[#6D4C41]/65">
-                        Área aproximada na barra. PNG ou SVG com fundo transparente costumam funcionar melhor.
+                        Área aproximada na barra — altura e opção de fundo refletem as definições abaixo.
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {logoSrcForPalette && !logoPreviewFailed ? (
+                <div className="mt-4 rounded-xl border border-[#1B4332]/12 bg-white/70 px-4 py-3 sm:px-4 sm:py-3.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Palette className="h-4 w-4 shrink-0 text-[#6D4C41]" aria-hidden />
+                    <span className="text-xs font-medium text-[#6D4C41]">Cores sugeridas a partir do logo</span>
+                    {logoPaletteLoading ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#1B4332]" aria-label="A extrair cores" />
+                    ) : logoPalette ? (
+                      <>
+                        <div className="flex items-center gap-2" role="group" aria-label="Amostras de cor">
+                          <span
+                            className="h-8 w-8 shrink-0 rounded-lg border border-[#1B4332]/20 shadow-sm"
+                            style={{ backgroundColor: logoPalette.dominant }}
+                            title={`Predominante ${logoPalette.dominant}`}
+                          />
+                          <span
+                            className="h-8 w-8 shrink-0 rounded-lg border border-[#1B4332]/20 shadow-sm"
+                            style={{ backgroundColor: logoPalette.vibrant }}
+                            title={`Destaque ${logoPalette.vibrant}`}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPrimaryColor(logoPalette.dominant);
+                            setPublicProfile((prev) => ({ ...prev, accentColor: logoPalette.vibrant }));
+                          }}
+                          className="ml-auto inline-flex min-h-[36px] items-center justify-center gap-2 rounded-lg border border-[#1B4332]/25 bg-[#FAF8F3] px-3 py-1.5 text-xs font-semibold text-[#1B4332] transition-colors hover:bg-[#1B4332]/10"
+                        >
+                          Aplicar cor do logo ao tema
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                  {!logoPaletteLoading && !logoPalette ? (
+                    <p className="mt-2 text-[11px] text-[#6D4C41]/75">
+                      Não foi possível ler as cores desta imagem (por exemplo URL externa sem permissão CORS). Envie o
+                      ficheiro ou use uma URL que permita leitura.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="logoHeightPx" className="mb-1 block text-sm font-medium text-[#6D4C41]">
+                    Altura do Logo (px)
+                  </label>
+                  <input
+                    id="logoHeightPx"
+                    type="number"
+                    min={20}
+                    max={100}
+                    step={1}
+                    value={previewLogoH}
+                    onChange={(e) => {
+                      const raw = Number.parseInt(e.target.value, 10);
+                      setPublicProfile((prev) => ({
+                        ...prev,
+                        logoHeightPx: clampStoreLogoHeightPx(Number.isFinite(raw) ? raw : undefined),
+                      }));
+                    }}
+                    className={inputCls}
+                    {...fp("navbar")}
+                  />
+                  <p className="mt-1 text-xs text-[#6D4C41]/75">Entre 20 e 100 px — controla a altura na barra da loja (e no rodapé, proporcionalmente).</p>
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl border border-[#1B4332]/12 bg-white/60 p-3 sm:p-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      {...fp("navbar")}
+                      checked={previewLogoKnockout}
+                      onChange={(e) =>
+                        setPublicProfile((prev) => ({ ...prev, logoKnockoutWhite: e.target.checked }))
+                      }
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-[#1B4332]/30 text-[#1B4332] focus:ring-[#1B4332]/40"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-[#1B4332]">Remover fundo branco</span>
+                      <span className="mt-0.5 block text-xs leading-snug text-[#6D4C41]/80">
+                        Aplica <code className="rounded bg-[#1B4332]/10 px-1 text-[11px]">mix-blend-mode: multiply</code> no logo
+                        para atenuar fundos brancos opacos (útil quando não há PNG transparente).
+                      </span>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
 
             <div>
               <label htmlFor="primaryColor" className="block text-sm font-medium text-[#6D4C41] mb-1">
-                Cor Principal
+                Cor primária
               </label>
               <div className="flex gap-3 items-center">
                 <input
@@ -258,7 +431,48 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 />
               </div>
               <p className="text-xs text-[#6D4C41]/80 mt-1">
-                Botões e detalhes da vitrine usam esta cor; se estiver vazia ou inválida, o site usa o verde padrão.
+                Marca, textos e sobreposições na vitrine; o fim dos gradientes nos botões usa a cor abaixo.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="accentColor" className="mb-1 block text-sm font-medium text-[#6D4C41]">
+                Cor dos botões (gradiente)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="accentColor"
+                  type="color"
+                  value={accentFormValue}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({ ...prev, accentColor: e.target.value }))
+                  }
+                  className="h-12 w-12 cursor-pointer rounded-lg border border-[#1B4332]/20 bg-white"
+                  {...fp("navbar")}
+                />
+                <input
+                  type="text"
+                  value={publicProfile.accentColor?.trim() || ""}
+                  onChange={(e) => {
+                    const v = e.target.value.trim();
+                    if (v === "") {
+                      setPublicProfile((prev) => ({ ...prev, accentColor: undefined }));
+                      return;
+                    }
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(v) || /^[0-9A-Fa-f]{0,6}$/.test(v)) {
+                      setPublicProfile((prev) => ({
+                        ...prev,
+                        accentColor: v.startsWith("#") ? v : `#${v}`,
+                      }));
+                    }
+                  }}
+                  placeholder="#2D5F4A (opcional)"
+                  className={`flex-1 font-mono text-sm ${inputCls}`}
+                  {...fp("navbar")}
+                />
+              </div>
+              <p className="mt-1 text-xs text-[#6D4C41]/80">
+                Segundo tom do gradiente em CTAs e cabeçalhos. Vazio = tom padrão da loja.
               </p>
             </div>
 
@@ -631,7 +845,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
           <button
             type="submit"
             disabled={saving || uploadingImage || uploadingBanner || uploadingProfileImage != null}
-            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white py-3.5 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] py-4 text-base font-semibold text-white shadow-md transition-[box-shadow,transform] hover:shadow-xl hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg"
           >
             {saving || uploadingImage || uploadingBanner || uploadingProfileImage != null ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -648,44 +862,28 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                     ? "Salvando..."
                     : "Salvar configurações"}
           </button>
-
-          {success ? (
-            <div
-              ref={saveSuccessRef}
-              className="mt-4 flex gap-3 rounded-2xl border border-green-200 bg-green-50/95 px-4 py-4 text-green-900 shadow-sm"
-              role="status"
-              aria-live="polite"
-            >
-              <CheckCircle2 className="h-6 w-6 shrink-0 text-green-600 mt-0.5" aria-hidden />
-              <div className="min-w-0 font-inter">
-                <p className="font-semibold text-green-900">Configurações salvas com sucesso</p>
-                <p className="mt-1 text-sm text-green-800/90">
-                  As alterações já estão aplicadas na vitrine e no checkout desta loja.
-                </p>
-              </div>
-            </div>
-          ) : null}
           </div>
         </form>
-      </div>
+        </div>
 
-      <div
-        className="mt-10 flex flex-col border-t border-[#1B4332]/15 pt-8 lg:fixed lg:bottom-0 lg:right-0 lg:top-24 lg:z-[100] lg:mt-0 lg:w-1/2 lg:overflow-hidden lg:border-l lg:border-t-0 lg:border-[#1B4332]/20 lg:bg-[#FAF8F3]/98 lg:pt-0 lg:shadow-[-8px_0_32px_rgba(27,67,50,0.07)]"
+      <aside
+        className="mt-10 flex min-h-0 flex-col border-t border-[#1B4332]/10 pt-8 lg:mt-0 lg:h-[min(calc(100dvh-4.75rem),56rem)] lg:self-start lg:overflow-hidden lg:pt-0 lg:sticky lg:top-16 lg:z-30"
         role="complementary"
         aria-label="Pré-visualização da vitrine"
       >
-        <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:px-2 lg:pb-2">
+        <div className="flex min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:h-full lg:overflow-hidden lg:px-3 lg:pb-3 lg:pt-3">
           <div className="mb-3 shrink-0 lg:hidden">
             <h2 className="text-lg font-semibold text-[#1B4332] font-playfair">Pré-visualização da home</h2>
             <p className="mt-1 text-xs text-[#6D4C41]">
-              No computador esta área fica <strong className="text-[#1B4332]">fixa à direita</strong> enquanto desce o
-              formulário — vê sempre o bloco que está a editar.
+              No computador esta coluna fica <strong className="text-[#1B4332]">alinhada ao formulário</strong> e
+              acompanha o scroll — vê sempre o bloco que está a editar.
             </p>
           </div>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <AdminStorefrontPreviewPanel merge={previewMerge} activeSection={activeSection} />
           </div>
         </div>
+      </aside>
       </div>
     </div>
   );

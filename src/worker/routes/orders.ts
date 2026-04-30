@@ -11,7 +11,7 @@ import {
   getStoreSettingsWithDisplayName,
 } from "../core/database.js";
 import { resolveOrderLinesForCheckout, type ResolvedCheckoutLine } from "../core/db/productsRepo.js";
-import type { CartItemPayload } from "../core/schema.js";
+import type { CartItemPayload } from "../../contracts/schema.js";
 import { OrderBusinessError } from "../core/orderErrors.js";
 import type { AuthUser, Variables } from "../types.js";
 import { createPaymentPIX, createPreference } from "../services/mercadopago.js";

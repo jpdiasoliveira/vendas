@@ -54,7 +54,7 @@ export const Hero = ({
           }
           style={overlayStyle}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#FFD166]/10 via-transparent to-[#1B4332]/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FFD166]/10 via-transparent to-[rgb(var(--brand-primary-rgb)_/_0.2)]" />
       </div>
       <div className={`relative z-10 mx-auto w-full max-w-3xl text-center ${STOREFRONT_EDGE_PADDING_CLASS}`}>
         <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 md:p-8 border border-white/20 shadow-2xl animate-[float_6s_ease-in-out_infinite]">

@@ -10,7 +10,12 @@ import { Story } from "@/react-app/components/home/Story";
 import { Lifestyle } from "@/react-app/components/home/Lifestyle";
 import { Benefits } from "@/react-app/components/home/Benefits";
 import { Newsletter } from "@/react-app/components/home/Newsletter";
-import { hexToRgbTriplet, mixHexColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import {
+  hexToRgbTriplet,
+  mixHexColor,
+  normalizeStoreAccentColor,
+  normalizeStorePrimaryColor,
+} from "@/react-app/utils/brandColor";
 import {
   storefrontPreviewSectionLabels,
   type StorefrontPreviewSectionId,
@@ -23,19 +28,13 @@ type AdminStorefrontPreviewPanelProps = {
 
 const highlightCls = (active: boolean) =>
   active
-    ? "z-[1] shadow-xl ring-[3px] ring-[#FFD166] ring-offset-[3px] ring-offset-[#FAF8F3] transition-shadow duration-200 rounded-sm"
-    : "transition-shadow duration-200 rounded-sm";
+    ? "z-[1] shadow-xl ring-[3px] ring-[#FFD166] ring-offset-[3px] ring-offset-[#FAF8F3] transition-shadow duration-200 scroll-mt-4 rounded-sm"
+    : "transition-shadow duration-200 scroll-mt-4 rounded-sm";
 
-/** Rola só o `container` e centra o bloco na área visível (sem mexer no scroll da página). */
+/** Rola o scrollport interno (`overflow-y` do painel) até centrar a secção em edição. */
 const scrollSectionIntoPreview = (container: HTMLDivElement, sectionEl: HTMLElement) => {
-  const cRect = container.getBoundingClientRect();
-  const eRect = sectionEl.getBoundingClientRect();
-  const elTop = container.scrollTop + (eRect.top - cRect.top);
-  const elH = eRect.height;
-  const viewH = container.clientHeight;
-  const centered = elTop - (viewH - elH) / 2;
-  const maxTop = Math.max(0, container.scrollHeight - viewH);
-  container.scrollTo({ top: Math.min(maxTop, Math.max(0, centered)), behavior: "smooth" });
+  if (container.clientHeight < 8) return;
+  sectionEl.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
 };
 
 export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStorefrontPreviewPanelProps) => {
@@ -51,18 +50,51 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
     : activeSection;
 
   useLayoutEffect(() => {
-    if (!scrollTargetSection || !scrollElRef.current) return;
+    if (!activeSection || !scrollTargetSection) return;
     const container = scrollElRef.current;
-    let el = container.querySelector<HTMLElement>(`[data-preview-section="${scrollTargetSection}"]`);
-    if (!el && scrollTargetSection === "footerPolicies") {
-      el = container.querySelector<HTMLElement>(`[data-preview-section="footerContact"]`);
-    }
-    if (!el) return;
-    const run = () => scrollSectionIntoPreview(container, el);
-    requestAnimationFrame(() => requestAnimationFrame(run));
-  }, [scrollTargetSection]);
+    if (!container) return;
+
+    const resolveSectionEl = (): HTMLElement | null => {
+      let el = container.querySelector<HTMLElement>(`[data-preview-section="${scrollTargetSection}"]`);
+      if (!el && scrollTargetSection === "footerPolicies") {
+        el = container.querySelector<HTMLElement>(`[data-preview-section="footerContact"]`);
+      }
+      return el;
+    };
+
+    const run = () => {
+      const el = resolveSectionEl();
+      if (!el) return;
+      scrollSectionIntoPreview(container, el);
+    };
+
+    const schedule = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(run);
+      });
+    };
+
+    schedule();
+
+    const retryLater = window.setTimeout(run, 200);
+    const retryAgain = window.setTimeout(run, 500);
+
+    let prevH = 0;
+    const ro = new ResizeObserver(() => {
+      const h = container.clientHeight;
+      if (h >= 8 && prevH < 8 && resolveSectionEl()) schedule();
+      prevH = h;
+    });
+    ro.observe(container);
+    return () => {
+      window.clearTimeout(retryLater);
+      window.clearTimeout(retryAgain);
+      ro.disconnect();
+    };
+  }, [activeSection]);
 
   const brand = normalizeStorePrimaryColor(merge?.primaryColor ?? undefined);
+  const accent = normalizeStoreAccentColor(merge?.publicProfile?.accentColor ?? undefined);
   const rgb = hexToRgbTriplet(brand);
   const brandCss = useMemo(() => {
     const hover = mixHexColor(brand, "#000000", 0.12);
@@ -72,21 +104,22 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
       ["--brand-primary-rgb" as string]: rgb ?? "27, 67, 50",
       ["--brand-primary-hover" as string]: hover,
       ["--brand-primary-soft" as string]: soft,
+      ["--brand-accent" as string]: accent,
     };
-  }, [brand, rgb]);
+  }, [brand, accent, rgb]);
 
   const noop = () => {};
 
   return (
-    <div className="flex h-full min-h-0 w-full max-w-none flex-col rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-3 shadow-sm sm:p-4">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-3 shadow-sm sm:p-4">
       <div className="shrink-0">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80 sm:text-sm">
           Pré-visualização (componentes da home, sem produtos)
         </h3>
-        <p className="mt-1 text-xs text-[#6D4C41]/80 leading-snug sm:text-sm">
+        <p className="mt-1 text-xs leading-snug text-[#6D4C41]/80 sm:text-sm">
           Ao focar um campo, <strong className="text-[#1B4332]">este painel</strong> rola por dentro e centra o
-          bloco certo — no PC o painel fica <strong className="text-[#1B4332]">fixo à direita</strong> enquanto o
-          formulário desce. Barra, rodapé e blocos são os mesmos da vitrine (rascunho em tempo real).
+          bloco certo — no PC a coluna fica <strong className="text-[#1B4332]">ao lado do formulário</strong> e
+          acompanha o scroll. Barra, rodapé e blocos são os mesmos da vitrine (rascunho em tempo real).
         </p>
         {activeSection ? (
           <div
@@ -102,7 +135,7 @@ export const AdminStorefrontPreviewPanel = ({ merge, activeSection }: AdminStore
 
       <div
         ref={scrollElRef}
-        className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth py-1 pr-1 [-webkit-overflow-scrolling:touch]"
+        className="mt-3 flex min-h-[min(260px,42vh)] flex-1 overflow-y-auto overscroll-contain scroll-smooth py-1 pr-1 [-webkit-overflow-scrolling:touch]"
       >
         <StoreSettingsPreviewMergeProvider merge={merge}>
           <div

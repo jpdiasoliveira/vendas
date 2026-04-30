@@ -2,6 +2,8 @@
  * Conteúdo de store_settings.public_profile (JSONB).
  * Campos opcionais; requireLoginToCheckout ausente = true (comportamento atual).
  * Aceita objeto JSONB, string JSON, e chaves em camelCase ou snake_case.
+ *
+ * Partilhado entre Worker e Vite (contrato); o Worker não deve importar lógica de rotas daqui.
  */
 
 export type StorePublicProfile = {
@@ -54,6 +56,12 @@ export type StorePublicProfile = {
   privacyPolicy?: string | null;
   /** Se true (padrão), exige JWT Supabase para criar pedido. Se false, permite checkout com e-mail. */
   requireLoginToCheckout?: boolean;
+  /** Altura do logo na barra da home (px), entre 20 e 100. */
+  logoHeightPx?: number | null;
+  /** Se true, aplica mistura no logo para atenuar fundo branco em PNGs opacos. */
+  logoKnockoutWhite?: boolean | null;
+  /** Cor do fim do gradiente em botões (CTA), #RRGGBB. */
+  accentColor?: string | null;
 };
 
 function str(v: unknown): string | null {
@@ -68,6 +76,28 @@ function firstStr(o: Record<string, unknown>, keys: string[]): string | null {
     if (s) return s;
   }
   return null;
+}
+
+const LOGO_H_MIN = 20;
+const LOGO_H_MAX = 100;
+const LOGO_H_DEFAULT = 40;
+
+function parseLogoHeightPx(v: unknown): number {
+  const raw = v ?? undefined;
+  const n =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string"
+        ? Number.parseInt(String(raw).trim(), 10)
+        : Number.NaN;
+  if (!Number.isFinite(n)) return LOGO_H_DEFAULT;
+  return Math.min(LOGO_H_MAX, Math.max(LOGO_H_MIN, Math.round(n)));
+}
+
+function parseLogoKnockoutWhite(v: unknown): boolean {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string" && (v === "true" || v === "1")) return true;
+  return false;
 }
 
 function normalizePublicProfileRaw(raw: unknown): Record<string, unknown> | null {
@@ -94,7 +124,12 @@ function normalizePublicProfileRaw(raw: unknown): Record<string, unknown> | null
 export function parsePublicProfile(raw: unknown): StorePublicProfile {
   const o = normalizePublicProfileRaw(raw);
   if (!o) {
-    return { requireLoginToCheckout: true };
+    return {
+      requireLoginToCheckout: true,
+      logoHeightPx: LOGO_H_DEFAULT,
+      logoKnockoutWhite: false,
+      accentColor: null,
+    };
   }
 
   const requireRaw = o.requireLoginToCheckout ?? o.require_login_to_checkout;
@@ -148,6 +183,14 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
     returnsPolicy: firstStr(o, ["returnsPolicy", "returns_policy"]),
     privacyPolicy: firstStr(o, ["privacyPolicy", "privacy_policy"]),
     requireLoginToCheckout,
+    logoHeightPx: parseLogoHeightPx(o.logoHeightPx ?? o.logo_height_px),
+    logoKnockoutWhite: parseLogoKnockoutWhite(o.logoKnockoutWhite ?? o.logo_knockout_white),
+    accentColor: (() => {
+      const s = firstStr(o, ["accentColor", "accent_color", "buttonAccentColor", "button_accent_color"]);
+      if (!s) return null;
+      const t = s.startsWith("#") ? s : `#${s}`;
+      return /^#[0-9A-Fa-f]{6}$/i.test(t) ? t : null;
+    })(),
   };
 }
 
@@ -196,5 +239,18 @@ export function toPublicProfileJson(p: StorePublicProfile): Record<string, unkno
   if (p.returnsPolicy != null) out.returnsPolicy = p.returnsPolicy;
   if (p.privacyPolicy != null) out.privacyPolicy = p.privacyPolicy;
   if (p.requireLoginToCheckout !== undefined) out.requireLoginToCheckout = p.requireLoginToCheckout;
+  {
+    const h =
+      p.logoHeightPx != null && Number.isFinite(p.logoHeightPx)
+        ? Math.min(LOGO_H_MAX, Math.max(LOGO_H_MIN, Math.round(p.logoHeightPx)))
+        : LOGO_H_DEFAULT;
+    out.logoHeightPx = h;
+  }
+  if (p.logoKnockoutWhite === true) out.logoKnockoutWhite = true;
+  if (p.accentColor != null && /^#[0-9A-Fa-f]{6}$/i.test(String(p.accentColor).trim())) {
+    out.accentColor = String(p.accentColor).trim().startsWith("#")
+      ? String(p.accentColor).trim()
+      : `#${String(p.accentColor).trim()}`;
+  }
   return out;
 }

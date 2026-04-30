@@ -185,7 +185,7 @@ const GuestOrderLookupModal = ({ isOpen, onClose }: GuestOrderLookupModalProps) 
                   type="button"
                   onClick={() => void fetchOrder()}
                   disabled={loading}
-                  className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] px-6 py-3 font-medium text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] px-6 py-3 font-medium text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? (
                     <>

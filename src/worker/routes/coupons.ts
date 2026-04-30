@@ -4,7 +4,7 @@ import { Variables } from "../types.js";
 import { requireStoreContext } from "../utils/requireStoreContext.js";
 import { resolveOrderLinesForCheckout } from "../core/db/productsRepo.js";
 import { validateCouponForSubtotal } from "../core/db/couponsRepo.js";
-import type { CartItemPayload } from "../core/schema.js";
+import type { CartItemPayload } from "../../contracts/schema.js";
 import { OrderBusinessError } from "../core/orderErrors.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
 import { couponValidateBodySchema } from "../schemas/orderPublic.js";

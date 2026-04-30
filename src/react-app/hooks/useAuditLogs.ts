@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { AuditLogReport } from "@/shared/types";
+import {
+  AUDIT_ACTION_KEYS_CREATE,
+  AUDIT_ACTION_KEYS_DELETE,
+  AUDIT_FILTER_QUICK_CREATE,
+  AUDIT_FILTER_QUICK_DELETE,
+} from "@/react-app/utils/auditLogDisplay";
 
 const DEBOUNCE_MS = 500;
 
@@ -24,7 +30,13 @@ export const useAuditLogs = () => {
     setForbidden(false);
     const params = new URLSearchParams();
     if (searchDebounced) params.set("search", searchDebounced);
-    if (actionFilter) params.set("action", actionFilter);
+    if (actionFilter === AUDIT_FILTER_QUICK_CREATE) {
+      params.set("actions", [...AUDIT_ACTION_KEYS_CREATE].join(","));
+    } else if (actionFilter === AUDIT_FILTER_QUICK_DELETE) {
+      params.set("actions", [...AUDIT_ACTION_KEYS_DELETE].join(","));
+    } else if (actionFilter) {
+      params.set("action", actionFilter);
+    }
     const qs = params.toString();
     const url = `/api/admin/audit-logs${qs ? `?${qs}` : ""}`;
     try {

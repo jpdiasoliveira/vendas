@@ -7,7 +7,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
-import { parsePublicProfile, toPublicProfileJson } from "../../storePublicProfile.js";
+import { parsePublicProfile, toPublicProfileJson } from "../../../../contracts/storePublicProfile.js";
 import { seedDefaultCatalog } from "./storeOnboardingSeed.js";
 import { isMissingStoreDomainsTable, normalizeStoreDomainInput } from "./storeDomainHelpers.js";
 

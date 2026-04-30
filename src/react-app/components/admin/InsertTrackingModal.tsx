@@ -129,7 +129,7 @@ export const InsertTrackingModal = ({
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-[#1B4332] hover:bg-[#2D5F4A] transition-colors disabled:opacity-60"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-[color:var(--brand-primary)] hover:bg-[color:var(--brand-accent)] transition-colors disabled:opacity-60"
             >
               {saving ? "Salvando…" : "Salvar"}
             </button>

@@ -5,7 +5,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
-import type { Order, OrderDetail, OrderItem } from "../../schema.js";
+import type { Order, OrderDetail, OrderItem } from "../../../../contracts/schema.js";
 import { rowToOrder, rowToOrderItem } from "../mappers.js";
 
 /** Colunas necessárias para `rowToOrder` (sem `*`). */

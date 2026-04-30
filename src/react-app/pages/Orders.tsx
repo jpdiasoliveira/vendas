@@ -108,7 +108,7 @@ export default function OrdersPage() {
             <p className="text-[#6D4C41] font-inter mb-8">Você ainda não realizou nenhuma compra conosco.</p>
             <button
               onClick={() => navigate('/')}
-              className="bg-gradient-to-r from-[#1B4332] to-[#2D5F4A] text-white px-8 py-3 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium"
+              className="bg-gradient-to-r from-[color:var(--brand-primary)] to-[color:var(--brand-accent)] text-white px-8 py-3 rounded-full hover:shadow-lg transition-all duration-300 hover:scale-105 font-inter font-medium"
             >
               Começar a Comprar
             </button>

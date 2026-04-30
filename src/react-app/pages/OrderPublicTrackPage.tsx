@@ -167,7 +167,7 @@ const OrderPublicTrackPage = () => {
           </div>
           <button
             type="submit"
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B4332] px-4 py-3 text-sm font-semibold text-white hover:bg-[#2D5F4A]"
+            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[color:var(--brand-accent)]"
           >
             <Search className="h-4 w-4 shrink-0" aria-hidden />
             Consultar
@@ -282,7 +282,7 @@ const OrderPublicTrackPage = () => {
                     href={trackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[#1B4332] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2D5F4A]"
+                    className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[color:var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--brand-accent)]"
                   >
                     Abrir rastreio
                     <ExternalLink className="h-4 w-4 shrink-0" />

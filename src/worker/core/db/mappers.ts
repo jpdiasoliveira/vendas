@@ -3,7 +3,7 @@
  * Usado apenas pelos repositórios em ./db/.
  */
 
-import type { Category, Order, OrderItem, Product, Store } from "../schema.js";
+import type { Category, Order, OrderItem, Product, Store } from "../../../contracts/schema.js";
 
 function categoryNameFromJoinedRow(row: Record<string, unknown>): string | undefined {
   const raw = row.categories;

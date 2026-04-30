@@ -4,7 +4,7 @@ import {
   updateStoreSettingsAndDisplayName,
 } from "../../core/database.js";
 import { getSupabase } from "../../core/supabase.js";
-import { parsePublicProfile } from "../../core/storePublicProfile.js";
+import { parsePublicProfile } from "../../../contracts/storePublicProfile.js";
 import type { AuthUser } from "../../middlewares/verifyAuth.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
@@ -89,9 +89,21 @@ export const registerAdminSettingsAndAuditRoutes = (admin: AdminHono): void => {
     try {
       const search = c.req.query("search");
       const action = c.req.query("action");
+      const actionsRaw = c.req.query("actions");
+      const actions =
+        actionsRaw != null && actionsRaw.trim() !== ""
+          ? actionsRaw
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : undefined;
       const data = await getAuditLogs(c.env, store.id, {
-        ...(search != null && search !== "" && { search }),
-        ...(action != null && action !== "" && { action }),
+        ...(search != null && search !== "" ? { search } : {}),
+        ...(actions != null && actions.length > 0
+          ? { actions }
+          : action != null && action !== ""
+            ? { action }
+            : {}),
       });
       return c.json({ success: true, data }, 200);
     } catch (err: unknown) {

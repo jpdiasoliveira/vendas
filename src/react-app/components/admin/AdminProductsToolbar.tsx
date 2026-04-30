@@ -57,9 +57,9 @@ export const AdminProductsToolbar = ({
         onClick={onNewProduct}
         disabled={newProductDisabled}
         title={newProductDisabled ? newProductDisabledTitle : undefined}
-        className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#1B4332]/10 bg-[#EAD7BB] px-4 py-2.5 font-medium text-[#6D4C41] shadow-sm transition-colors hover:bg-[#EAD7BB]/90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white shadow-md transition-[box-shadow,transform,opacity] hover:shadow-lg hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-md sm:text-base"
       >
-        <Plus className="h-5 w-5" />
+        <Plus className="h-5 w-5 shrink-0" />
         Novo Produto
       </button>
     </div>

@@ -11,7 +11,7 @@ import {
   parsePublicProfile,
   toPublicProfileJson,
   type StorePublicProfile,
-} from "../../storePublicProfile.js";
+} from "../../../../contracts/storePublicProfile.js";
 import { isMissingStoreDomainsTable, normalizeStoreDomainInput } from "./storeDomainHelpers.js";
 
 /**

@@ -129,7 +129,7 @@ export const CartModalFooter = ({
             type="button"
             onClick={() => void onQuoteShipping()}
             disabled={shippingLoading}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1B4332]/25 bg-[#1B4332] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2D5F4A] disabled:opacity-50"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1B4332]/25 bg-[color:var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[color:var(--brand-accent)] disabled:opacity-50"
           >
             {shippingLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
             {shippingLoading ? "…" : "Calcular"}

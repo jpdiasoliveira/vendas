@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
-import { Loader2, Plus, Trash2, Pencil, FolderTree } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, FolderTree, Home, RefreshCw } from "lucide-react";
 import { useAdminCategoriesQuery } from "@/react-app/hooks/useAdminCategoriesQuery";
 
 const AdminCategoriesPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const categoriesQuery = useAdminCategoriesQuery();
   const list = categoriesQuery.data ?? [];
@@ -87,18 +89,43 @@ const AdminCategoriesPage = () => {
     }
   };
 
+  const refetching = categoriesQuery.isFetching && categoriesQuery.data !== undefined;
+
   return (
-    <div className="px-2.5 pb-12 pt-6 sm:px-3 lg:px-4">
-      <div className="mx-auto max-w-3xl">
-        <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
-          <div className="mb-6 flex items-center gap-3">
-            <FolderTree className="h-8 w-8 text-[#1B4332]" aria-hidden />
+    <>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
+            aria-label="Voltar"
+          >
+            <Home className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-3">
+            <FolderTree className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" aria-hidden />
             <div>
-              <h1 className="font-playfair text-2xl font-bold text-[#1B4332]">Categorias</h1>
-              <p className="text-sm text-[#6D4C41]">Crie e organize as categorias dos produtos desta loja.</p>
+              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">Categorias</h1>
+              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Crie e organize as categorias dos produtos desta loja.</p>
             </div>
           </div>
+        </div>
+        <div className="flex w-full min-w-0 justify-end sm:w-auto">
+          <button
+            type="button"
+            onClick={() => void categoriesQuery.refetch()}
+            disabled={categoriesQuery.isPending && categoriesQuery.data === undefined}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/25 bg-white/90 px-3 py-2.5 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[#1B4332]/35 hover:bg-white hover:text-[#1B4332] disabled:opacity-60"
+          >
+            <RefreshCw className={`h-5 w-5 ${refetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </button>
+        </div>
+      </div>
 
+      <div className="w-full max-w-3xl">
+        <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
           {combinedError ? (
             <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{combinedError}</div>
           ) : null}
@@ -128,7 +155,7 @@ const AdminCategoriesPage = () => {
                 type="button"
                 onClick={() => void handleCreate()}
                 disabled={creating || !newName.trim()}
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#1B4332] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#1B4332] px-5 py-3 text-sm font-semibold text-white shadow-md transition-[box-shadow,transform] hover:shadow-lg hover:brightness-105 active:scale-[0.99] disabled:opacity-50 sm:text-base"
               >
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Adicionar
@@ -213,7 +240,7 @@ const AdminCategoriesPage = () => {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
