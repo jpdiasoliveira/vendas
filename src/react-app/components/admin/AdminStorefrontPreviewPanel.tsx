@@ -18,6 +18,8 @@ import {
 } from "@/react-app/utils/brandColor";
 import {
   adminStorefrontPreviewSectionId,
+  PREVIEW_LIFESTYLE_LEFT_CAPTION_ID,
+  PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID,
   PREVIEW_POLITICA_ENTREGA_ID,
   PREVIEW_POLITICA_PRIVACIDADE_ID,
   PREVIEW_POLITICA_TROCAS_ID,
@@ -31,6 +33,38 @@ type AdminStorefrontPreviewPanelProps = {
   /** Incrementa ao clicar/focar para voltar a alinhar a pré-visualização (ex.: mesmo textarea). */
   previewScrollTick: number;
 };
+
+/** Texto de ajuda acima da moldura — fora do scroll para o quadro da vitrine subir e alinhar com o formulário. */
+export const AdminStorefrontPreviewChrome = ({
+  activeSection,
+}: {
+  activeSection: StorefrontPreviewSectionId | null;
+}) => (
+  <div className="shrink-0 font-inter lg:pt-5">
+    <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[#6D4C41]/80 sm:text-xs">
+      Pré-visualização (componentes da home, sem produtos)
+    </h3>
+    <p className="mt-0.5 text-[11px] leading-snug text-[#6D4C41]/80 sm:text-xs sm:leading-snug">
+      <span className="lg:hidden">
+        O quadro à direita rola <strong className="text-[#1B4332]">só dentro desta moldura</strong>; em ecrã largo a
+        coluna fica <strong className="text-[#1B4332]">sticky</strong> ao lado do formulário.
+      </span>
+      <span className="hidden lg:inline">
+        Rola <strong className="text-[#1B4332]">só dentro do quadro</strong>; coluna{" "}
+        <strong className="text-[#1B4332]">sticky</strong> ao formulário.
+      </span>
+    </p>
+    {activeSection ? (
+      <div
+        className="mt-1.5 rounded-lg border border-amber-300/80 bg-amber-50/95 px-2 py-1.5 text-[11px] leading-snug text-amber-950 sm:mt-2 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs sm:leading-snug"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="font-semibold text-[#1B4332]">A mostrar:</span> {storefrontPreviewSectionLabels[activeSection]}
+      </div>
+    ) : null}
+  </div>
+);
 
 const highlightCls = (active: boolean) =>
   active
@@ -143,6 +177,18 @@ export const AdminStorefrontPreviewPanel = ({
     };
 
     const resolveSectionEl = (): HTMLElement | null => {
+      if (activeSection === "lifestyleLeft") {
+        return (
+          findInPreviewById(container, PREVIEW_LIFESTYLE_LEFT_CAPTION_ID) ??
+          findPreviewSectionEl(container, "lifestyle")
+        );
+      }
+      if (activeSection === "lifestyleRight") {
+        return (
+          findInPreviewById(container, PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID) ??
+          findPreviewSectionEl(container, "lifestyle")
+        );
+      }
       const s = scrollTargetSection;
       if (s === "footerPolicyDelivery") {
         return findInPreviewById(container, PREVIEW_POLITICA_ENTREGA_ID) ?? policyFallback();
@@ -182,35 +228,15 @@ export const AdminStorefrontPreviewPanel = ({
   const noop = () => {};
 
   return (
-    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-3 shadow-sm sm:p-4">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute left-0 top-0 h-px w-px overflow-hidden bg-yellow-100/50 opacity-0"
-      />
-      <div className="shrink-0">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6D4C41]/80 sm:text-sm">
-          Pré-visualização (componentes da home, sem produtos)
-        </h3>
-        <p className="mt-1 text-xs leading-snug text-[#6D4C41]/80 sm:text-sm">
-          O quadro à direita rola <strong className="text-[#1B4332]">só dentro desta moldura</strong>; em ecrã largo
-          a coluna fica <strong className="text-[#1B4332]">sticky</strong> ao lado do formulário.
-        </p>
-        {activeSection ? (
-          <div
-            className="mt-2 rounded-xl border border-amber-300/80 bg-amber-50/95 px-3 py-2 text-xs leading-snug text-amber-950 sm:text-sm"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="font-semibold text-[#1B4332]">A mostrar:</span>{" "}
-            {storefrontPreviewSectionLabels[activeSection]}
-          </div>
-        ) : null}
-      </div>
-
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 shadow-sm">
       <div
         ref={previewScrollRef}
-        className="relative mt-3 flex-1 min-h-0 max-lg:min-h-[min(280px,40dvh)] overflow-y-auto overscroll-contain py-1 pr-1 [-webkit-overflow-scrolling:touch]"
+        className="relative flex-1 min-h-0 max-lg:min-h-[min(280px,40dvh)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 h-px w-px overflow-hidden bg-yellow-100/50 opacity-0"
+        />
         <StoreSettingsPreviewMergeProvider merge={merge}>
           <div
             className="pointer-events-none relative min-w-0 select-none overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]"
@@ -252,7 +278,7 @@ export const AdminStorefrontPreviewPanel = ({
               data-preview-section="lifestyle"
               className={highlightCls(lifestyleActive)}
             >
-              <Lifestyle />
+              <Lifestyle assignAdminPreviewDomIds />
             </div>
 
             <div

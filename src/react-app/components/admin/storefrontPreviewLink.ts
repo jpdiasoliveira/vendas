@@ -12,11 +12,17 @@ export const PREVIEW_POLITICA_ENTREGA_ID = "preview-politica-entrega";
 export const PREVIEW_POLITICA_TROCAS_ID = "preview-politica-trocas";
 export const PREVIEW_POLITICA_PRIVACIDADE_ID = "preview-politica-privacidade";
 
+/** Cartões «estilo de vida» na pré-visualização admin — alinhar scroll ao texto sobre a foto, não ao topo da secção. */
+export const PREVIEW_LIFESTYLE_LEFT_CAPTION_ID = "preview-lifestyle-left-caption";
+export const PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID = "preview-lifestyle-right-caption";
+
 /**
  * ID do nó alvo para scroll sync (vários campos do formulário → um bloco na pré-visualização).
  */
 export const adminPreviewScrollTargetId = (section: StorefrontPreviewSectionId): string => {
-  if (section === "lifestyleHead" || section === "lifestyleLeft" || section === "lifestyleRight") {
+  if (section === "lifestyleLeft") return PREVIEW_LIFESTYLE_LEFT_CAPTION_ID;
+  if (section === "lifestyleRight") return PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID;
+  if (section === "lifestyleHead") {
     return adminStorefrontPreviewSectionId("lifestyle");
   }
   if (section === "footerPolicyDelivery") return PREVIEW_POLITICA_ENTREGA_ID;
@@ -42,8 +48,7 @@ export type StorefrontPreviewSectionId =
   | "footerPolicies"
   | "footerPolicyDelivery"
   | "footerPolicyReturns"
-  | "footerPolicyPrivacy"
-  | "footerEnd";
+  | "footerPolicyPrivacy";
 
 export const storefrontPreviewSectionLabels: Record<StorefrontPreviewSectionId, string> = {
   navbar: "Barra superior — logo, nome da loja, slogan e cor.",
@@ -60,6 +65,4 @@ export const storefrontPreviewSectionLabels: Record<StorefrontPreviewSectionId, 
   footerPolicyDelivery: "Rodapé — política de entrega (texto longo).",
   footerPolicyReturns: "Rodapé — trocas e devoluções (texto longo).",
   footerPolicyPrivacy: "Rodapé — privacidade / LGPD (texto longo).",
-  footerEnd:
-    "Rodapé — linha final da página. Valor mínimo de pedido e «exigir login» aplicam-se ao checkout; o painel leva-te ao fim do rodapé para contexto.",
 };

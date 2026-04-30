@@ -492,11 +492,7 @@ export const Footer = ({
             </div>
           ) : null}
 
-          <div
-            id={previewId("footerEnd")}
-            data-preview-section="footerEnd"
-            className={`border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm ${previewHighlightClassName?.("footerEnd") ?? ""}`}
-          >
+          <div className="border-t border-white/20 pt-8 text-center text-white/60 font-inter text-sm">
             <p>
               &copy; {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
             </p>

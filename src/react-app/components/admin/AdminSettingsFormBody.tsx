@@ -17,7 +17,10 @@ import {
 } from "lucide-react";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
-import { AdminStorefrontPreviewPanel } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
+import {
+  AdminStorefrontPreviewChrome,
+  AdminStorefrontPreviewPanel,
+} from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
 import {
   adminPreviewScrollTargetId,
   type StorefrontPreviewSectionId,
@@ -62,13 +65,10 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     logoPreviewFailed,
     setLogoPreviewFailed,
     minimumOrderValue,
-    setMinimumOrderValue,
     primaryColor,
     setPrimaryColor,
     publicProfile,
     setPublicProfile,
-    checkoutLoginAck,
-    setCheckoutLoginAck,
     bannerUrl,
     setBannerUrl,
     bannerPreview,
@@ -180,7 +180,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
         </div>
       ) : null}
 
-      <div className="flex w-full min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div className="flex w-full min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-4">
         {/* lg:contents: o <form> passa a ser filho direto do grid — evita wrapper intermédio a interferir com sticky. */}
         <div className="min-w-0 lg:contents">
         <form
@@ -628,72 +628,6 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               uploadingProfileImage={uploadingProfileImage}
               onProfileImageFile={handleProfileImageFile}
             />
-
-            <div>
-              <label htmlFor="minimumOrderValue" className="block text-sm font-medium text-[#6D4C41] mb-1">
-                Valor Mínimo de Pedido (R$)
-              </label>
-              <input
-                id="minimumOrderValue"
-                type="text"
-                inputMode="decimal"
-                value={minimumOrderValue}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "");
-                  if (v === "") {
-                    setMinimumOrderValue("");
-                    return;
-                  }
-                  const n = Number(v) / 100;
-                  setMinimumOrderValue(n.toFixed(2).replace(".", ","));
-                }}
-                placeholder="0,00"
-                className={inputCls}
-                {...fp("footerEnd")}
-              />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#1B4332] border-b border-[#1B4332]/15 pb-2">
-              Checkout na loja
-            </h2>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 rounded border-[#1B4332]/30 text-[#1B4332] focus:ring-[#1B4332]/30"
-                checked={publicProfile.requireLoginToCheckout !== false}
-                {...fp("footerEnd")}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setPublicProfile((p) => ({
-                    ...p,
-                    requireLoginToCheckout: checked,
-                  }));
-                  setCheckoutLoginAck(
-                    checked
-                      ? "Opção registrada: a loja exigirá login para finalizar a compra. Clique em «Salvar configurações» abaixo para publicar."
-                      : "Opção registrada: visitantes poderão comprar sem conta (e-mail, telefone e endereço). Clique em «Salvar configurações» abaixo para publicar."
-                  );
-                }}
-              />
-              <span>
-                <span className="font-medium text-[#1B4332]">Exigir login para comprar</span>
-                <span className="block text-sm text-[#6D4C41] mt-0.5">
-                  Desmarcado: o cliente pode finalizar informando e-mail, telefone e endereço (sem conta).
-                  O e-mail é usado para segurança no pagamento e consulta do pedido.
-                </span>
-              </span>
-            </label>
-            {checkoutLoginAck ? (
-              <div
-                className="flex gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 font-inter"
-                role="status"
-              >
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" aria-hidden />
-                <p>{checkoutLoginAck}</p>
-              </div>
-            ) : null}
           </section>
 
           <section className="space-y-4">
@@ -882,11 +816,11 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
         </div>
 
       <aside
-        className="mt-10 flex min-h-[min(42dvh,22rem)] min-w-0 flex-col border-t border-[#1B4332]/10 pt-8 lg:sticky lg:top-[4.75rem] lg:z-30 lg:h-[calc(100vh-32px)] lg:min-h-0 lg:self-start lg:border-l lg:border-t-0 lg:border-[#1B4332]/10 lg:pl-6 lg:pt-0"
+        className="mt-10 flex min-h-[min(42dvh,22rem)] min-w-0 flex-col border-t border-[#1B4332]/10 pt-8 lg:sticky lg:top-[4.75rem] lg:z-30 lg:mt-0 lg:h-[calc(100vh-32px)] lg:min-h-0 lg:self-start lg:border-l lg:border-t-0 lg:border-[#1B4332]/10 lg:pl-0 lg:pt-0"
         role="complementary"
         aria-label="Pré-visualização da vitrine"
       >
-        <div className="flex h-full min-h-0 flex-1 flex-col px-2.5 pb-10 sm:px-3 lg:px-0 lg:pb-3 lg:pt-0">
+        <div className="flex h-full min-h-0 flex-1 flex-col px-0 pb-10 lg:pb-3 lg:pt-0">
           <div className="mb-3 shrink-0 lg:hidden">
             <h2 className="text-lg font-semibold text-[#1B4332] font-playfair">Pré-visualização da home</h2>
             <p className="mt-1 text-xs text-[#6D4C41]">
@@ -894,7 +828,8 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               para a pré-visualização acompanhar o lado esquerdo enquanto percorres a página.
             </p>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col">
+          <AdminStorefrontPreviewChrome activeSection={activeSection} />
+          <div className="mt-2 flex min-h-0 flex-1 flex-col lg:mt-2">
             <AdminStorefrontPreviewPanel
               merge={previewMerge}
               activeSection={activeSection}

@@ -1,8 +1,17 @@
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { resolveStorefrontHome } from "@/react-app/utils/resolvedStorefrontHome";
+import {
+  PREVIEW_LIFESTYLE_LEFT_CAPTION_ID,
+  PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID,
+} from "@/react-app/components/admin/storefrontPreviewLink";
 
-export const Lifestyle = () => {
+type LifestyleProps = {
+  /** Pré-visualização admin: IDs estáveis nos cartões para scroll sync com o formulário. */
+  assignAdminPreviewDomIds?: boolean;
+};
+
+export const Lifestyle = ({ assignAdminPreviewDomIds = false }: LifestyleProps) => {
   const { settings } = useStoreSettings();
   const displayName = settings?.displayName?.trim() || "Sua Loja";
   const H = resolveStorefrontHome(displayName, settings?.publicProfile);
@@ -32,7 +41,10 @@ export const Lifestyle = () => {
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-t from-[#1B4332]/88 via-[#1B4332]/35 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6 md:p-8">
-                <div className="w-full max-w-md rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md sm:px-5 sm:py-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                <div
+                  id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_LEFT_CAPTION_ID : undefined}
+                  className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
+                >
                   <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleLeftTitle}</h4>
                   <p className="mt-1 text-sm text-white/90 font-inter sm:text-base">{H.lifestyleLeftText}</p>
                 </div>
@@ -50,7 +62,10 @@ export const Lifestyle = () => {
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-t from-[#1B4332]/88 via-[#1B4332]/35 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6 md:p-8">
-                <div className="w-full max-w-md rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md sm:px-5 sm:py-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                <div
+                  id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID : undefined}
+                  className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
+                >
                   <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleRightTitle}</h4>
                   <p className="mt-1 text-sm text-white/90 font-inter sm:text-base">{H.lifestyleRightText}</p>
                 </div>

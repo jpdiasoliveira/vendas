@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, Activity, LogOut, Settings, Building2, FolderTree } from "lucide-react";
+import { Package, ShoppingBag, Activity, LogOut, Settings, Building2, FolderTree, CreditCard } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
@@ -42,8 +42,9 @@ export const AdminNav = ({ children }: AdminNavProps) => {
     { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
     ...(isAdminOrOwner
       ? [
-          { to: "/admin/historico", label: "Histórico", icon: Activity },
           { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+          { to: "/admin/checkout", label: "Checkout", icon: CreditCard },
+          { to: "/admin/historico", label: "Histórico", icon: Activity },
         ]
       : []),
     ...(showPlatform ? [{ to: "/admin/platform/dashboard", label: "Central", icon: Building2 }] : []),

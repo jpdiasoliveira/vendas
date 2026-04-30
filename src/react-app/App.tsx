@@ -11,6 +11,7 @@ import LoginPage from "@/react-app/pages/auth/Login";
 import AdminOrdersPage from "@/react-app/pages/AdminOrders";
 import AdminProductsPage from "@/react-app/pages/AdminProducts";
 import AdminSettingsPage from "@/react-app/pages/AdminSettings";
+import AdminCheckoutSettingsPage from "@/react-app/pages/AdminCheckoutSettings";
 import AuditLogsPage from "@/react-app/pages/admin/AuditLogs";
 import { PlatformLayout } from "@/react-app/components/admin/PlatformLayout";
 import PlatformDashboardPage from "@/react-app/pages/admin/platform/PlatformDashboardPage";
@@ -116,6 +117,7 @@ export default function App() {
                         <Route path="produtos" element={<AdminProductsPage />} />
                         <Route path="categorias" element={<AdminCategoriesPage />} />
                         <Route path="configuracoes" element={<AdminSettingsPage />} />
+                        <Route path="checkout" element={<AdminCheckoutSettingsPage />} />
                         <Route path="historico" element={<AuditLogsPage />} />
                       </Route>
                       <Route path="platform" element={<PlatformLayout />}>
