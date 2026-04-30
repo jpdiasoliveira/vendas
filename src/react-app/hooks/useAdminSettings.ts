@@ -209,6 +209,11 @@ export const useAdminSettings = () => {
                     ? publicProfile.accentColor.trim()
                     : `#${publicProfile.accentColor.trim()}`
                   : undefined,
+              businessHoursHidden: publicProfile.businessHoursHidden === true ? true : undefined,
+              shippingInfoHidden: publicProfile.shippingInfoHidden === true ? true : undefined,
+              deliveryPolicyHidden: publicProfile.deliveryPolicyHidden === true ? true : undefined,
+              returnsPolicyHidden: publicProfile.returnsPolicyHidden === true ? true : undefined,
+              privacyPolicyHidden: publicProfile.privacyPolicyHidden === true ? true : undefined,
             },
           }),
         });

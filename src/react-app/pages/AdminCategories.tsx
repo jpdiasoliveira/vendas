@@ -124,7 +124,7 @@ const AdminCategoriesPage = () => {
         </div>
       </div>
 
-      <div className="w-full max-w-3xl">
+      <div className="w-full min-w-0">
         <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
           {combinedError ? (
             <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{combinedError}</div>

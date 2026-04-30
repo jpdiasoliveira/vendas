@@ -14,6 +14,7 @@ import {
   Loader2,
   CheckCircle2,
   Palette,
+  EyeOff,
 } from "lucide-react";
 import { AdminPreviewLinkHint } from "@/react-app/components/admin/AdminPreviewLinkHint";
 import { AdminSettingsHomeBlocksForm } from "@/react-app/components/admin/AdminSettingsHomeBlocksForm";
@@ -726,9 +727,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={3}
                 placeholder="Ex.: Seg a Sex 9h–18h"
-                className={`${inputCls} resize-y min-h-[80px]`}
+                className={`${inputCls} resize-y min-h-[80px] ${publicProfile.businessHoursHidden === true ? "opacity-60" : ""}`}
                 {...fp("footerIntro")}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#6D4C41]/90">
+                <input
+                  type="checkbox"
+                  checked={publicProfile.businessHoursHidden === true}
+                  onChange={(e) =>
+                    setPublicProfile((p) => ({
+                      ...p,
+                      businessHoursHidden: e.target.checked ? true : undefined,
+                    }))
+                  }
+                  className="h-4 w-4 shrink-0 rounded border-[#1B4332]/35 text-[#1B4332] focus:ring-[#1B4332]/30"
+                />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>Ocultar na loja (mantém o texto guardado)</span>
+              </label>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Regiões / frete / prazos</label>
@@ -739,9 +755,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 }
                 rows={4}
                 placeholder="Onde entregamos, valores de frete se houver, prazo médio..."
-                className={`${inputCls} resize-y min-h-[100px]`}
+                className={`${inputCls} resize-y min-h-[100px] ${publicProfile.shippingInfoHidden === true ? "opacity-60" : ""}`}
                 {...fp("footerIntro")}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#6D4C41]/90">
+                <input
+                  type="checkbox"
+                  checked={publicProfile.shippingInfoHidden === true}
+                  onChange={(e) =>
+                    setPublicProfile((p) => ({
+                      ...p,
+                      shippingInfoHidden: e.target.checked ? true : undefined,
+                    }))
+                  }
+                  className="h-4 w-4 shrink-0 rounded border-[#1B4332]/35 text-[#1B4332] focus:ring-[#1B4332]/30"
+                />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>Ocultar na loja, incluindo o texto padrão do rodapé (mantém o que escreveu)</span>
+              </label>
             </div>
           </section>
 
@@ -761,9 +792,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   setPublicProfile((p) => ({ ...p, deliveryPolicy: e.target.value || null }))
                 }
                 rows={4}
-                className={`${inputCls} resize-y min-h-[100px]`}
+                className={`${inputCls} resize-y min-h-[100px] ${publicProfile.deliveryPolicyHidden === true ? "opacity-60" : ""}`}
                 {...fp("footerPolicyDelivery")}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#6D4C41]/90">
+                <input
+                  type="checkbox"
+                  checked={publicProfile.deliveryPolicyHidden === true}
+                  onChange={(e) =>
+                    setPublicProfile((p) => ({
+                      ...p,
+                      deliveryPolicyHidden: e.target.checked ? true : undefined,
+                    }))
+                  }
+                  className="h-4 w-4 shrink-0 rounded border-[#1B4332]/35 text-[#1B4332] focus:ring-[#1B4332]/30"
+                />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>Ocultar na loja (mantém o texto guardado)</span>
+              </label>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Trocas e devoluções</label>
@@ -773,9 +819,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   setPublicProfile((p) => ({ ...p, returnsPolicy: e.target.value || null }))
                 }
                 rows={4}
-                className={`${inputCls} resize-y min-h-[100px]`}
+                className={`${inputCls} resize-y min-h-[100px] ${publicProfile.returnsPolicyHidden === true ? "opacity-60" : ""}`}
                 {...fp("footerPolicyReturns")}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#6D4C41]/90">
+                <input
+                  type="checkbox"
+                  checked={publicProfile.returnsPolicyHidden === true}
+                  onChange={(e) =>
+                    setPublicProfile((p) => ({
+                      ...p,
+                      returnsPolicyHidden: e.target.checked ? true : undefined,
+                    }))
+                  }
+                  className="h-4 w-4 shrink-0 rounded border-[#1B4332]/35 text-[#1B4332] focus:ring-[#1B4332]/30"
+                />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>Ocultar na loja (mantém o texto guardado)</span>
+              </label>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Privacidade / LGPD</label>
@@ -785,9 +846,24 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   setPublicProfile((p) => ({ ...p, privacyPolicy: e.target.value || null }))
                 }
                 rows={4}
-                className={`${inputCls} resize-y min-h-[100px]`}
+                className={`${inputCls} resize-y min-h-[100px] ${publicProfile.privacyPolicyHidden === true ? "opacity-60" : ""}`}
                 {...fp("footerPolicyPrivacy")}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[#6D4C41]/90">
+                <input
+                  type="checkbox"
+                  checked={publicProfile.privacyPolicyHidden === true}
+                  onChange={(e) =>
+                    setPublicProfile((p) => ({
+                      ...p,
+                      privacyPolicyHidden: e.target.checked ? true : undefined,
+                    }))
+                  }
+                  className="h-4 w-4 shrink-0 rounded border-[#1B4332]/35 text-[#1B4332] focus:ring-[#1B4332]/30"
+                />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>Ocultar na loja (mantém o texto guardado)</span>
+              </label>
             </div>
           </section>
 

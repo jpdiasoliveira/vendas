@@ -51,9 +51,17 @@ export type StorePublicProfile = {
   facebookUrl?: string | null;
   businessHours?: string | null;
   shippingInfo?: string | null;
+  /** Se true, não exibe o parágrafo de frete/regiões no rodapé (texto permanece guardado). */
+  shippingInfoHidden?: boolean;
+  /** Se true, não exibe o horário no rodapé. */
+  businessHoursHidden?: boolean;
   deliveryPolicy?: string | null;
   returnsPolicy?: string | null;
   privacyPolicy?: string | null;
+  /** Se true, oculta o bloco correspondente na loja pública. */
+  deliveryPolicyHidden?: boolean;
+  returnsPolicyHidden?: boolean;
+  privacyPolicyHidden?: boolean;
   /** Se true (padrão), exige JWT Supabase para criar pedido. Se false, permite checkout com e-mail. */
   requireLoginToCheckout?: boolean;
   /** Altura do logo na barra da home (px), entre 20 e 100. */
@@ -98,6 +106,13 @@ function parseLogoKnockoutWhite(v: unknown): boolean {
   if (v === true || v === 1) return true;
   if (typeof v === "string" && (v === "true" || v === "1")) return true;
   return false;
+}
+
+/** Só true quando explicitamente true (persistido em JSONB). Ausente = visível na loja. */
+function parseHiddenFlag(v: unknown): true | undefined {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string" && (v === "true" || v === "1")) return true;
+  return undefined;
 }
 
 function normalizePublicProfileRaw(raw: unknown): Record<string, unknown> | null {
@@ -179,9 +194,14 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
     facebookUrl: firstStr(o, ["facebookUrl", "facebook_url"]),
     businessHours: firstStr(o, ["businessHours", "business_hours"]),
     shippingInfo: firstStr(o, ["shippingInfo", "shipping_info"]),
+    shippingInfoHidden: parseHiddenFlag(o.shippingInfoHidden ?? o.shipping_info_hidden),
+    businessHoursHidden: parseHiddenFlag(o.businessHoursHidden ?? o.business_hours_hidden),
     deliveryPolicy: firstStr(o, ["deliveryPolicy", "delivery_policy"]),
     returnsPolicy: firstStr(o, ["returnsPolicy", "returns_policy"]),
     privacyPolicy: firstStr(o, ["privacyPolicy", "privacy_policy"]),
+    deliveryPolicyHidden: parseHiddenFlag(o.deliveryPolicyHidden ?? o.delivery_policy_hidden),
+    returnsPolicyHidden: parseHiddenFlag(o.returnsPolicyHidden ?? o.returns_policy_hidden),
+    privacyPolicyHidden: parseHiddenFlag(o.privacyPolicyHidden ?? o.privacy_policy_hidden),
     requireLoginToCheckout,
     logoHeightPx: parseLogoHeightPx(o.logoHeightPx ?? o.logo_height_px),
     logoKnockoutWhite: parseLogoKnockoutWhite(o.logoKnockoutWhite ?? o.logo_knockout_white),
@@ -235,9 +255,14 @@ export function toPublicProfileJson(p: StorePublicProfile): Record<string, unkno
   if (p.facebookUrl != null) out.facebookUrl = p.facebookUrl;
   if (p.businessHours != null) out.businessHours = p.businessHours;
   if (p.shippingInfo != null) out.shippingInfo = p.shippingInfo;
+  if (p.shippingInfoHidden === true) out.shippingInfoHidden = true;
+  if (p.businessHoursHidden === true) out.businessHoursHidden = true;
   if (p.deliveryPolicy != null) out.deliveryPolicy = p.deliveryPolicy;
   if (p.returnsPolicy != null) out.returnsPolicy = p.returnsPolicy;
   if (p.privacyPolicy != null) out.privacyPolicy = p.privacyPolicy;
+  if (p.deliveryPolicyHidden === true) out.deliveryPolicyHidden = true;
+  if (p.returnsPolicyHidden === true) out.returnsPolicyHidden = true;
+  if (p.privacyPolicyHidden === true) out.privacyPolicyHidden = true;
   if (p.requireLoginToCheckout !== undefined) out.requireLoginToCheckout = p.requireLoginToCheckout;
   {
     const h =

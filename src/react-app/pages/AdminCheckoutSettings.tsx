@@ -6,7 +6,7 @@ export default function AdminCheckoutSettingsPage() {
 
   if (m.loading) {
     return (
-      <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
+      <div className="w-full min-w-0 rounded-3xl border border-[#1B4332]/10 bg-white/90 p-12 text-center shadow-sm backdrop-blur-sm">
         <p className="font-inter text-[#6D4C41]">A carregar…</p>
       </div>
     );

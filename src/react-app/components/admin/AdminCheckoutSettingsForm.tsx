@@ -76,7 +76,7 @@ export const AdminCheckoutSettingsForm = ({ m }: { m: AdminSettingsViewModel }) 
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-xl rounded-2xl border border-[#1B4332]/10 bg-white/70 p-4 font-inter shadow-sm backdrop-blur-sm sm:p-5"
+        className="w-full min-w-0 rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 font-inter shadow-sm backdrop-blur-sm sm:p-8"
       >
         <section className="space-y-4">
           <h2 className="border-b border-[#1B4332]/15 pb-2 text-lg font-semibold text-[#1B4332]">Carrinho e fecho</h2>

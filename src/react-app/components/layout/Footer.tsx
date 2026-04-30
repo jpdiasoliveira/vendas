@@ -138,8 +138,21 @@ export const Footer = ({
   const fbHref = fb ? externalHttpUrl(fb) : null;
   const mail = p?.contactEmail?.trim();
   const phone = p?.contactPhone?.trim();
-  const hasLegal =
-    !!(p?.deliveryPolicy?.trim() || p?.returnsPolicy?.trim() || p?.privacyPolicy?.trim());
+  const policyShown = (text: string | null | undefined, hidden?: boolean) =>
+    !!(text?.trim()) && hidden !== true;
+  const deliveryVis = policyShown(p?.deliveryPolicy, p?.deliveryPolicyHidden);
+  const returnsVis = policyShown(p?.returnsPolicy, p?.returnsPolicyHidden);
+  const privacyVis = policyShown(p?.privacyPolicy, p?.privacyPolicyHidden);
+  const hasLegal = deliveryVis || returnsVis || privacyVis;
+  /** Texto guardado em alguma política (mesmo com “ocultar na loja”). Evita mensagem “preencha em Admin” quando o operador só ocultou tudo. */
+  const hasAnyPolicyDraft = !!(
+    p?.deliveryPolicy?.trim() ||
+    p?.returnsPolicy?.trim() ||
+    p?.privacyPolicy?.trim()
+  );
+  const showPoliciesSetupHint = !hasLegal && !hasAnyPolicyDraft;
+  const hoursShown = !!(p?.businessHours?.trim()) && p?.businessHoursHidden !== true;
+  const shippingBlurbShown = p?.shippingInfoHidden !== true;
   const hasContactChannel = !!(wa || mail || phone || igHref || fbHref);
   const policyByKey = useMemo(
     () => ({
@@ -156,7 +169,14 @@ export const Footer = ({
         content: p?.privacyPolicy?.trim() ?? "",
       },
     }),
-    [p?.deliveryPolicy, p?.returnsPolicy, p?.privacyPolicy]
+    [
+      p?.deliveryPolicy,
+      p?.returnsPolicy,
+      p?.privacyPolicy,
+      p?.deliveryPolicyHidden,
+      p?.returnsPolicyHidden,
+      p?.privacyPolicyHidden,
+    ]
   );
   const activePolicyData = activePolicy ? policyByKey[activePolicy] : null;
 
@@ -201,11 +221,13 @@ export const Footer = ({
                 data-preview-section="footerIntro"
                 className={previewHighlightClassName?.("footerIntro") ?? ""}
               >
-                <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
-                  {p?.shippingInfo?.trim() ||
-                    "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
-                </p>
-                {p?.businessHours?.trim() ? (
+                {shippingBlurbShown ? (
+                  <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
+                    {p?.shippingInfo?.trim() ||
+                      "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
+                  </p>
+                ) : null}
+                {hoursShown ? (
                   <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p.businessHours}</p>
                 ) : null}
               </div>
@@ -349,7 +371,7 @@ export const Footer = ({
                 </p>
               ) : null}
               <ul className="space-y-2 font-inter">
-                {p?.deliveryPolicy?.trim() ? (
+                {deliveryVis ? (
                   <li>
                     <button
                       type="button"
@@ -360,7 +382,7 @@ export const Footer = ({
                     </button>
                   </li>
                 ) : null}
-                {p?.returnsPolicy?.trim() ? (
+                {returnsVis ? (
                   <li>
                     <button
                       type="button"
@@ -371,7 +393,7 @@ export const Footer = ({
                     </button>
                   </li>
                 ) : null}
-                {p?.privacyPolicy?.trim() ? (
+                {privacyVis ? (
                   <li>
                     <button
                       type="button"
@@ -382,7 +404,7 @@ export const Footer = ({
                     </button>
                   </li>
                 ) : null}
-                {!hasLegal ? (
+                {showPoliciesSetupHint ? (
                   <li className="text-white/60 text-sm">
                     {hasContactChannel
                       ? "Políticas (entrega, trocas, privacidade): preencha em Admin → Configurações."
@@ -400,7 +422,7 @@ export const Footer = ({
               data-preview-section="footerPoliciesBody"
               className="border-t border-white/20 pt-10 space-y-10 text-left font-inter text-sm text-white/85 mb-10"
             >
-              {(p?.deliveryPolicy?.trim() || assignAdminPreviewDomIds) && (
+              {(deliveryVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_ENTREGA_ID : "politica-entrega"}
                   className={
@@ -410,16 +432,18 @@ export const Footer = ({
                   }
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Política de entrega</h3>
-                  {p?.deliveryPolicy?.trim() ? (
+                  {deliveryVis ? (
                     <p className="whitespace-pre-line leading-relaxed">{p.deliveryPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
-                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                      {p?.deliveryPolicy?.trim() && p?.deliveryPolicyHidden === true
+                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
                     </p>
                   ) : null}
                 </section>
               )}
-              {(p?.returnsPolicy?.trim() || assignAdminPreviewDomIds) && (
+              {(returnsVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_TROCAS_ID : "politica-trocas"}
                   className={
@@ -429,16 +453,18 @@ export const Footer = ({
                   }
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Trocas e devoluções</h3>
-                  {p?.returnsPolicy?.trim() ? (
+                  {returnsVis ? (
                     <p className="whitespace-pre-line leading-relaxed">{p.returnsPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
-                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                      {p?.returnsPolicy?.trim() && p?.returnsPolicyHidden === true
+                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
                     </p>
                   ) : null}
                 </section>
               )}
-              {(p?.privacyPolicy?.trim() || assignAdminPreviewDomIds) && (
+              {(privacyVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_PRIVACIDADE_ID : "politica-privacidade"}
                   className={
@@ -448,11 +474,13 @@ export const Footer = ({
                   }
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Privacidade</h3>
-                  {p?.privacyPolicy?.trim() ? (
+                  {privacyVis ? (
                     <p className="whitespace-pre-line leading-relaxed">{p.privacyPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
-                      (Vazio) — o texto aparece aqui ao preencher o campo no formulário.
+                      {p?.privacyPolicy?.trim() && p?.privacyPolicyHidden === true
+                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
                     </p>
                   ) : null}
                 </section>
