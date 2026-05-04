@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import {
   StoreSettingsPreviewMergeProvider,
   type StoreSettingsData,
@@ -10,6 +10,7 @@ import { Story } from "@/react-app/components/home/Story";
 import { Lifestyle } from "@/react-app/components/home/Lifestyle";
 import { Benefits } from "@/react-app/components/home/Benefits";
 import { Newsletter } from "@/react-app/components/home/Newsletter";
+import { AdminStorefrontProductsHeadPreview } from "@/react-app/components/admin/AdminStorefrontProductsHeadPreview";
 import {
   hexToRgbTriplet,
   mixHexColor,
@@ -32,6 +33,8 @@ type AdminStorefrontPreviewPanelProps = {
   activeSection: StorefrontPreviewSectionId | null;
   /** Incrementa ao clicar/focar para voltar a alinhar a pré-visualização (ex.: mesmo textarea). */
   previewScrollTick: number;
+  /** Clique inverso: rolar o formulário até o campo desta secção. */
+  onPreviewNavigate?: (section: StorefrontPreviewSectionId) => void;
 };
 
 /** Texto de ajuda acima da moldura — fora do scroll para o quadro da vitrine subir e alinhar com o formulário. */
@@ -42,7 +45,7 @@ export const AdminStorefrontPreviewChrome = ({
 }) => (
   <div className="shrink-0 font-inter lg:pt-5">
     <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[#6D4C41]/80 sm:text-xs">
-      Pré-visualização (componentes da home, sem produtos)
+      Pré-visualização da home (inclui títulos da grelha de produtos; cartões são exemplo)
     </h3>
     <p className="mt-0.5 text-[11px] leading-snug text-[#6D4C41]/80 sm:text-xs sm:leading-snug">
       <span className="lg:hidden">
@@ -70,6 +73,49 @@ const highlightCls = (active: boolean) =>
   active
     ? "z-[1] shadow-xl ring-[3px] ring-[#FFD166] ring-offset-[3px] ring-offset-[#FAF8F3] transition-shadow duration-200 scroll-mt-4 rounded-sm"
     : "transition-shadow duration-200 scroll-mt-4 rounded-sm";
+
+const previewClickableShellCls =
+  "cursor-pointer rounded-sm transition-shadow duration-200 hover:ring-2 hover:ring-[#1B4332]/35 hover:ring-offset-2 hover:ring-offset-[#FAF8F3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B4332]/40";
+
+const PreviewSectionShell = ({
+  section,
+  active,
+  onNavigate,
+  children,
+}: {
+  section: StorefrontPreviewSectionId;
+  active: boolean;
+  onNavigate?: (s: StorefrontPreviewSectionId) => void;
+  children: ReactNode;
+}) => {
+  const clickable = Boolean(onNavigate);
+  return (
+    <div
+      id={adminStorefrontPreviewSectionId(section)}
+      data-preview-section={section}
+      className={`${highlightCls(active)}${clickable ? ` ${previewClickableShellCls}` : ""}`}
+      {...(clickable
+        ? {
+            role: "button" as const,
+            tabIndex: 0,
+            "aria-label": `Editar no formulário: ${storefrontPreviewSectionLabels[section]}`,
+            onClick: (e: MouseEvent<HTMLDivElement>) => {
+              e.preventDefault();
+              onNavigate?.(section);
+            },
+            onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onNavigate?.(section);
+              }
+            },
+          }
+        : {})}
+    >
+      {clickable ? <div className="pointer-events-none">{children}</div> : children}
+    </div>
+  );
+};
 
 /** Elemento com ID dentro do contentor de scroll da pré-visualização. */
 const findInPreviewById = (container: HTMLElement, domId: string): HTMLElement | null => {
@@ -114,12 +160,21 @@ const flashPreviewSection = (el: HTMLElement) => {
 };
 
 /** Scroll só dentro do painel: `offsetTop` relativo ao contentor + `scrollTo` suave. */
-const scrollPreviewSectionPure = (container: HTMLDivElement, target: HTMLElement): void => {
+const scrollPreviewSectionPure = (
+  container: HTMLDivElement,
+  target: HTMLElement,
+  opts?: { anchor: "center" | "end" }
+): void => {
   if (container.clientHeight < 8) return;
   const relTop = offsetTopWithinScrollContainer(container, target);
   if (relTop == null) return;
   const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
-  const top = Math.max(0, Math.min(maxScroll, relTop - container.clientHeight / 2));
+  const ch = container.clientHeight;
+  const anchor = opts?.anchor ?? "center";
+  const top =
+    anchor === "end"
+      ? Math.max(0, Math.min(maxScroll, relTop + target.offsetHeight - ch + 12))
+      : Math.max(0, Math.min(maxScroll, relTop - ch / 2));
   container.scrollTo({ top, behavior: "smooth" });
   flashPreviewSection(target);
 };
@@ -137,6 +192,7 @@ export const AdminStorefrontPreviewPanel = ({
   merge,
   activeSection,
   previewScrollTick,
+  onPreviewNavigate,
 }: AdminStorefrontPreviewPanelProps) => {
   const previewScrollRef = useRef<HTMLDivElement>(null);
   const policiesKey = policiesBodyPresenceKey(merge);
@@ -146,9 +202,7 @@ export const AdminStorefrontPreviewPanel = ({
     activeSection === "lifestyleLeft" ||
     activeSection === "lifestyleRight";
 
-  const scrollTargetSection: StorefrontPreviewSectionId | "lifestyle" | null = lifestyleActive
-    ? "lifestyle"
-    : activeSection;
+  const scrollTargetSection: StorefrontPreviewSectionId | null = lifestyleActive ? "lifestyle" : activeSection;
 
   useLayoutEffect(() => {
     return () => {
@@ -207,7 +261,10 @@ export const AdminStorefrontPreviewPanel = ({
 
     const targetEl = resolveSectionEl();
     if (!targetEl) return;
-    scrollPreviewSectionPure(container, targetEl);
+    /** Hero: mostrar a zona do CTA (fundo do bloco), não só o topo — evita “saltar para cima” ao escolher cores. */
+    const heroAnchor =
+      scrollTargetSection === "hero" || activeSection === "hero" ? ({ anchor: "end" } as const) : undefined;
+    scrollPreviewSectionPure(container, targetEl, heroAnchor);
   }, [activeSection, scrollTargetSection, previewScrollTick, policiesKey]);
 
   const brand = normalizeStorePrimaryColor(merge?.primaryColor ?? undefined);
@@ -239,13 +296,13 @@ export const AdminStorefrontPreviewPanel = ({
         />
         <StoreSettingsPreviewMergeProvider merge={merge}>
           <div
-            className="pointer-events-none relative min-w-0 select-none overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]"
+            className="relative min-w-0 select-none overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]"
             style={brandCss}
           >
-            <div
-              id={adminStorefrontPreviewSectionId("navbar")}
-              data-preview-section="navbar"
-              className={highlightCls(activeSection === "navbar")}
+            <PreviewSectionShell
+              section="navbar"
+              active={activeSection === "navbar"}
+              onNavigate={onPreviewNavigate}
             >
               <Navbar
                 previewScrollContainerRef={previewScrollRef}
@@ -255,51 +312,52 @@ export const AdminStorefrontPreviewPanel = ({
                 scrollToProducts={noop}
                 scrollToTop={() => previewScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
               />
-            </div>
+            </PreviewSectionShell>
 
-            <div
-              id={adminStorefrontPreviewSectionId("hero")}
-              data-preview-section="hero"
-              className={highlightCls(activeSection === "hero")}
-            >
+            <PreviewSectionShell section="hero" active={activeSection === "hero"} onNavigate={onPreviewNavigate}>
               <Hero onShopClick={noop} previewLayout />
-            </div>
+            </PreviewSectionShell>
 
-            <div
-              id={adminStorefrontPreviewSectionId("story")}
-              data-preview-section="story"
-              className={highlightCls(activeSection === "story")}
+            <PreviewSectionShell
+              section="products"
+              active={activeSection === "products"}
+              onNavigate={onPreviewNavigate}
             >
-              <Story />
-            </div>
+              <AdminStorefrontProductsHeadPreview />
+            </PreviewSectionShell>
 
-            <div
-              id={adminStorefrontPreviewSectionId("lifestyle")}
-              data-preview-section="lifestyle"
-              className={highlightCls(lifestyleActive)}
+            <PreviewSectionShell section="story" active={activeSection === "story"} onNavigate={onPreviewNavigate}>
+              <Story />
+            </PreviewSectionShell>
+
+            <PreviewSectionShell
+              section="lifestyle"
+              active={lifestyleActive}
+              onNavigate={onPreviewNavigate}
             >
               <Lifestyle assignAdminPreviewDomIds />
-            </div>
+            </PreviewSectionShell>
 
-            <div
-              id={adminStorefrontPreviewSectionId("benefits")}
-              data-preview-section="benefits"
-              className={highlightCls(activeSection === "benefits")}
+            <PreviewSectionShell
+              section="benefits"
+              active={activeSection === "benefits"}
+              onNavigate={onPreviewNavigate}
             >
               <Benefits />
-            </div>
+            </PreviewSectionShell>
 
-            <div
-              id={adminStorefrontPreviewSectionId("newsletter")}
-              data-preview-section="newsletter"
-              className={highlightCls(activeSection === "newsletter")}
+            <PreviewSectionShell
+              section="newsletter"
+              active={activeSection === "newsletter"}
+              onNavigate={onPreviewNavigate}
             >
               <Newsletter />
-            </div>
+            </PreviewSectionShell>
 
             <Footer
               onConsultOrder={noop}
               assignAdminPreviewDomIds
+              onAdminPreviewNavigate={onPreviewNavigate}
               previewHighlightClassName={(id) =>
                 highlightCls(
                   activeSection === id ||

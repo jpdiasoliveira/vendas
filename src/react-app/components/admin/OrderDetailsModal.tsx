@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from "@/react-app/utils/format";
 import {
   STATUS_OPTIONS,
   buildWhatsAppUrl,
+  getOrderCancellationDisplay,
   orderNeedsCancellationMotive,
 } from "./orderDetailsModalHelpers";
 
@@ -77,6 +78,11 @@ export const OrderDetailsModal = ({
           {order && !loading && (() => {
             const list = Array.isArray(order.items) ? order.items : [];
             const waUrl = buildWhatsAppUrl(order.customerPhone);
+            const stLower = (order.status ?? "").trim().toLowerCase();
+            const cancelMeta =
+              stLower === "cancelled" || stLower === "canceled"
+                ? getOrderCancellationDisplay(order.metadata)
+                : { reasonLabel: null as string | null, autoExpiredAt: null as string | null };
             return (
               <>
                 <div className="mb-6 grid grid-cols-1 gap-4 text-base sm:grid-cols-2">
@@ -154,6 +160,20 @@ export const OrderDetailsModal = ({
                         role="status"
                       >
                         {syncPaymentMessage}
+                      </div>
+                    ) : null}
+                    {cancelMeta.reasonLabel ? (
+                      <div
+                        className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+                        role="note"
+                      >
+                        <p className="font-semibold text-[#1B4332]">Cancelamento</p>
+                        <p className="mt-1">{cancelMeta.reasonLabel}</p>
+                        {cancelMeta.autoExpiredAt ? (
+                          <p className="mt-2 text-xs text-[#6D4C41]">
+                            Registo automático (UTC): {cancelMeta.autoExpiredAt}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

@@ -37,7 +37,10 @@ export const adminPreviewScrollTargetId = (section: StorefrontPreviewSectionId):
 export type StorefrontPreviewSectionId =
   | "navbar"
   | "hero"
+  | "products"
   | "story"
+  /** Envolve cabeçalho + cartões na pré-visualização admin (id DOM `…-lifestyle`). */
+  | "lifestyle"
   | "lifestyleHead"
   | "lifestyleLeft"
   | "lifestyleRight"
@@ -50,10 +53,61 @@ export type StorefrontPreviewSectionId =
   | "footerPolicyReturns"
   | "footerPolicyPrivacy";
 
+/** Primeiro campo editável do formulário (id HTML) para cada secção da pré-visualização — navegação inversa. */
+export const formFieldIdForPreviewSection = (section: StorefrontPreviewSectionId): string => {
+  const m: Record<StorefrontPreviewSectionId, string> = {
+    navbar: "displayName",
+    hero: "primaryColor",
+    products: "productsGridEyebrow",
+    story: "storyEyebrow",
+    lifestyle: "lifestyleEyebrow",
+    lifestyleHead: "lifestyleEyebrow",
+    lifestyleLeft: "admin-form-url-lifestyleLeftImageUrl",
+    lifestyleRight: "admin-form-url-lifestyleRightImageUrl",
+    benefits: "benefit1Title",
+    newsletter: "newsletterEyebrow",
+    footerIntro: "footerBusinessHours",
+    footerContact: "footerContactWhatsapp",
+    footerPolicies: "footerDeliveryPolicy",
+    footerPolicyDelivery: "footerDeliveryPolicy",
+    footerPolicyReturns: "footerReturnsPolicy",
+    footerPolicyPrivacy: "footerPrivacyPolicy",
+  };
+  return m[section];
+};
+
+/** Rola o formulário admin até o campo e foca (input/textarea/select). */
+export const scrollAdminFormToFieldId = (fieldId: string): void => {
+  const el = document.getElementById(fieldId);
+  if (!el?.isConnected) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  let focusEl: HTMLElement | null = null;
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    if (el instanceof HTMLInputElement && (el.type === "hidden" || el.classList.contains("sr-only"))) {
+      focusEl = el.parentElement?.querySelector<HTMLElement>("input:not(.sr-only), textarea, select") ?? null;
+    } else {
+      focusEl = el;
+    }
+  } else {
+    focusEl = el.querySelector<HTMLElement>("input:not(.sr-only):not([type=hidden]), textarea, select, button");
+  }
+
+  window.requestAnimationFrame(() => {
+    try {
+      focusEl?.focus({ preventScroll: true });
+    } catch {
+      /* ignore */
+    }
+  });
+};
+
 export const storefrontPreviewSectionLabels: Record<StorefrontPreviewSectionId, string> = {
   navbar: "Barra superior — logo, nome da loja, slogan e cor.",
   hero: "Topo da página — banner de fundo, selo, título, texto e botão.",
+  products: "Secção de produtos — selo, título e subtítulo acima da grelha (cartões são exemplo).",
   story: "Secção «Nossa história» (texto e chips à esquerda, foto grande à direita).",
+  lifestyle: "Secção «momentos / estilo de vida» — cabeçalho e duas fotos.",
   lifestyleHead: "Linha pequena, título e subtítulo acima das duas fotos.",
   lifestyleLeft: "Cartão da esquerda — imagem e textos sobre a foto.",
   lifestyleRight: "Cartão da direita — imagem e textos sobre a foto.",

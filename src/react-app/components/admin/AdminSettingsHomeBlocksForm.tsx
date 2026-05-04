@@ -22,6 +22,9 @@ type AdminSettingsHomeBlocksFormProps = {
 
 const opt = (v: string): string | undefined => (v.trim() === "" ? undefined : v);
 
+/** Título/texto sobre a foto (lifestyle): vazio é `""` para gravar «sem linha», não voltar ao texto padrão. */
+const trimCaption = (v: string) => v.trim();
+
 type FpProps = { onFocus: () => void; onBlur: () => void };
 
 const HomeBlockImageUrlField = ({
@@ -49,6 +52,7 @@ const HomeBlockImageUrlField = ({
     <label className="mb-1 block text-xs font-medium text-[#6D4C41]">{label}</label>
     <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
       <input
+        id={`admin-form-url-${field}`}
         type="url"
         value={value}
         onChange={(e) =>
@@ -74,8 +78,8 @@ const HomeBlockImageUrlField = ({
       </label>
     </div>
     <p className="mt-1 text-[11px] text-[#6D4C41]/75">
-      Cole um URL ou importe um ficheiro — o upload usa o mesmo armazenamento do logo/banner; depois clique em «Salvar
-      configurações» para publicar.
+      Cole um URL ou importe um ficheiro — ao importar, abre o passo de zoom e posição (4:3 como na vitrine). Depois
+      clique em «Salvar configurações» para publicar (o ficheiro é enviado ao confirmar o enquadramento).
     </p>
   </div>
 );
@@ -121,6 +125,7 @@ export const AdminSettingsHomeBlocksForm = ({
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Selo (linha pequena)</label>
             <input
+              id="storyEyebrow"
               type="text"
               value={p.storyEyebrow ?? ""}
               onChange={(e) =>
@@ -210,6 +215,7 @@ export const AdminSettingsHomeBlocksForm = ({
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Selo</label>
             <input
+              id="lifestyleEyebrow"
               type="text"
               value={p.lifestyleEyebrow ?? ""}
               onChange={(e) =>
@@ -270,11 +276,12 @@ export const AdminSettingsHomeBlocksForm = ({
               type="text"
               value={p.lifestyleLeftTitle ?? ""}
               onChange={(e) =>
-                setPublicProfile((prev) => ({ ...prev, lifestyleLeftTitle: opt(e.target.value) }))
+                setPublicProfile((prev) => ({ ...prev, lifestyleLeftTitle: trimCaption(e.target.value) }))
               }
               className={inputCls}
               {...fp("lifestyleLeft")}
             />
+            <p className="mt-1 text-[11px] text-[#6D4C41]/75">Vazio = sem título sobre a foto.</p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Texto sobre a foto</label>
@@ -282,11 +289,12 @@ export const AdminSettingsHomeBlocksForm = ({
               type="text"
               value={p.lifestyleLeftText ?? ""}
               onChange={(e) =>
-                setPublicProfile((prev) => ({ ...prev, lifestyleLeftText: opt(e.target.value) }))
+                setPublicProfile((prev) => ({ ...prev, lifestyleLeftText: trimCaption(e.target.value) }))
               }
               className={inputCls}
               {...fp("lifestyleLeft")}
             />
+            <p className="mt-1 text-[11px] text-[#6D4C41]/75">Vazio = sem essa linha sobre a foto (pré-visualização e loja).</p>
           </div>
         </div>
 
@@ -312,11 +320,12 @@ export const AdminSettingsHomeBlocksForm = ({
               type="text"
               value={p.lifestyleRightTitle ?? ""}
               onChange={(e) =>
-                setPublicProfile((prev) => ({ ...prev, lifestyleRightTitle: opt(e.target.value) }))
+                setPublicProfile((prev) => ({ ...prev, lifestyleRightTitle: trimCaption(e.target.value) }))
               }
               className={inputCls}
               {...fp("lifestyleRight")}
             />
+            <p className="mt-1 text-[11px] text-[#6D4C41]/75">Vazio = sem título sobre a foto.</p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Texto sobre a foto</label>
@@ -324,11 +333,12 @@ export const AdminSettingsHomeBlocksForm = ({
               type="text"
               value={p.lifestyleRightText ?? ""}
               onChange={(e) =>
-                setPublicProfile((prev) => ({ ...prev, lifestyleRightText: opt(e.target.value) }))
+                setPublicProfile((prev) => ({ ...prev, lifestyleRightText: trimCaption(e.target.value) }))
               }
               className={inputCls}
               {...fp("lifestyleRight")}
             />
+            <p className="mt-1 text-[11px] text-[#6D4C41]/75">Vazio = sem essa linha sobre a foto (pré-visualização e loja).</p>
           </div>
         </div>
       </div>
@@ -340,6 +350,7 @@ export const AdminSettingsHomeBlocksForm = ({
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Benefício 1 — título</label>
             <input
+              id="benefit1Title"
               type="text"
               value={p.benefit1Title ?? ""}
               onChange={(e) =>
@@ -419,6 +430,7 @@ export const AdminSettingsHomeBlocksForm = ({
           <div>
             <label className="mb-1 block text-xs font-medium text-[#6D4C41]">Selo</label>
             <input
+              id="newsletterEyebrow"
               type="text"
               value={p.newsletterEyebrow ?? ""}
               onChange={(e) =>

@@ -35,19 +35,30 @@ export const Lifestyle = ({ assignAdminPreviewDomIds = false }: LifestyleProps) 
             <div className="absolute inset-0 bg-gradient-to-br from-[#1B4332]/20 to-[#FFD166]/20 blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100 z-0"></div>
             <div className="relative aspect-[4/3] w-full">
               <img
+                key={H.lifestyleLeftImageUrl}
                 src={H.lifestyleLeftImageUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover object-center origin-center transition-transform duration-700 group-hover:scale-[1.03]"
+                className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700"
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-t from-[#1B4332]/88 via-[#1B4332]/35 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6 md:p-8">
-                <div
-                  id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_LEFT_CAPTION_ID : undefined}
-                  className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
-                >
-                  <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleLeftTitle}</h4>
-                  <p className="mt-1 text-sm text-white/90 font-inter sm:text-base">{H.lifestyleLeftText}</p>
-                </div>
+                {(H.lifestyleLeftTitle || H.lifestyleLeftText) ? (
+                  <div
+                    id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_LEFT_CAPTION_ID : undefined}
+                    className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
+                  >
+                    {H.lifestyleLeftTitle ? (
+                      <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleLeftTitle}</h4>
+                    ) : null}
+                    {H.lifestyleLeftText ? (
+                      <p
+                        className={`text-sm text-white/90 font-inter sm:text-base ${H.lifestyleLeftTitle ? "mt-1" : ""}`}
+                      >
+                        {H.lifestyleLeftText}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -56,19 +67,30 @@ export const Lifestyle = ({ assignAdminPreviewDomIds = false }: LifestyleProps) 
             <div className="absolute inset-0 bg-gradient-to-br from-[#FFD166]/20 to-[#1B4332]/20 blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-0 group-hover:opacity-100 z-0"></div>
             <div className="relative aspect-[4/3] w-full">
               <img
+                key={H.lifestyleRightImageUrl}
                 src={H.lifestyleRightImageUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover object-top origin-top transition-transform duration-700 group-hover:scale-[1.03]"
+                className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700"
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-t from-[#1B4332]/88 via-[#1B4332]/35 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6 md:p-8">
-                <div
-                  id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID : undefined}
-                  className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
-                >
-                  <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleRightTitle}</h4>
-                  <p className="mt-1 text-sm text-white/90 font-inter sm:text-base">{H.lifestyleRightText}</p>
-                </div>
+                {(H.lifestyleRightTitle || H.lifestyleRightText) ? (
+                  <div
+                    id={assignAdminPreviewDomIds ? PREVIEW_LIFESTYLE_RIGHT_CAPTION_ID : undefined}
+                    className="w-full max-w-md translate-y-2 transform rounded-2xl border border-white/25 bg-black/40 px-4 py-4 backdrop-blur-md transition-transform duration-500 group-hover:translate-y-0 sm:px-5 sm:py-4"
+                  >
+                    {H.lifestyleRightTitle ? (
+                      <h4 className="text-xl font-bold text-white font-playfair sm:text-2xl">{H.lifestyleRightTitle}</h4>
+                    ) : null}
+                    {H.lifestyleRightText ? (
+                      <p
+                        className={`text-sm text-white/90 font-inter sm:text-base ${H.lifestyleRightTitle ? "mt-1" : ""}`}
+                      >
+                        {H.lifestyleRightText}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

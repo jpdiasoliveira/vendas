@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
-import { RefreshCw, Home, LayoutDashboard, DollarSign, Flame, ScrollText } from "lucide-react";
+import { RefreshCw, LayoutDashboard, DollarSign, Flame, ScrollText } from "lucide-react";
 import type { Order, Product } from "@/react-app/types";
 import { buildOrderConfirmationShareUrl } from "@/react-app/utils/orderConfirmationUrl";
 import { OrderDetailsModal } from "@/react-app/components/admin/OrderDetailsModal";
@@ -17,7 +16,6 @@ import { formatCurrency } from "@/react-app/utils/format";
 const SALES_STATUSES = new Set(["paid", "approved", "shipped", "delivered"]);
 
 const AdminOrdersPage = () => {
-  const navigate = useNavigate();
   const m = useAdminOrders();
   const [shareCopiedOrderId, setShareCopiedOrderId] = useState<string | null>(null);
   const [topSellerNames, setTopSellerNames] = useState<string[]>([]);
@@ -74,23 +72,13 @@ const AdminOrdersPage = () => {
   return (
     <>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[color:var(--brand-primary)]/10 bg-white/60 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[var(--brand-primary)]"
-              aria-label="Voltar"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <LayoutDashboard className="h-9 w-9 shrink-0 text-[var(--brand-primary)] sm:h-10 sm:w-10" />
-              <div>
-                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[var(--brand-primary)] sm:text-4xl">
-                  Painel de Vendas
-                </h1>
-                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Acompanhe os pedidos da sua loja</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <LayoutDashboard className="h-9 w-9 shrink-0 text-[var(--brand-primary)] sm:h-10 sm:w-10" />
+            <div>
+              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[var(--brand-primary)] sm:text-4xl">
+                Painel de Vendas
+              </h1>
+              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Acompanhe os pedidos da sua loja</p>
             </div>
           </div>
           <div className="flex w-full min-w-0 justify-end sm:w-auto">

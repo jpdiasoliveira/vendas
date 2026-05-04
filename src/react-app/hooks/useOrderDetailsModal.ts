@@ -3,6 +3,7 @@ import { adminApiFetch } from "@/react-app/services/api";
 import type { OrderDetail } from "@/react-app/types";
 import {
   STATUS_OPTIONS,
+  orderStatusSelectSource,
   statusToSelectValue,
 } from "@/react-app/components/admin/orderDetailsModalHelpers";
 
@@ -57,7 +58,9 @@ export const useOrderDetailsModal = ({
       .then((data) => {
         const normalized = normalizeOrderDetail(data);
         setOrder(normalized);
-        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
+        setSelectedStatus(
+          statusToSelectValue(orderStatusSelectSource(normalized.paymentStatus, normalized.status))
+        );
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Erro ao carregar pedido");
@@ -80,7 +83,9 @@ export const useOrderDetailsModal = ({
       if (res.order) {
         const normalized = normalizeOrderDetail(res.order);
         setOrder(normalized);
-        setSelectedStatus(statusToSelectValue(normalized.paymentStatus ?? normalized.status));
+        setSelectedStatus(
+          statusToSelectValue(orderStatusSelectSource(normalized.paymentStatus, normalized.status))
+        );
       }
       onStatusUpdated();
     } catch (err: unknown) {
@@ -108,15 +113,18 @@ export const useOrderDetailsModal = ({
         STATUS_OPTIONS.find((o) => o.value === selectedStatus)?.label ?? selectedStatus;
       setStatusSuccessMessage(`Status alterado para «${label}».`);
       setCancellationReason("");
-      setOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: selectedStatus,
-              paymentStatus: selectedStatus,
-            }
-          : null
-      );
+      setOrder((prev) => {
+        if (!prev) return null;
+        const fulfillmentOnly =
+          selectedStatus === "delivered" || selectedStatus === "shipped";
+        return {
+          ...prev,
+          status: selectedStatus,
+          paymentStatus: fulfillmentOnly
+            ? (prev.paymentStatus ?? prev.status)
+            : selectedStatus,
+        };
+      });
       onStatusUpdated();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao atualizar status");

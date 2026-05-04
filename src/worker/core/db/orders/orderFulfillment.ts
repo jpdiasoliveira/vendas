@@ -12,6 +12,7 @@ import {
   orderHasStockReservedAtCreate,
 } from "./orderStatusHelpers.js";
 import { notifyOrderShipped } from "../../../services/notificationHooks.js";
+import { logServerError } from "../../../utils/safeApiError.js";
 
 /** Pedido em estado em que cancelamento pode exigir estorno no gateway (não automático aqui). */
 export const orderRequiresManualRefundWorkflow = (order: Order): boolean => {
@@ -120,24 +121,19 @@ export async function updateOrderStatus(
     try {
       await increaseStockForOrder(env, idStr, storeId);
     } catch (stockErr) {
-      console.error("[updateOrderStatus] Erro ao repor estoque no cancelamento:", {
-        orderId: idStr,
-        storeId,
-        newStatus,
-        oldStatus,
-        error: stockErr instanceof Error ? stockErr.message : String(stockErr),
-        stack: stockErr instanceof Error ? stockErr.stack : undefined,
-      });
+      logServerError(
+        `updateOrderStatus.stockIncreaseOnCancel order=${idStr} store=${storeId}`,
+        stockErr
+      );
     }
   } else if (isCanceled && wasPending && reservedAtCreate) {
     try {
       await increaseStockForOrder(env, idStr, storeId);
     } catch (stockErr) {
-      console.error("[updateOrderStatus] Erro ao repor estoque reservado na criação (cancelamento):", {
-        orderId: idStr,
-        storeId,
-        error: stockErr instanceof Error ? stockErr.message : String(stockErr),
-      });
+      logServerError(
+        `updateOrderStatus.stockIncreasePendingReserved order=${idStr} store=${storeId}`,
+        stockErr
+      );
     }
   } else if (isPaidStatus(newStatus) && !inventoryCommittedStatus(oldStatus)) {
     if (!reservedAtCreate) {

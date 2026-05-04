@@ -4,15 +4,44 @@ export const STATUS_OPTIONS = [
   { value: "pending", label: "Pendente" },
   { value: "paid", label: "Pago" },
   { value: "shipped", label: "Enviado" },
+  { value: "delivered", label: "Entregue" },
   { value: "cancelled", label: "Cancelado" },
 ] as const;
+
+/** Campo a mapear para o select: logística (enviado/entregue) vs pagamento. */
+export const orderStatusSelectSource = (
+  paymentStatus: string | null | undefined,
+  status: string | null | undefined
+): string => {
+  const st = (status ?? "").trim().toLowerCase();
+  if (st === "delivered" || st === "shipped") return (status ?? "").trim();
+  return (paymentStatus ?? status ?? "").trim();
+};
 
 export const statusToSelectValue = (apiStatus: string | null | undefined): string => {
   const s = (apiStatus ?? "").trim().toLowerCase();
   if (s === "approved") return "paid";
   if (s === "canceled") return "cancelled";
-  if (["pending", "paid", "shipped", "cancelled"].includes(s)) return s;
+  if (["pending", "paid", "shipped", "delivered", "cancelled"].includes(s)) return s;
   return "pending";
+};
+
+/** Texto amigável para `metadata.cancelled_reason` (cron, MP, lojista). */
+export const getOrderCancellationDisplay = (
+  metadata: Record<string, unknown> | null | undefined
+): { reasonLabel: string | null; autoExpiredAt: string | null } => {
+  const raw = metadata?.cancelled_reason;
+  const code = typeof raw === "string" ? raw.trim() : "";
+  let reasonLabel: string | null = null;
+  if (code === "expired_pending_timeout") {
+    reasonLabel =
+      "Cancelado automaticamente: o prazo para pagamento expirou. O estoque reservado voltou ao catálogo.";
+  } else if (code) {
+    reasonLabel = `Motivo registado no sistema: ${code}`;
+  }
+  const ate = metadata?.auto_expired_at;
+  const autoExpiredAt = typeof ate === "string" && ate.trim() ? ate.trim() : null;
+  return { reasonLabel, autoExpiredAt };
 };
 
 export const orderNeedsCancellationMotive = (o: OrderDetail): boolean => {

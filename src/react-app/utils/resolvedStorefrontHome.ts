@@ -19,6 +19,9 @@ import {
   DEFAULT_NEWSLETTER_PLACEHOLDER,
   DEFAULT_NEWSLETTER_SUBTITLE,
   DEFAULT_NEWSLETTER_TITLE,
+  DEFAULT_PRODUCTS_GRID_EYEBROW,
+  DEFAULT_PRODUCTS_GRID_SUBTITLE,
+  DEFAULT_PRODUCTS_GRID_TITLE,
   DEFAULT_STORY_CHIP1,
   DEFAULT_STORY_CHIP2,
   DEFAULT_STORY_EYEBROW,
@@ -55,7 +58,16 @@ export type ResolvedStorefrontHome = {
   newsletterSubtitle: string;
   newsletterPlaceholder: string;
   newsletterCtaLabel: string;
+  productsGridEyebrow: string;
+  productsGridTitle: string;
+  productsGridSubtitle: string;
 };
+
+/** Título ou texto sobre a foto: ausente/null → fallback; string (incl. `""`) → trim. */
+const resolveLifestyleOverlay = (
+  raw: string | null | undefined,
+  fallback: string
+): string => (raw === undefined || raw === null ? fallback : raw.trim());
 
 export const resolveStorefrontHome = (
   displayName: string,
@@ -79,11 +91,11 @@ export const resolveStorefrontHome = (
     lifestyleTitle: p?.lifestyleTitle?.trim() || lifestyleTitleFromStore(name),
     lifestyleSubtitle: p?.lifestyleSubtitle?.trim() || DEFAULT_LIFESTYLE_SUBTITLE,
     lifestyleLeftImageUrl: p?.lifestyleLeftImageUrl?.trim() || DEFAULT_LIFESTYLE_LEFT_IMAGE,
-    lifestyleLeftTitle: p?.lifestyleLeftTitle?.trim() || DEFAULT_LIFESTYLE_LEFT_TITLE,
-    lifestyleLeftText: p?.lifestyleLeftText?.trim() || DEFAULT_LIFESTYLE_LEFT_TEXT,
+    lifestyleLeftTitle: resolveLifestyleOverlay(p?.lifestyleLeftTitle, DEFAULT_LIFESTYLE_LEFT_TITLE),
+    lifestyleLeftText: resolveLifestyleOverlay(p?.lifestyleLeftText, DEFAULT_LIFESTYLE_LEFT_TEXT),
     lifestyleRightImageUrl: p?.lifestyleRightImageUrl?.trim() || DEFAULT_LIFESTYLE_RIGHT_IMAGE,
-    lifestyleRightTitle: p?.lifestyleRightTitle?.trim() || DEFAULT_LIFESTYLE_RIGHT_TITLE,
-    lifestyleRightText: p?.lifestyleRightText?.trim() || DEFAULT_LIFESTYLE_RIGHT_TEXT,
+    lifestyleRightTitle: resolveLifestyleOverlay(p?.lifestyleRightTitle, DEFAULT_LIFESTYLE_RIGHT_TITLE),
+    lifestyleRightText: resolveLifestyleOverlay(p?.lifestyleRightText, DEFAULT_LIFESTYLE_RIGHT_TEXT),
     benefit1Title: p?.benefit1Title?.trim() || DEFAULT_BENEFIT1_TITLE,
     benefit1Text: p?.benefit1Text?.trim() || DEFAULT_BENEFIT1_TEXT,
     benefit2Title: p?.benefit2Title?.trim() || DEFAULT_BENEFIT2_TITLE,
@@ -95,5 +107,8 @@ export const resolveStorefrontHome = (
     newsletterSubtitle: p?.newsletterSubtitle?.trim() || DEFAULT_NEWSLETTER_SUBTITLE,
     newsletterPlaceholder: p?.newsletterPlaceholder?.trim() || DEFAULT_NEWSLETTER_PLACEHOLDER,
     newsletterCtaLabel: p?.newsletterCtaLabel?.trim() || DEFAULT_NEWSLETTER_CTA,
+    productsGridEyebrow: p?.productsGridEyebrow?.trim() || DEFAULT_PRODUCTS_GRID_EYEBROW,
+    productsGridTitle: p?.productsGridTitle?.trim() || DEFAULT_PRODUCTS_GRID_TITLE,
+    productsGridSubtitle: p?.productsGridSubtitle?.trim() || DEFAULT_PRODUCTS_GRID_SUBTITLE,
   };
 };

@@ -36,4 +36,10 @@ interface Env {
   RESEND_API_KEY?: string;
   /** Remetente verificado no Resend, ex.: `Natfoods <pedidos@seudominio.com>`. */
   RESEND_FROM_EMAIL?: string;
+  /**
+   * Idade mínima (minutos) de pedidos `pending` para expirar no cron (`expire_old_orders`). Padrão 60.
+   */
+  ORDER_EXPIRE_PENDING_MINUTES?: string;
+  /** Máximo de pedidos processados por execução do cron. Padrão 100 (máx. 5000 na RPC). */
+  ORDER_EXPIRE_BATCH?: string;
 }

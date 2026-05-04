@@ -69,12 +69,15 @@ export const AdminNav = ({ children }: AdminNavProps) => {
 
   return (
     <nav className="flex w-full min-w-0 items-center gap-2 font-inter sm:gap-3" aria-label="Painel administrativo">
-      {/* Identidade da loja */}
-      <div className="flex min-w-0 max-w-[38%] shrink-0 items-center gap-2 sm:max-w-[min(16rem,42%)]">
+      {/* Identidade da loja — link para a vitrine pública */}
+      <Link
+        to="/"
+        className="flex min-w-0 max-w-[38%] shrink-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none ring-offset-2 transition-colors hover:bg-black/[0.04] focus-visible:ring-2 focus-visible:ring-[color:var(--brand-primary)]/25 sm:max-w-[min(16rem,42%)]"
+        aria-label={`Abrir vitrine — ${storeName}`}
+      >
         {logoUrl ? (
           <span
             className={`inline-flex shrink-0 items-center justify-center ${
-              /* Mesmo tom do header (AdminLayout) para o multiply não parecer um “bloco” à parte. */
               adminLogoKnockout ? "bg-[#FAF8F3]" : ""
             }`}
           >
@@ -98,7 +101,7 @@ export const AdminNav = ({ children }: AdminNavProps) => {
         <span className="min-w-0 truncate font-playfair text-base font-semibold leading-tight tracking-tight text-[var(--brand-primary)] sm:text-lg">
           {storeName}
         </span>
-      </div>
+      </Link>
 
       {/* Navegação — centralizada no espaço restante */}
       <div

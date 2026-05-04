@@ -44,6 +44,12 @@ export type StorePublicProfile = {
   newsletterSubtitle?: string | null;
   newsletterPlaceholder?: string | null;
   newsletterCtaLabel?: string | null;
+  /** Selo (pill) acima do título da grelha de produtos na home (`#produtos`). */
+  productsGridEyebrow?: string | null;
+  /** Título principal da secção de produtos na home. */
+  productsGridTitle?: string | null;
+  /** Linha de apoio abaixo do título da grelha de produtos. */
+  productsGridSubtitle?: string | null;
   contactPhone?: string | null;
   contactWhatsapp?: string | null;
   contactEmail?: string | null;
@@ -86,6 +92,20 @@ function firstStr(o: Record<string, unknown>, keys: string[]): string | null {
   return null;
 }
 
+/**
+ * Textos sobre a foto (lifestyle): chave ausente → `undefined` (vitrine usa copy padrão);
+ * chave presente com `""` ou só espaços → `""` (sem texto na foto).
+ */
+function strFieldWhenPresent(o: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const k of keys) {
+    if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+    const v = o[k];
+    if (v == null) return "";
+    return String(v).trim();
+  }
+  return undefined;
+}
+
 const LOGO_H_MIN = 20;
 const LOGO_H_MAX = 100;
 const LOGO_H_DEFAULT = 40;
@@ -104,7 +124,10 @@ function parseLogoHeightPx(v: unknown): number {
 
 function parseLogoKnockoutWhite(v: unknown): boolean {
   if (v === true || v === 1) return true;
-  if (typeof v === "string" && (v === "true" || v === "1")) return true;
+  if (typeof v === "string") {
+    const t = v.trim().toLowerCase();
+    if (t === "true" || t === "1" || t === "yes") return true;
+  }
   return false;
 }
 
@@ -171,11 +194,11 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
     lifestyleTitle: firstStr(o, ["lifestyleTitle", "lifestyle_title"]),
     lifestyleSubtitle: firstStr(o, ["lifestyleSubtitle", "lifestyle_subtitle"]),
     lifestyleLeftImageUrl: firstStr(o, ["lifestyleLeftImageUrl", "lifestyle_left_image_url"]),
-    lifestyleLeftTitle: firstStr(o, ["lifestyleLeftTitle", "lifestyle_left_title"]),
-    lifestyleLeftText: firstStr(o, ["lifestyleLeftText", "lifestyle_left_text"]),
+    lifestyleLeftTitle: strFieldWhenPresent(o, ["lifestyleLeftTitle", "lifestyle_left_title"]),
+    lifestyleLeftText: strFieldWhenPresent(o, ["lifestyleLeftText", "lifestyle_left_text"]),
     lifestyleRightImageUrl: firstStr(o, ["lifestyleRightImageUrl", "lifestyle_right_image_url"]),
-    lifestyleRightTitle: firstStr(o, ["lifestyleRightTitle", "lifestyle_right_title"]),
-    lifestyleRightText: firstStr(o, ["lifestyleRightText", "lifestyle_right_text"]),
+    lifestyleRightTitle: strFieldWhenPresent(o, ["lifestyleRightTitle", "lifestyle_right_title"]),
+    lifestyleRightText: strFieldWhenPresent(o, ["lifestyleRightText", "lifestyle_right_text"]),
     benefit1Title: firstStr(o, ["benefit1Title", "benefit_1_title"]),
     benefit1Text: firstStr(o, ["benefit1Text", "benefit_1_text"]),
     benefit2Title: firstStr(o, ["benefit2Title", "benefit_2_title"]),
@@ -187,6 +210,9 @@ export function parsePublicProfile(raw: unknown): StorePublicProfile {
     newsletterSubtitle: firstStr(o, ["newsletterSubtitle", "newsletter_subtitle"]),
     newsletterPlaceholder: firstStr(o, ["newsletterPlaceholder", "newsletter_placeholder"]),
     newsletterCtaLabel: firstStr(o, ["newsletterCtaLabel", "newsletter_cta_label"]),
+    productsGridEyebrow: firstStr(o, ["productsGridEyebrow", "products_grid_eyebrow"]),
+    productsGridTitle: firstStr(o, ["productsGridTitle", "products_grid_title"]),
+    productsGridSubtitle: firstStr(o, ["productsGridSubtitle", "products_grid_subtitle"]),
     contactPhone: firstStr(o, ["contactPhone", "contact_phone"]),
     contactWhatsapp: firstStr(o, ["contactWhatsapp", "contact_whatsapp", "whatsapp"]),
     contactEmail: firstStr(o, ["contactEmail", "contact_email"]),
@@ -232,11 +258,15 @@ export function toPublicProfileJson(p: StorePublicProfile): Record<string, unkno
   if (p.lifestyleTitle != null) out.lifestyleTitle = p.lifestyleTitle;
   if (p.lifestyleSubtitle != null) out.lifestyleSubtitle = p.lifestyleSubtitle;
   if (p.lifestyleLeftImageUrl != null) out.lifestyleLeftImageUrl = p.lifestyleLeftImageUrl;
-  if (p.lifestyleLeftTitle != null) out.lifestyleLeftTitle = p.lifestyleLeftTitle;
-  if (p.lifestyleLeftText != null) out.lifestyleLeftText = p.lifestyleLeftText;
+  if (p.lifestyleLeftTitle !== undefined && p.lifestyleLeftTitle !== null)
+    out.lifestyleLeftTitle = p.lifestyleLeftTitle;
+  if (p.lifestyleLeftText !== undefined && p.lifestyleLeftText !== null)
+    out.lifestyleLeftText = p.lifestyleLeftText;
   if (p.lifestyleRightImageUrl != null) out.lifestyleRightImageUrl = p.lifestyleRightImageUrl;
-  if (p.lifestyleRightTitle != null) out.lifestyleRightTitle = p.lifestyleRightTitle;
-  if (p.lifestyleRightText != null) out.lifestyleRightText = p.lifestyleRightText;
+  if (p.lifestyleRightTitle !== undefined && p.lifestyleRightTitle !== null)
+    out.lifestyleRightTitle = p.lifestyleRightTitle;
+  if (p.lifestyleRightText !== undefined && p.lifestyleRightText !== null)
+    out.lifestyleRightText = p.lifestyleRightText;
   if (p.benefit1Title != null) out.benefit1Title = p.benefit1Title;
   if (p.benefit1Text != null) out.benefit1Text = p.benefit1Text;
   if (p.benefit2Title != null) out.benefit2Title = p.benefit2Title;
@@ -248,6 +278,9 @@ export function toPublicProfileJson(p: StorePublicProfile): Record<string, unkno
   if (p.newsletterSubtitle != null) out.newsletterSubtitle = p.newsletterSubtitle;
   if (p.newsletterPlaceholder != null) out.newsletterPlaceholder = p.newsletterPlaceholder;
   if (p.newsletterCtaLabel != null) out.newsletterCtaLabel = p.newsletterCtaLabel;
+  if (p.productsGridEyebrow != null) out.productsGridEyebrow = p.productsGridEyebrow;
+  if (p.productsGridTitle != null) out.productsGridTitle = p.productsGridTitle;
+  if (p.productsGridSubtitle != null) out.productsGridSubtitle = p.productsGridSubtitle;
   if (p.contactPhone != null) out.contactPhone = p.contactPhone;
   if (p.contactWhatsapp != null) out.contactWhatsapp = p.contactWhatsapp;
   if (p.contactEmail != null) out.contactEmail = p.contactEmail;

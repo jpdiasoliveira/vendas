@@ -28,5 +28,14 @@ export const useStorefrontPreviewFocus = () => {
     }, 160);
   }, []);
 
-  return { activeSection, previewScrollTick, previewFocus, previewBlur };
+  /** Realça a secção na pré-visualização sem incrementar o tick (evita re-rolar o painel ao clicar no preview). */
+  const previewMarkSection = useCallback((id: StorefrontPreviewSectionId | null) => {
+    if (blurTimer.current != null) {
+      clearTimeout(blurTimer.current);
+      blurTimer.current = null;
+    }
+    setActiveSection(id);
+  }, []);
+
+  return { activeSection, previewScrollTick, previewFocus, previewBlur, previewMarkSection };
 };

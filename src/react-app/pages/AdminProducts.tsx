@@ -1,5 +1,7 @@
-import { useNavigate } from "react-router";
-import { RefreshCw, Home, Package } from "lucide-react";
+import { useEffect } from "react";
+import { useOutletContext } from "react-router";
+import { RefreshCw } from "lucide-react";
+import type { AdminCatalogHubOutletContext } from "@/react-app/components/admin/adminCatalogHubOutletContext";
 import { EditProductModal } from "@/react-app/components/admin/EditProductModal";
 import { AddProductModal } from "@/react-app/components/admin/AddProductModal";
 import { ProductQRModal } from "@/react-app/components/admin/ProductQRModal";
@@ -11,8 +13,8 @@ import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 import { useCapabilities } from "@/react-app/hooks/useCapabilities";
 
 const AdminProductsPage = () => {
-  const navigate = useNavigate();
   const m = useAdminProducts();
+  const { setCatalogHubToolbar } = useOutletContext<AdminCatalogHubOutletContext>();
   const trendingProductIds = useTrendingProductIds();
   const { isAtProductLimit, capabilities } = useCapabilities();
   const productLimitReached = isAtProductLimit(m.products.length);
@@ -20,80 +22,62 @@ const AdminProductsPage = () => {
     ? `Limite do plano: ${capabilities.maxProducts ?? "?"} produtos.`
     : undefined;
 
+  useEffect(() => {
+    setCatalogHubToolbar(
+      <button
+        type="button"
+        onClick={() => void m.fetchProducts()}
+        disabled={m.loading}
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[color:var(--brand-primary)]/25 bg-white/90 px-3 py-2 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[color:var(--brand-primary)]/35 hover:bg-white hover:text-[var(--brand-primary)] disabled:opacity-60"
+      >
+        <RefreshCw className={`h-4 w-4 shrink-0 ${m.loading ? "animate-spin" : ""}`} />
+        Atualizar
+      </button>
+    );
+    return () => setCatalogHubToolbar(null);
+  }, [m.fetchProducts, m.loading, setCatalogHubToolbar]);
+
   return (
     <>
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
-              aria-label="Voltar"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <Package className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
-              <div>
-                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
-                  Gestão de Produtos
-                </h1>
-                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Preços, atacado e estoque</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex w-full min-w-0 justify-end sm:w-auto">
-            <button
-              type="button"
-              onClick={() => void m.fetchProducts()}
-              disabled={m.loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/25 bg-white/90 px-3 py-2.5 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[#1B4332]/35 hover:bg-white hover:text-[#1B4332] disabled:opacity-60"
-            >
-              <RefreshCw className={`h-5 w-5 ${m.loading ? "animate-spin" : ""}`} />
-              Atualizar
-            </button>
-          </div>
+      {m.error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 font-inter text-red-700">{m.error}</div>
+      )}
+
+      {m.loading && m.products.length === 0 ? (
+        <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
+          <RefreshCw className="mx-auto mb-4 h-12 w-12 animate-spin text-[#1B4332]" />
+          <p className="font-inter text-[#6D4C41]">Carregando produtos...</p>
         </div>
-
-        {m.error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 font-inter text-red-700">{m.error}</div>
-        )}
-
-        {m.loading && m.products.length === 0 ? (
-          <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
-            <RefreshCw className="mx-auto mb-4 h-12 w-12 animate-spin text-[#1B4332]" />
-            <p className="font-inter text-[#6D4C41]">Carregando produtos...</p>
-          </div>
-        ) : m.products.length === 0 ? (
-          <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
-            <p className="font-inter text-[#6D4C41]">Nenhum produto cadastrado.</p>
-          </div>
-        ) : (
-          <>
-            <AdminProductsToolbar
-              searchQuery={m.searchQuery}
-              setSearchQuery={m.setSearchQuery}
-              categoryFilter={m.categoryFilter}
-              setCategoryFilter={m.setCategoryFilter}
-              categoryOptions={m.categoryOptions}
-              criticalCount={m.criticalCount}
-              onNewProduct={() => m.setAddModalOpen(true)}
-              newProductDisabled={productLimitReached}
-              newProductDisabledTitle={newProductLimitTitle}
-            />
-            <AdminProductsTable
-              products={m.filteredProducts}
-              trendingProductIds={trendingProductIds}
-              togglingId={m.togglingId}
-              togglingHomeId={m.togglingHomeId}
-              onToggleStatus={m.handleToggleStatus}
-              onToggleHomeFeatured={m.handleToggleHomeFeatured}
-              onQr={m.setQrProduct}
-              onEdit={m.openEdit}
-              onDelete={m.setProductToDelete}
-            />
-          </>
-        )}
+      ) : m.products.length === 0 ? (
+        <div className="rounded-2xl border border-[#1B4332]/10 bg-white/70 p-12 text-center shadow-sm backdrop-blur-sm">
+          <p className="font-inter text-[#6D4C41]">Nenhum produto cadastrado.</p>
+        </div>
+      ) : (
+        <>
+          <AdminProductsToolbar
+            searchQuery={m.searchQuery}
+            setSearchQuery={m.setSearchQuery}
+            categoryFilter={m.categoryFilter}
+            setCategoryFilter={m.setCategoryFilter}
+            categoryOptions={m.categoryOptions}
+            criticalCount={m.criticalCount}
+            onNewProduct={() => m.setAddModalOpen(true)}
+            newProductDisabled={productLimitReached}
+            newProductDisabledTitle={newProductLimitTitle}
+          />
+          <AdminProductsTable
+            products={m.filteredProducts}
+            trendingProductIds={trendingProductIds}
+            togglingId={m.togglingId}
+            togglingHomeId={m.togglingHomeId}
+            onToggleStatus={m.handleToggleStatus}
+            onToggleHomeFeatured={m.handleToggleHomeFeatured}
+            onQr={m.setQrProduct}
+            onEdit={m.openEdit}
+            onDelete={m.setProductToDelete}
+          />
+        </>
+      )}
 
       <EditProductModal isOpen={m.modalOpen} product={m.editingProduct} onClose={m.closeModal} onSaved={m.fetchProducts} />
       <AddProductModal

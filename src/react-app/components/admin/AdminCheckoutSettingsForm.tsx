@@ -1,4 +1,4 @@
-import { CheckCircle2, CreditCard, Home, Loader2, Save } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, Save } from "lucide-react";
 import type { AdminSettingsViewModel } from "@/react-app/hooks/useAdminSettings";
 
 /**
@@ -24,34 +24,24 @@ export const AdminCheckoutSettingsForm = ({ m }: { m: AdminSettingsViewModel }) 
   return (
     <div className="w-full min-w-0">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[#1B4332]"
-            aria-label="Voltar ao site"
-          >
-            <Home className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-3">
-            <CreditCard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" aria-hidden />
-            <div>
-              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
-                Checkout e pedidos
-              </h1>
-              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
-                Valor mínimo do carrinho e se o cliente precisa de conta para comprar — independente da aparência da
-                loja na secção{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/admin/loja/vitrine")}
-                  className="font-medium text-[#1B4332] underline decoration-[#1B4332]/30 underline-offset-2 hover:decoration-[#1B4332]"
-                >
-                  Vitrine
-                </button>
-                .
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <CreditCard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" aria-hidden />
+          <div>
+            <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
+              Checkout e pedidos
+            </h1>
+            <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
+              Valor mínimo do carrinho e se o cliente precisa de conta para comprar — independente da aparência da loja
+              na secção{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/admin/loja/vitrine")}
+                className="font-medium text-[#1B4332] underline decoration-[#1B4332]/30 underline-offset-2 hover:decoration-[#1B4332]"
+              >
+                Vitrine
+              </button>
+              .
+            </p>
           </div>
         </div>
       </div>

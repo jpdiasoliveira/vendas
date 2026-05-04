@@ -54,9 +54,10 @@ export const Story = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-[#FFD166]/20 to-[#1B4332]/20 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
             <div className="relative aspect-[4/3] w-full max-h-[min(520px,55vh)] min-h-[240px] overflow-hidden rounded-3xl sm:max-h-[500px]">
               <img
+                key={H.storyImageUrl}
                 src={H.storyImageUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full rounded-3xl border-4 border-white/50 object-cover object-center shadow-2xl transition-all duration-500 group-hover:border-white/70 sm:group-hover:scale-[1.02]"
+                className="absolute inset-0 h-full w-full rounded-3xl border-4 border-white/50 object-cover object-center shadow-2xl transition-all duration-500 group-hover:border-white/70"
               />
             </div>
           </div>

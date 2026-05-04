@@ -10,7 +10,7 @@ interface CreateOrderData {
   idempotent?: boolean;
 }
 
-export function useCheckout() {
+export const useCheckout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +45,6 @@ export function useCheckout() {
       return data;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao processar pedido. Tente novamente.";
-      console.error("[useCheckout.createOrder] Falha ao criar pedido:", err);
       setError(message);
       throw err;
     } finally {
@@ -118,4 +117,4 @@ export function useCheckout() {
   };
 
   return { createOrder, processPayment, checkPaymentStatus, isProcessing, error };
-}
+};

@@ -3,8 +3,10 @@ import { ProductCard } from "./ProductCard";
 import type { Product } from "@/react-app/types";
 import { Loader2, Package } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
 import { isProductFeaturedOnHome } from "@/react-app/utils/productFeaturedOnHome";
+import { resolveStorefrontHome } from "@/react-app/utils/resolvedStorefrontHome";
 
 interface ProductGridProps {
   products: Product[];
@@ -14,8 +16,16 @@ interface ProductGridProps {
   trendingProductIds?: string[];
 }
 
-export function ProductGrid({ products, loading, error, trendingProductIds = [] }: ProductGridProps) {
+export const ProductGrid = ({
+  products,
+  loading,
+  error,
+  trendingProductIds = [],
+}: ProductGridProps) => {
     const navigate = useNavigate();
+    const { settings } = useStoreSettings();
+    const displayName = settings?.displayName?.trim() || "Sua Loja";
+    const H = resolveStorefrontHome(displayName, settings?.publicProfile);
 
     /** Se houver destaque manual, vitrine mostra somente os marcados na home. */
     const displayProducts = useMemo(
@@ -65,13 +75,13 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
 
             <div className="text-center mb-16 relative z-10">
                 <div className="inline-block bg-white/60 backdrop-blur-sm px-6 py-2 rounded-full mb-4 border border-[#1B4332]/10">
-                    <span className="text-sm font-medium text-[#1B4332] font-inter">Explore Nossa Linha</span>
+                    <span className="text-sm font-medium text-[#1B4332] font-inter">{H.productsGridEyebrow}</span>
                 </div>
                 <h3 className="text-3xl sm:text-4xl md:text-6xl font-bold text-[#1B4332] mb-4 font-playfair px-1">
-                    Nossos Produtos
+                    {H.productsGridTitle}
                 </h3>
                 <p className="text-base sm:text-lg text-[#5a4035] max-w-2xl mx-auto font-inter px-2">
-                    Selecione os melhores chips de banana, crocantes e naturais
+                    {H.productsGridSubtitle}
                 </p>
             </div>
 
@@ -92,4 +102,4 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
             </div>
         </section>
     );
-}
+};

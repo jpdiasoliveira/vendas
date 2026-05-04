@@ -128,12 +128,7 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
       });
       return c.json({ success: true, data: { status: newStatus } }, 200);
     } catch (err: unknown) {
-      console.error("[PATCH /api/admin/orders/:id/status] Erro ao atualizar status:", {
-        orderId,
-        newStatus: newStatus,
-        error: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-      });
+      logServerError(`admin.patch /orders/:id/status order=${orderId} newStatus=${newStatus}`, err);
       return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
   });

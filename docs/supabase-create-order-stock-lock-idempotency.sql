@@ -10,6 +10,8 @@
 --    (reserva na criação), insere pedido + itens; mesma chave → mesmo pedido.
 -- 3) Atualiza apply_mp_approval_with_order_lock para NÃO baixar estoque de novo
 --    quando metadata.stock_reserved_at_create = true.
+-- 4) Reposição atómica em cancelamentos: aplicar também
+--    docs/supabase-rpc-restore-order-stock.sql (RPC restore_stock_for_order).
 -- =============================================================================
 
 ALTER TABLE public.orders

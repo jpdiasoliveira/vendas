@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { verifyCustomerAuth } from "../middlewares/verifyCustomerAuth.js";
 import { optionalCustomerAuth } from "../middlewares/optionalCustomerAuth.js";
 import {
+  assertStockOkForPaymentIntent,
   createOrder,
   getOrderForCustomerAccess,
   getOrdersByUserAndStore,
@@ -186,6 +187,15 @@ orders.post(
         },
         409
       );
+    }
+
+    try {
+      await assertStockOkForPaymentIntent(c.env, orderId, store.id, order.metadata);
+    } catch (err: unknown) {
+      if (err instanceof OrderBusinessError) {
+        return c.json({ success: false, error: err.message }, 409);
+      }
+      throw err;
     }
 
     const existingMpPaymentId = String(order.paymentId ?? "").trim();

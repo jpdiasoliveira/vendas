@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Home,
   Loader2,
   Mail,
   RefreshCw,
@@ -27,7 +25,6 @@ const formatDate = (iso: string) => {
 };
 
 const AdminNewsletterPage = () => {
-  const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -64,25 +61,15 @@ const AdminNewsletterPage = () => {
   return (
     <>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="rounded-full border border-[color:var(--brand-primary)]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[var(--brand-primary)]"
-            aria-label="Voltar"
-          >
-            <Home className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-3">
-            <Mail className="h-9 w-9 shrink-0 text-[var(--brand-primary)] sm:h-10 sm:w-10" aria-hidden />
-            <div>
-              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[var(--brand-primary)] sm:text-4xl">
-                Newsletter
-              </h1>
-              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
-                Inscritos pelo formulário da vitrine (apenas esta loja).
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <Mail className="h-9 w-9 shrink-0 text-[var(--brand-primary)] sm:h-10 sm:w-10" aria-hidden />
+          <div>
+            <h1 className="font-playfair text-3xl font-bold tracking-tight text-[var(--brand-primary)] sm:text-4xl">
+              Newsletter
+            </h1>
+            <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
+              Inscritos pelo formulário da vitrine (apenas esta loja).
+            </p>
           </div>
         </div>
         <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">

@@ -42,9 +42,10 @@ export const Hero = ({
     >
       <div className="absolute inset-0 overflow-hidden">
         <img
+          key={bannerSrc}
           src={bannerSrc}
           alt=""
-          className="w-full h-full max-w-none object-cover sm:scale-105 scale-100 animate-[zoom_20s_ease-in-out_infinite_alternate]"
+          className="h-full w-full max-w-none object-cover object-center"
         />
         <div
           className={
@@ -72,7 +73,7 @@ export const Hero = ({
             type="button"
             onClick={onShopClick}
             style={{ color: "var(--brand-primary, #1B4332)" }}
-            className="min-h-[48px] min-w-[min(100%,200px)] justify-center bg-gradient-to-r from-[#FFD166] to-[#FFE084] px-8 py-3.5 rounded-full text-base font-bold hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 transform font-inter inline-flex items-center space-x-2 group relative overflow-hidden w-full sm:w-auto"
+            className="min-h-[48px] min-w-[min(100%,200px)] justify-center bg-gradient-to-r from-[#FFD166] to-[color:var(--brand-accent,#FFE084)] px-8 py-3.5 rounded-full text-base font-bold hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-500 hover:scale-[1.02] sm:hover:scale-105 transform font-inter inline-flex items-center space-x-2 group relative overflow-hidden w-full sm:w-auto"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
             <span className="relative z-10">{heroCta}</span>

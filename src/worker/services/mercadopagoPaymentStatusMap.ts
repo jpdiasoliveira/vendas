@@ -10,7 +10,14 @@ export type MercadoPagoWebhookPaymentAction =
 
 const APPROVED = new Set(["approved"]);
 
-const CANCEL_LOCAL = new Set(["rejected", "cancelled", "canceled", "refunded"]);
+/** Estados finais negativos / estorno — cancelar pedido local e alinhar com MP. */
+const CANCEL_LOCAL = new Set([
+  "rejected",
+  "cancelled",
+  "canceled",
+  "refunded",
+  "charged_back",
+]);
 
 /**
  * Classifica o status retornado por GET /v1/payments/:id para decidir o fluxo no worker.

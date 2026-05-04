@@ -50,6 +50,12 @@ export const DEFAULT_NEWSLETTER_SUBTITLE = "Receba novidades, receitas e ofertas
 export const DEFAULT_NEWSLETTER_PLACEHOLDER = "Seu melhor e-mail";
 export const DEFAULT_NEWSLETTER_CTA = "Inscrever-se";
 
+/** Secção `#produtos` na home: padrão neutro: cada loja define os seus textos em Admin → Vitrine. */
+export const DEFAULT_PRODUCTS_GRID_EYEBROW = "Catálogo";
+export const DEFAULT_PRODUCTS_GRID_TITLE = "Nossos produtos";
+export const DEFAULT_PRODUCTS_GRID_SUBTITLE =
+  "Navegue pelos itens disponíveis — qualidade e variedade à sua escolha.";
+
 /** Rodapé: quando `shipping_info` está vazio, texto neutro (evita cópia de outra vertical, ex. snacks). */
 export const DEFAULT_FOOTER_SHIPPING_BLURB =
   "Conheça o catálogo e fale conosco — estamos disponíveis para esclarecer dúvidas sobre produtos e entregas.";

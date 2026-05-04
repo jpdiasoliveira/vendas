@@ -121,6 +121,7 @@ export const Navbar = ({
             <div className="relative flex shrink-0 items-center justify-center">
               {logoUrl ? (
                 <img
+                  key={logoUrl}
                   src={logoUrl}
                   alt=""
                   style={{ height: `${logoH}px`, width: "auto" }}

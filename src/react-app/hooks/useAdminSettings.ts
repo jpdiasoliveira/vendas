@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent, type ChangeEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/react-app/contexts/AuthContext";
@@ -8,6 +8,7 @@ import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import type { StorePublicProfile } from "@/react-app/types";
 import { parsePublicProfile } from "@/contracts/storePublicProfile";
 import { clampStoreLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
+import type { ImageCoverFramingKind } from "@/react-app/utils/imageCoverFraming";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
 import { formatBRL, parseBRL } from "@/react-app/utils/adminSettingsBrl";
 import { adminStoreSettingsFormQueryKey } from "@/react-app/query/queryKeys";
@@ -15,8 +16,33 @@ import { ADMIN_PANEL_GC_MS, ADMIN_PANEL_STALE_MS } from "@/react-app/query/admin
 
 const emptyProfile = (): StorePublicProfile => parsePublicProfile({});
 
+/** Snapshot estável do GET /api/admin/settings para não sobrescrever o formulário em refetches idênticos (ex.: após upload local da imagem da história). */
+const adminSettingsServerSnapshot = (data: StoreSettingsData): string =>
+  JSON.stringify({
+    displayName: data.displayName ?? null,
+    logoUrl: data.logoUrl ?? null,
+    bannerUrl: data.bannerUrl ?? null,
+    primaryColor: data.primaryColor ?? null,
+    minimumOrderValue: data.minimumOrderValue ?? null,
+    publicProfile: data.publicProfile ?? {},
+  });
+
 /** Campos da home em `public_profile` que aceitam upload de imagem (URL preenchida após envio). */
 export type AdminProfileImageField = "storyImageUrl" | "lifestyleLeftImageUrl" | "lifestyleRightImageUrl";
+
+function profileFieldToFramingKind(field: AdminProfileImageField): ImageCoverFramingKind {
+  if (field === "storyImageUrl") return "story";
+  if (field === "lifestyleLeftImageUrl") return "lifestyleLeft";
+  return "lifestyleRight";
+}
+
+export type AdminImageFramingSession = {
+  kind: ImageCoverFramingKind;
+  objectUrl: string;
+  originalFileName: string;
+  /** Preenchido para história / lifestyle: após confirmar, faz upload e grava URL em `publicProfile`. */
+  profileField?: AdminProfileImageField;
+};
 
 export const useAdminSettings = () => {
   const navigate = useNavigate();
@@ -60,10 +86,20 @@ export const useAdminSettings = () => {
   const [primaryColor, setPrimaryColor] = useState("#1B4332");
   const [publicProfile, setPublicProfile] = useState<StorePublicProfile>(emptyProfile);
   const [checkoutLoginAck, setCheckoutLoginAck] = useState<string | null>(null);
+  const [imageFramingSession, setImageFramingSession] = useState<AdminImageFramingSession | null>(null);
+
+  const lastHydratedServerSnapshot = useRef<string>("");
+
+  useEffect(() => {
+    if (!storeSlug) lastHydratedServerSnapshot.current = "";
+  }, [storeSlug]);
 
   useEffect(() => {
     const data = settingsQuery.data;
     if (!data) return;
+    const snap = adminSettingsServerSnapshot(data);
+    if (lastHydratedServerSnapshot.current === snap) return;
+    lastHydratedServerSnapshot.current = snap;
     setDisplayName(data.displayName ?? "");
     setLogoUrl(data.logoUrl ?? "");
     setBannerUrl(data.bannerUrl ?? "");
@@ -92,20 +128,72 @@ export const useAdminSettings = () => {
 
   const handleLogoFile = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setImagePreview((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
+    e.target.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setImageFramingSession({
+      kind: "logo",
+      objectUrl,
+      originalFileName: file.name || "logo",
     });
-    setImageFile(file ?? null);
   }, []);
 
   const handleBannerFile = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setBannerPreview((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
+    e.target.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setImageFramingSession({
+      kind: "banner",
+      objectUrl,
+      originalFileName: file.name || "banner",
     });
-    setBannerFile(file ?? null);
+  }, []);
+
+  const cancelImageFraming = useCallback(() => {
+    setImageFramingSession((prev) => {
+      if (prev) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+  }, []);
+
+  const completeImageFramingFromSession = useCallback(async (session: AdminImageFramingSession, file: File) => {
+    URL.revokeObjectURL(session.objectUrl);
+    if (session.kind === "banner") {
+      const previewUrl = URL.createObjectURL(file);
+      setBannerPreview((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return previewUrl;
+      });
+      setBannerFile(file);
+      setImageFramingSession(null);
+      return;
+    }
+    if (session.kind === "logo") {
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return previewUrl;
+      });
+      setImageFile(file);
+      setImageFramingSession(null);
+      return;
+    }
+    if (session.profileField) {
+      const field = session.profileField;
+      setImageFramingSession(null);
+      setUploadingProfileImage(field);
+      try {
+        const { publicUrl } = await adminUploadImage(file);
+        setPublicProfile((prev) => ({ ...prev, [field]: publicUrl }));
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Erro ao enviar imagem");
+      } finally {
+        setUploadingProfileImage(null);
+      }
+      return;
+    }
+    setImageFramingSession(null);
   }, []);
 
   const handleProfileImageFile = useCallback((field: AdminProfileImageField) => {
@@ -114,17 +202,13 @@ export const useAdminSettings = () => {
       e.target.value = "";
       if (!file) return;
       setError(null);
-      setUploadingProfileImage(field);
-      adminUploadImage(file)
-        .then(({ publicUrl }) => {
-          setPublicProfile((prev) => ({ ...prev, [field]: publicUrl }));
-        })
-        .catch((err: unknown) => {
-          setError(err instanceof Error ? err.message : "Erro ao enviar imagem");
-        })
-        .finally(() => {
-          setUploadingProfileImage(null);
-        });
+      const objectUrl = URL.createObjectURL(file);
+      setImageFramingSession({
+        kind: profileFieldToFramingKind(field),
+        objectUrl,
+        originalFileName: file.name || "imagem",
+        profileField: field,
+      });
     };
   }, []);
 
@@ -184,11 +268,23 @@ export const useAdminSettings = () => {
               lifestyleTitle: publicProfile.lifestyleTitle?.trim() || undefined,
               lifestyleSubtitle: publicProfile.lifestyleSubtitle?.trim() || undefined,
               lifestyleLeftImageUrl: publicProfile.lifestyleLeftImageUrl?.trim() || undefined,
-              lifestyleLeftTitle: publicProfile.lifestyleLeftTitle?.trim() || undefined,
-              lifestyleLeftText: publicProfile.lifestyleLeftText?.trim() || undefined,
+              lifestyleLeftTitle:
+                publicProfile.lifestyleLeftTitle === undefined || publicProfile.lifestyleLeftTitle === null
+                  ? undefined
+                  : publicProfile.lifestyleLeftTitle.trim(),
+              lifestyleLeftText:
+                publicProfile.lifestyleLeftText === undefined || publicProfile.lifestyleLeftText === null
+                  ? undefined
+                  : publicProfile.lifestyleLeftText.trim(),
               lifestyleRightImageUrl: publicProfile.lifestyleRightImageUrl?.trim() || undefined,
-              lifestyleRightTitle: publicProfile.lifestyleRightTitle?.trim() || undefined,
-              lifestyleRightText: publicProfile.lifestyleRightText?.trim() || undefined,
+              lifestyleRightTitle:
+                publicProfile.lifestyleRightTitle === undefined || publicProfile.lifestyleRightTitle === null
+                  ? undefined
+                  : publicProfile.lifestyleRightTitle.trim(),
+              lifestyleRightText:
+                publicProfile.lifestyleRightText === undefined || publicProfile.lifestyleRightText === null
+                  ? undefined
+                  : publicProfile.lifestyleRightText.trim(),
               benefit1Title: publicProfile.benefit1Title?.trim() || undefined,
               benefit1Text: publicProfile.benefit1Text?.trim() || undefined,
               benefit2Title: publicProfile.benefit2Title?.trim() || undefined,
@@ -200,6 +296,9 @@ export const useAdminSettings = () => {
               newsletterSubtitle: publicProfile.newsletterSubtitle?.trim() || undefined,
               newsletterPlaceholder: publicProfile.newsletterPlaceholder?.trim() || undefined,
               newsletterCtaLabel: publicProfile.newsletterCtaLabel?.trim() || undefined,
+              productsGridEyebrow: publicProfile.productsGridEyebrow?.trim() || undefined,
+              productsGridTitle: publicProfile.productsGridTitle?.trim() || undefined,
+              productsGridSubtitle: publicProfile.productsGridSubtitle?.trim() || undefined,
               requireLoginToCheckout: publicProfile.requireLoginToCheckout !== false,
               logoHeightPx: clampStoreLogoHeightPx(publicProfile.logoHeightPx ?? undefined),
               logoKnockoutWhite: publicProfile.logoKnockoutWhite === true,
@@ -284,6 +383,9 @@ export const useAdminSettings = () => {
     setCheckoutLoginAck,
     handleLogoFile,
     handleBannerFile,
+    imageFramingSession,
+    cancelImageFraming,
+    completeImageFramingFromSession,
     handleProfileImageFile,
     handleSubmit,
     inputCls,

@@ -96,13 +96,12 @@ export async function updateOrderPaymentStatus(
       throw new Error(`apply_mp_approval_with_order_lock retorno inesperado: ${String(data)}`);
     }
     if (outcome === "stock_conflict_cancelled") {
-      logServerError("updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED", {
-        reason: "INSUFFICIENT_STOCK_AT_MP_APPROVAL",
-        orderId: idStr,
-        mpPaymentId: paymentInfo?.paymentId ?? null,
-        message:
-          "Pedido cancelado no sistema: pagamento aprovado no Mercado Pago mas estoque insuficiente. Efetue estorno manual no MP.",
-      });
+      logServerError(
+        `updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED order=${idStr} mpPayment=${String(paymentInfo?.paymentId ?? "")}`,
+        new Error(
+          "INSUFFICIENT_STOCK_AT_MP_APPROVAL: pedido cancelado no sistema; estorno manual no MP se necessário."
+        )
+      );
     }
     return outcome;
   }
@@ -121,15 +120,12 @@ export async function updateOrderPaymentStatus(
       await cancelOrderForInsufficientStockAfterPayment(env, idStr, storeId, {
         mpPaymentId: paymentInfo?.paymentId,
       });
-      logServerError("updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED", {
-        reason: "INSUFFICIENT_STOCK_AT_MP_APPROVAL",
-        orderId: idStr,
-        storeId,
-        mpPaymentId: paymentInfo?.paymentId ?? null,
-        rpcDetail: dec.detail,
-        message:
-          "Pedido cancelado no sistema: pagamento aprovado no Mercado Pago mas estoque insuficiente. Efetue estorno manual no MP.",
-      });
+      logServerError(
+        `updateOrderPaymentStatus.MANUAL_REFUND_REQUIRED order=${idStr} store=${storeId} mpPayment=${String(paymentInfo?.paymentId ?? "")} detail=${dec.detail}`,
+        new Error(
+          "INSUFFICIENT_STOCK_AT_MP_APPROVAL: pedido cancelado no sistema; estorno manual no MP se necessário."
+        )
+      );
       return "stock_conflict_cancelled";
     }
   }

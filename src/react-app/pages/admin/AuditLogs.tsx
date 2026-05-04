@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { RefreshCw, Home, History } from "lucide-react";
+import { RefreshCw, History } from "lucide-react";
 import { AuditLogsFilters } from "@/react-app/components/admin/AuditLogsFilters";
 import { AuditLogsSkeleton } from "@/react-app/components/admin/AuditLogsSkeleton";
 import { AuditLogsList } from "@/react-app/components/admin/AuditLogsList";
@@ -29,23 +29,13 @@ const AuditLogsPage = () => {
   return (
     <>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
-              aria-label="Voltar"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <History className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
-              <div>
-                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
-                  Histórico de Atividades
-                </h1>
-                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Alterações em produtos e pedidos</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <History className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
+            <div>
+              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
+                Histórico de Atividades
+              </h1>
+              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Alterações em produtos e pedidos</p>
             </div>
           </div>
           <div className="flex w-full min-w-0 justify-end sm:w-auto">

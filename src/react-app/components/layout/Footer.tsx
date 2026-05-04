@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Link } from "react-router";
 import { Leaf, Instagram, Facebook, Mail, LayoutDashboard, MessageCircle, Search, X } from "lucide-react";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
@@ -37,6 +37,8 @@ type FooterProps = {
   previewHighlightClassName?: (section: StorefrontPreviewSectionId) => string;
   /** Pré-visualização admin: expõe IDs estáveis para scroll sync com o formulário. */
   assignAdminPreviewDomIds?: boolean;
+  /** Pré-visualização admin: clique inverso para o formulário (secção do rodapé). */
+  onAdminPreviewNavigate?: (section: StorefrontPreviewSectionId) => void;
 };
 
 type PolicyKey = "delivery" | "returns" | "privacy";
@@ -116,11 +118,16 @@ const ContactDetailsBlock = ({ p, wa, ig, fb, igHref, fbHref, mail, phone }: Con
   </div>
 );
 
+const adminFooterHit =
+  "cursor-pointer rounded-lg transition-shadow duration-200 hover:ring-2 hover:ring-white/40 hover:ring-offset-2 hover:ring-offset-[color:var(--brand-primary,#1B4332)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50";
+
 export const Footer = ({
   onConsultOrder,
   previewHighlightClassName,
   assignAdminPreviewDomIds = false,
+  onAdminPreviewNavigate,
 }: FooterProps) => {
+  const nav = assignAdminPreviewDomIds ? onAdminPreviewNavigate : undefined;
   const previewId = (suffix: string) =>
     assignAdminPreviewDomIds ? adminStorefrontPreviewSectionId(suffix) : undefined;
   const { settings } = useStoreSettings();
@@ -181,30 +188,39 @@ export const Footer = ({
   );
   const activePolicyData = activePolicy ? policyByKey[activePolicy] : null;
 
+  const footerSurfaceBg =
+    "linear-gradient(135deg, var(--brand-primary, #1B4332) 0%, var(--brand-primary-hover, #123325) 50%, var(--brand-primary, #1B4332) 100%)";
+  const footerSurfaceStyle = {
+    background: footerSurfaceBg,
+    backgroundAttachment: "fixed" as const,
+  };
+
   return (
-    <footer id="contato" className="relative overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--brand-primary, #1B4332) 0%, var(--brand-primary-hover, #123325) 50%, var(--brand-primary, #1B4332) 100%)",
-        }}
-      />
+    <footer
+      id="contato"
+      className="relative overflow-hidden text-white"
+      style={footerSurfaceStyle}
+    >
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#FFD166]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 py-20 text-white">
+      <div className="relative z-10 py-20">
         <div className={storefrontShellClass}>
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4 group">
                 {logoSrc ? (
-                  <span className="inline-flex shrink-0 items-center justify-center">
+                  <span
+                    className="inline-flex shrink-0 items-center justify-center"
+                    style={logoKnockout ? footerSurfaceStyle : undefined}
+                  >
                     <img
+                      key={logoSrc}
                       src={logoSrc}
                       alt=""
+                      decoding="async"
                       style={{ height: `${Math.min(96, logoH + 16)}px`, width: "auto" }}
                       className={`max-h-[5.5rem] w-auto object-contain outline-none ring-0 border-0 ${
-                        logoKnockout ? "mix-blend-multiply" : "rounded-xl"
+                        logoKnockout ? "mix-blend-multiply [background-color:transparent]" : "rounded-xl"
                       }`}
                     />
                   </span>
@@ -222,19 +238,58 @@ export const Footer = ({
               <div
                 id={previewId("footerIntro")}
                 data-preview-section="footerIntro"
-                className={previewHighlightClassName?.("footerIntro") ?? ""}
+                className={`${previewHighlightClassName?.("footerIntro") ?? ""}${nav ? ` ${adminFooterHit}` : ""}`}
+                {...(nav
+                  ? {
+                      role: "button" as const,
+                      tabIndex: 0,
+                      "aria-label": "Editar horário e texto de entrega no formulário",
+                      onClick: (e: MouseEvent<HTMLDivElement>) => {
+                        e.preventDefault();
+                        nav("footerIntro");
+                      },
+                      onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          nav("footerIntro");
+                        }
+                      },
+                    }
+                  : {})}
               >
-                {shippingBlurbShown ? (
-                  <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
-                    {p?.shippingInfo?.trim() || DEFAULT_FOOTER_SHIPPING_BLURB}
-                  </p>
-                ) : null}
-                {hoursShown ? (
-                  <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p?.businessHours}</p>
-                ) : null}
+                <div className={nav ? "pointer-events-none" : undefined}>
+                  {shippingBlurbShown ? (
+                    <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
+                      {p?.shippingInfo?.trim() || DEFAULT_FOOTER_SHIPPING_BLURB}
+                    </p>
+                  ) : null}
+                  {hoursShown ? (
+                    <p className="mb-4 whitespace-pre-line font-inter text-sm text-white/70">{p?.businessHours}</p>
+                  ) : null}
+                </div>
               </div>
               <p className="sr-only">Atalhos para WhatsApp, redes e e-mail</p>
-              <div className="flex flex-wrap gap-3">
+              <div
+                className={`flex flex-wrap gap-3${nav ? ` ${adminFooterHit}` : ""}`}
+                {...(nav
+                  ? {
+                      role: "button" as const,
+                      tabIndex: 0,
+                      "aria-label": "Editar contacto e redes no formulário",
+                      onClick: (e: MouseEvent<HTMLDivElement>) => {
+                        e.preventDefault();
+                        nav("footerContact");
+                      },
+                      onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          nav("footerContact");
+                        }
+                      },
+                    }
+                  : {})}
+              >
+                <div className={nav ? "pointer-events-none flex flex-wrap gap-3" : "flex flex-wrap gap-3"}>
                 {wa ? (
                   <a
                     href={wa}
@@ -277,10 +332,11 @@ export const Footer = ({
                     <Mail className="h-5 w-5 group-hover:text-[#FFD166] transition-colors" />
                   </a>
                 ) : null}
+                </div>
               </div>
             </div>
 
-            <div>
+            <div className={nav ? "pointer-events-none" : undefined}>
               <h5 className="font-bold text-lg mb-4 font-playfair">Links Rápidos</h5>
               <ul className="space-y-2 font-inter">
                 <li>
@@ -341,8 +397,26 @@ export const Footer = ({
               <div
                 id={previewId("footerContact")}
                 data-preview-section="footerContact"
-                className={previewHighlightClassName?.("footerContact") ?? ""}
+                className={`${previewHighlightClassName?.("footerContact") ?? ""}${nav ? ` ${adminFooterHit}` : ""}`}
+                {...(nav
+                  ? {
+                      role: "button" as const,
+                      tabIndex: 0,
+                      "aria-label": "Editar contacto no formulário",
+                      onClick: (e: MouseEvent<HTMLDivElement>) => {
+                        e.preventDefault();
+                        nav("footerContact");
+                      },
+                      onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          nav("footerContact");
+                        }
+                      },
+                    }
+                  : {})}
               >
+                <div className={nav ? "pointer-events-none" : undefined}>
                 <h5 className="font-bold text-lg mb-4 font-playfair">Informações</h5>
                 {hasContactChannel ? (
                   <div className="mb-6">
@@ -361,12 +435,31 @@ export const Footer = ({
                     />
                   </div>
                 ) : null}
+                </div>
               </div>
               <div
                 id={previewId("footerPolicies")}
                 data-preview-section="footerPolicies"
-                className={previewHighlightClassName?.("footerPolicies") ?? ""}
+                className={`${previewHighlightClassName?.("footerPolicies") ?? ""}${nav ? ` ${adminFooterHit}` : ""}`}
+                {...(nav
+                  ? {
+                      role: "button" as const,
+                      tabIndex: 0,
+                      "aria-label": "Editar políticas no formulário",
+                      onClick: (e: MouseEvent<HTMLDivElement>) => {
+                        e.preventDefault();
+                        nav("footerPolicies");
+                      },
+                      onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          nav("footerPolicies");
+                        }
+                      },
+                    }
+                  : {})}
               >
+              <div className={nav ? "pointer-events-none" : undefined}>
               {hasLegal ? (
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/70 font-inter">
                   Políticas
@@ -415,6 +508,7 @@ export const Footer = ({
                 ) : null}
               </ul>
               </div>
+              </div>
             </div>
           </div>
 
@@ -427,64 +521,121 @@ export const Footer = ({
               {(deliveryVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_ENTREGA_ID : "politica-entrega"}
-                  className={
+                  className={`${
                     assignAdminPreviewDomIds
                       ? (previewHighlightClassName?.("footerPolicyDelivery") ?? "")
                       : ""
-                  }
+                  }${nav ? ` ${adminFooterHit}` : ""}`}
+                  {...(nav
+                    ? {
+                        role: "button" as const,
+                        tabIndex: 0,
+                        "aria-label": "Editar política de entrega no formulário",
+                        onClick: (e: MouseEvent<HTMLElement>) => {
+                          e.preventDefault();
+                          nav("footerPolicyDelivery");
+                        },
+                        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            nav("footerPolicyDelivery");
+                          }
+                        },
+                      }
+                    : {})}
                 >
-                  <h3 className="font-playfair font-bold text-lg text-white mb-2">Política de entrega</h3>
-                  {deliveryVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p?.deliveryPolicy}</p>
-                  ) : assignAdminPreviewDomIds ? (
-                    <p className="text-white/45 text-sm leading-relaxed">
-                      {p?.deliveryPolicy?.trim() && p?.deliveryPolicyHidden === true
-                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
-                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
-                    </p>
-                  ) : null}
+                  <div className={nav ? "pointer-events-none" : undefined}>
+                    <h3 className="font-playfair font-bold text-lg text-white mb-2">Política de entrega</h3>
+                    {deliveryVis ? (
+                      <p className="whitespace-pre-line leading-relaxed">{p?.deliveryPolicy}</p>
+                    ) : assignAdminPreviewDomIds ? (
+                      <p className="text-white/45 text-sm leading-relaxed">
+                        {p?.deliveryPolicy?.trim() && p?.deliveryPolicyHidden === true
+                          ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                          : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
+                      </p>
+                    ) : null}
+                  </div>
                 </section>
               )}
               {(returnsVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_TROCAS_ID : "politica-trocas"}
-                  className={
+                  className={`${
                     assignAdminPreviewDomIds
                       ? (previewHighlightClassName?.("footerPolicyReturns") ?? "")
                       : ""
-                  }
+                  }${nav ? ` ${adminFooterHit}` : ""}`}
+                  {...(nav
+                    ? {
+                        role: "button" as const,
+                        tabIndex: 0,
+                        "aria-label": "Editar trocas e devoluções no formulário",
+                        onClick: (e: MouseEvent<HTMLElement>) => {
+                          e.preventDefault();
+                          nav("footerPolicyReturns");
+                        },
+                        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            nav("footerPolicyReturns");
+                          }
+                        },
+                      }
+                    : {})}
                 >
-                  <h3 className="font-playfair font-bold text-lg text-white mb-2">Trocas e devoluções</h3>
-                  {returnsVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p?.returnsPolicy}</p>
-                  ) : assignAdminPreviewDomIds ? (
-                    <p className="text-white/45 text-sm leading-relaxed">
-                      {p?.returnsPolicy?.trim() && p?.returnsPolicyHidden === true
-                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
-                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
-                    </p>
-                  ) : null}
+                  <div className={nav ? "pointer-events-none" : undefined}>
+                    <h3 className="font-playfair font-bold text-lg text-white mb-2">Trocas e devoluções</h3>
+                    {returnsVis ? (
+                      <p className="whitespace-pre-line leading-relaxed">{p?.returnsPolicy}</p>
+                    ) : assignAdminPreviewDomIds ? (
+                      <p className="text-white/45 text-sm leading-relaxed">
+                        {p?.returnsPolicy?.trim() && p?.returnsPolicyHidden === true
+                          ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                          : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
+                      </p>
+                    ) : null}
+                  </div>
                 </section>
               )}
               {(privacyVis || assignAdminPreviewDomIds) && (
                 <section
                   id={assignAdminPreviewDomIds ? PREVIEW_POLITICA_PRIVACIDADE_ID : "politica-privacidade"}
-                  className={
+                  className={`${
                     assignAdminPreviewDomIds
                       ? (previewHighlightClassName?.("footerPolicyPrivacy") ?? "")
                       : ""
-                  }
+                  }${nav ? ` ${adminFooterHit}` : ""}`}
+                  {...(nav
+                    ? {
+                        role: "button" as const,
+                        tabIndex: 0,
+                        "aria-label": "Editar privacidade no formulário",
+                        onClick: (e: MouseEvent<HTMLElement>) => {
+                          e.preventDefault();
+                          nav("footerPolicyPrivacy");
+                        },
+                        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            nav("footerPolicyPrivacy");
+                          }
+                        },
+                      }
+                    : {})}
                 >
-                  <h3 className="font-playfair font-bold text-lg text-white mb-2">Privacidade</h3>
-                  {privacyVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p?.privacyPolicy}</p>
-                  ) : assignAdminPreviewDomIds ? (
-                    <p className="text-white/45 text-sm leading-relaxed">
-                      {p?.privacyPolicy?.trim() && p?.privacyPolicyHidden === true
-                        ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
-                        : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
-                    </p>
-                  ) : null}
+                  <div className={nav ? "pointer-events-none" : undefined}>
+                    <h3 className="font-playfair font-bold text-lg text-white mb-2">Privacidade</h3>
+                    {privacyVis ? (
+                      <p className="whitespace-pre-line leading-relaxed">{p?.privacyPolicy}</p>
+                    ) : assignAdminPreviewDomIds ? (
+                      <p className="text-white/45 text-sm leading-relaxed">
+                        {p?.privacyPolicy?.trim() && p?.privacyPolicyHidden === true
+                          ? "Oculto na loja publicada — o texto permanece guardado nas configurações."
+                          : "(Vazio) — o texto aparece aqui ao preencher o campo no formulário."}
+                      </p>
+                    ) : null}
+                  </div>
                 </section>
               )}
             </div>

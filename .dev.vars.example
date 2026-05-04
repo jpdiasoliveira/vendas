@@ -35,3 +35,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # Vite (.env ou .env.local na raiz do repo — não é .dev.vars): em http://localhost:5173 sem subdomínio,
 # define a loja usada em x-store-slug (evita 404 em /api/store/settings):
 # VITE_DEFAULT_STORE_SLUG=natfoods
+#
+# Cron (Worker): expira pedidos pending antigos via RPC `expire_old_orders` (a cada 15 min no wrangler.json).
+# ORDER_EXPIRE_PENDING_MINUTES=60
+# ORDER_EXPIRE_BATCH=100

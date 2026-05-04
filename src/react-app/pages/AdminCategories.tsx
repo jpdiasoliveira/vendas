@@ -1,13 +1,14 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useState, useCallback, useEffect } from "react";
+import { useOutletContext } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { adminApiFetch } from "@/react-app/services/api";
 import type { Category } from "@/react-app/types";
-import { Loader2, Plus, Trash2, Pencil, FolderTree, Home, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
 import { useAdminCategoriesQuery } from "@/react-app/hooks/useAdminCategoriesQuery";
+import type { AdminCatalogHubOutletContext } from "@/react-app/components/admin/adminCatalogHubOutletContext";
 
 const AdminCategoriesPage = () => {
-  const navigate = useNavigate();
+  const { setCatalogHubToolbar } = useOutletContext<AdminCatalogHubOutletContext>();
   const queryClient = useQueryClient();
   const categoriesQuery = useAdminCategoriesQuery();
   const list = categoriesQuery.data ?? [];
@@ -90,40 +91,25 @@ const AdminCategoriesPage = () => {
   };
 
   const refetching = categoriesQuery.isFetching && categoriesQuery.data !== undefined;
+  const categoriesInitialLoading = categoriesQuery.isPending && categoriesQuery.data === undefined;
+
+  useEffect(() => {
+    setCatalogHubToolbar(
+      <button
+        type="button"
+        onClick={() => void categoriesQuery.refetch()}
+        disabled={categoriesInitialLoading}
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[color:var(--brand-primary)]/25 bg-white/90 px-3 py-2 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[color:var(--brand-primary)]/35 hover:bg-white hover:text-[var(--brand-primary)] disabled:opacity-60"
+      >
+        <RefreshCw className={`h-4 w-4 shrink-0 ${refetching ? "animate-spin" : ""}`} />
+        Atualizar
+      </button>
+    );
+    return () => setCatalogHubToolbar(null);
+  }, [categoriesInitialLoading, categoriesQuery.refetch, refetching, setCatalogHubToolbar]);
 
   return (
     <>
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="rounded-full border border-[#1B4332]/10 bg-white/60 p-2 text-[#6D4C41] shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-[#1B4332]"
-            aria-label="Voltar"
-          >
-            <Home className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-3">
-            <FolderTree className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" aria-hidden />
-            <div>
-              <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">Categorias</h1>
-              <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">Crie e organize as categorias dos produtos desta loja.</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex w-full min-w-0 justify-end sm:w-auto">
-          <button
-            type="button"
-            onClick={() => void categoriesQuery.refetch()}
-            disabled={categoriesQuery.isPending && categoriesQuery.data === undefined}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#1B4332]/25 bg-white/90 px-3 py-2.5 text-sm font-medium text-[#6D4C41] shadow-sm transition-all hover:border-[#1B4332]/35 hover:bg-white hover:text-[#1B4332] disabled:opacity-60"
-          >
-            <RefreshCw className={`h-5 w-5 ${refetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </button>
-        </div>
-      </div>
-
       <div className="w-full min-w-0">
         <div className="rounded-3xl border border-[#1B4332]/10 bg-white/90 p-5 shadow-sm sm:p-8">
           {combinedError ? (

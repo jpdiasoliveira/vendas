@@ -6,7 +6,6 @@ import {
   type CSSProperties,
 } from "react";
 import {
-  Home,
   LayoutDashboard,
   Save,
   Image as ImageIcon,
@@ -24,19 +23,36 @@ import {
 } from "@/react-app/components/admin/AdminStorefrontPreviewPanel";
 import {
   adminPreviewScrollTargetId,
+  formFieldIdForPreviewSection,
+  scrollAdminFormToFieldId,
   type StorefrontPreviewSectionId,
 } from "@/react-app/components/admin/storefrontPreviewLink";
 import { useStorefrontPreviewFocus } from "@/react-app/components/admin/useStorefrontPreviewFocus";
 import { formatBrazilPhoneInput } from "@/react-app/utils/phoneBr";
+import {
+  DEFAULT_PRODUCTS_GRID_EYEBROW,
+  DEFAULT_PRODUCTS_GRID_SUBTITLE,
+  DEFAULT_PRODUCTS_GRID_TITLE,
+} from "@/react-app/constants/storefrontHomeCopy";
 import { clampStoreLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 import { parseBRL } from "@/react-app/utils/adminSettingsBrl";
 import type { AdminSettingsViewModel } from "@/react-app/hooks/useAdminSettings";
 import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
 import { extractLogoPaletteFromSrc } from "@/react-app/utils/extractLogoPalette";
 import { normalizeStoreAccentColor, normalizeStorePrimaryColor } from "@/react-app/utils/brandColor";
+import { ImageCoverFramingModal } from "@/react-app/components/admin/ImageCoverFramingModal";
 
 export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
-  const { activeSection, previewScrollTick, previewFocus, previewBlur } = useStorefrontPreviewFocus();
+  const { activeSection, previewScrollTick, previewFocus, previewBlur, previewMarkSection } =
+    useStorefrontPreviewFocus();
+
+  const onPreviewNavigate = useCallback(
+    (section: StorefrontPreviewSectionId) => {
+      previewMarkSection(section);
+      scrollAdminFormToFieldId(formFieldIdForPreviewSection(section));
+    },
+    [previewMarkSection]
+  );
   const fp = useCallback(
     (id: StorefrontPreviewSectionId) => ({
       "aria-controls": adminPreviewScrollTargetId(id),
@@ -51,7 +67,6 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
   );
 
   const {
-    navigate,
     error,
     success,
     saving,
@@ -75,6 +90,9 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
     bannerPreview,
     handleLogoFile,
     handleBannerFile,
+    imageFramingSession,
+    cancelImageFraming,
+    completeImageFramingFromSession,
     handleProfileImageFile,
     handleSubmit,
     inputCls,
@@ -139,27 +157,16 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
   return (
     <div className="w-full min-w-0">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="p-2 bg-white/60 backdrop-blur-sm rounded-full text-[#6D4C41] hover:text-[#1B4332] hover:bg-white transition-all shadow-sm border border-[#1B4332]/10"
-              aria-label="Voltar"
-            >
-              <Home className="h-5 w-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <LayoutDashboard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
-              <div>
-                <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
-                  Vitrine
-                </h1>
-                <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
-                  Aparência, contato, textos institucionais e regras de checkout
-                </p>
-              </div>
-            </div>
+        <div className="flex items-center gap-3">
+          <LayoutDashboard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
+          <div>
+            <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">Vitrine</h1>
+            <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
+              Aparência, contato, textos institucionais e regras de checkout
+            </p>
           </div>
         </div>
+      </div>
 
       {error && (
         <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 font-inter text-red-700">{error}</div>
@@ -240,8 +247,9 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                 Envie um arquivo ou informe a URL pública da imagem. A pré-visualização mostra como o logo tende a aparecer na barra do site.
               </p>
               <p className="text-xs leading-snug text-[#6D4C41]/85">
-                <strong className="text-[#1B4332]">Dica:</strong> para um acabamento profissional, utilize imagens em formato{" "}
-                <strong className="text-[#1B4332]">.PNG</strong> com fundo transparente.
+                <strong className="text-[#1B4332]">Dica:</strong> ao enviar ficheiro, pode ajustar zoom e posição no
+                passo seguinte. Para acabamento com transparência, use{" "}
+                <strong className="text-[#1B4332]">.PNG</strong>.
               </p>
 
               <div className="rounded-2xl border border-[#1B4332]/12 bg-[#FAF8F3]/50 p-4 sm:p-5">
@@ -436,7 +444,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   className="w-12 h-12 rounded-lg border border-[#1B4332]/20 cursor-pointer bg-white"
-                  {...fp("navbar")}
+                  {...fp("hero")}
                 />
                 <input
                   type="text"
@@ -449,7 +457,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }}
                   placeholder="#1B4332"
                   className={`flex-1 font-mono text-sm ${inputCls}`}
-                  {...fp("navbar")}
+                  {...fp("hero")}
                 />
               </div>
               <p className="text-xs text-[#6D4C41]/80 mt-1">
@@ -470,7 +478,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                     setPublicProfile((prev) => ({ ...prev, accentColor: e.target.value }))
                   }
                   className="h-12 w-12 cursor-pointer rounded-lg border border-[#1B4332]/20 bg-white"
-                  {...fp("navbar")}
+                  {...fp("hero")}
                 />
                 <input
                   type="text"
@@ -490,7 +498,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                   }}
                   placeholder="#2D5F4A (opcional)"
                   className={`flex-1 font-mono text-sm ${inputCls}`}
-                  {...fp("navbar")}
+                  {...fp("hero")}
                 />
               </div>
               <p className="mt-1 text-xs text-[#6D4C41]/80">
@@ -501,7 +509,8 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             <div className="space-y-3">
               <label className="block text-sm font-medium text-[#6D4C41]">Banner da página inicial</label>
               <p className="text-xs text-[#6D4C41]/80 -mt-1">
-                Imagem larga atrás do texto principal (hero). Envie arquivo ou cole a URL pública.
+                Imagem larga atrás do texto principal (hero). Ao escolher um ficheiro, abre um passo para zoom e
+                posição antes de aplicar. Também pode colar a URL pública.
               </p>
               <AdminPreviewLinkHint section="hero" />
               <label
@@ -625,6 +634,77 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               </div>
             </div>
 
+            <div
+              id="admin-vitrine-products-grid-headlines"
+              className="space-y-4 rounded-2xl border border-[#1B4332]/12 bg-[#ECF4F0]/55 p-4 sm:p-5"
+            >
+              <h3 className="text-base font-semibold text-[#1B4332]">Títulos da lista de produtos (home)</h3>
+              <p className="text-xs text-[#6D4C41]/85 leading-relaxed">
+                Na loja pública fica <strong className="text-[#1B4332]">logo abaixo do hero</strong>, por cima dos
+                cartões do catálogo (secção «Nossos produtos» / #produtos). Edite aqui; vazio = textos neutros na loja.
+              </p>
+              <AdminPreviewLinkHint section="products" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="productsGridEyebrow" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                    Selo (pill)
+                  </label>
+                  <input
+                    id="productsGridEyebrow"
+                    type="text"
+                    value={publicProfile.productsGridEyebrow ?? ""}
+                    onChange={(e) =>
+                      setPublicProfile((prev) => ({
+                        ...prev,
+                        productsGridEyebrow: e.target.value.trim() === "" ? undefined : e.target.value,
+                      }))
+                    }
+                    placeholder={DEFAULT_PRODUCTS_GRID_EYEBROW}
+                    className={inputCls}
+                    {...fp("products")}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="productsGridTitle" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                    Título principal
+                  </label>
+                  <input
+                    id="productsGridTitle"
+                    type="text"
+                    value={publicProfile.productsGridTitle ?? ""}
+                    onChange={(e) =>
+                      setPublicProfile((prev) => ({
+                        ...prev,
+                        productsGridTitle: e.target.value.trim() === "" ? undefined : e.target.value,
+                      }))
+                    }
+                    placeholder={DEFAULT_PRODUCTS_GRID_TITLE}
+                    className={inputCls}
+                    {...fp("products")}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="productsGridSubtitle" className="mb-1 block text-xs font-medium text-[#6D4C41]">
+                  Subtítulo
+                </label>
+                <input
+                  id="productsGridSubtitle"
+                  type="text"
+                  value={publicProfile.productsGridSubtitle ?? ""}
+                  onChange={(e) =>
+                    setPublicProfile((prev) => ({
+                      ...prev,
+                      productsGridSubtitle: e.target.value.trim() === "" ? undefined : e.target.value,
+                    }))
+                  }
+                  placeholder={DEFAULT_PRODUCTS_GRID_SUBTITLE}
+                  className={inputCls}
+                  {...fp("products")}
+                />
+              </div>
+            </div>
+
             <AdminSettingsHomeBlocksForm
               displayName={displayName}
               publicProfile={publicProfile}
@@ -645,6 +725,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               <div>
                 <label className="block text-sm font-medium text-[#6D4C41] mb-1">Telefone / WhatsApp</label>
                 <input
+                  id="footerContactWhatsapp"
                   type="text"
                   inputMode="tel"
                   autoComplete="tel"
@@ -727,6 +808,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Horário de atendimento / loja</label>
               <textarea
+                id="footerBusinessHours"
                 value={publicProfile.businessHours ?? ""}
                 onChange={(e) =>
                   setPublicProfile((p) => ({ ...p, businessHours: e.target.value || null }))
@@ -793,6 +875,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Política de entrega</label>
               <textarea
+                id="footerDeliveryPolicy"
                 value={publicProfile.deliveryPolicy ?? ""}
                 onChange={(e) =>
                   setPublicProfile((p) => ({ ...p, deliveryPolicy: e.target.value || null }))
@@ -820,6 +903,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Trocas e devoluções</label>
               <textarea
+                id="footerReturnsPolicy"
                 value={publicProfile.returnsPolicy ?? ""}
                 onChange={(e) =>
                   setPublicProfile((p) => ({ ...p, returnsPolicy: e.target.value || null }))
@@ -847,6 +931,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
             <div>
               <label className="block text-sm font-medium text-[#6D4C41] mb-1">Privacidade / LGPD</label>
               <textarea
+                id="footerPrivacyPolicy"
                 value={publicProfile.privacyPolicy ?? ""}
                 onChange={(e) =>
                   setPublicProfile((p) => ({ ...p, privacyPolicy: e.target.value || null }))
@@ -916,11 +1001,25 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               merge={previewMerge}
               activeSection={activeSection}
               previewScrollTick={previewScrollTick}
+              onPreviewNavigate={onPreviewNavigate}
             />
           </div>
         </div>
       </aside>
       </div>
+
+      {imageFramingSession ? (
+        <ImageCoverFramingModal
+          open
+          kind={imageFramingSession.kind}
+          imageSrc={imageFramingSession.objectUrl}
+          originalFileName={imageFramingSession.originalFileName}
+          onClose={cancelImageFraming}
+          onConfirm={async (file) => {
+            await completeImageFramingFromSession(imageFramingSession, file);
+          }}
+        />
+      ) : null}
     </div>
   );
 };

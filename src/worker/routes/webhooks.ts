@@ -52,7 +52,6 @@ webhooks.post("/mercadopago", async (c) => {
     }
 
     const payment = await getPayment(token, paymentId);
-    console.log("[Webhook MP] Payment status:", payment.id, payment.status, payment.external_reference);
 
     const orderId = payment.external_reference;
     if (!orderId) {
