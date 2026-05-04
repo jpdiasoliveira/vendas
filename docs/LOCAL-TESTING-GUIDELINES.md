@@ -27,11 +27,8 @@ Quando a funcionalidade local estiver homologada e aprovada para produção, seg
 
 ## 3. Registro de Funcionalidades em Teste Local
 
-Atualmente, as seguintes funcionalidades estão operando em modo de teste local (LocalStorage) e aguardam migração para o banco de dados:
+Funcionalidades que já migraram para o Supabase + Worker:
 
-- [x] **Newsletter (Inscrição de E-mails):**
-  - **Status:** Implementado com `localStorage`.
-  - **Futura Tabela (Sugestão):** `newsletter_subscribers` (colunas: `id`, `store_id`, `email`, `created_at`, `status`).
-  - **Próximos Passos:** Criar tabela no Supabase e endpoint `POST /api/newsletter/subscribe`.
+- **Newsletter:** tabela `newsletter_subscribers` (ver `migrations/5.sql` e `docs/SCHEMA-SUPABASE.md`); API `POST /api/store/newsletter/subscribe` (vitrine envia `x-store-slug`).
 
 *(Mantenha esta lista atualizada conforme novas funcionalidades forem desenvolvidas nesta abordagem).*

@@ -163,6 +163,22 @@ Documento alinhado à auditoria. **Não invente colunas:** use apenas as listada
 
 ---
 
+## newsletter_subscribers
+
+Inscrições do formulário **Newsletter** na vitrine (`POST /api/store/newsletter/subscribe`). E-mail guardado em minúsculas; **único por par** `(store_id, email)`.
+
+| Coluna     | Tipo                     | Valor padrão | Notas        |
+| ---------- | ------------------------ | ------------ | ------------ |
+| id         | uuid                     | gen_random_uuid() | PK   |
+| store_id   | uuid                     | —            | FK → stores(id), ON DELETE CASCADE |
+| email      | text                     | —            | 3–320 chars  |
+| status     | text                     | `active`     | Reservado (ex.: opt-out futuro) |
+| created_at | timestamp with time zone | now()      | —            |
+
+**Admin (Worker):** listagem paginada `GET /api/admin/newsletter-subscribers?limit=&offset=`; exportação `GET /api/admin/newsletter-subscribers/export.csv` — sempre filtrado por `store_id` da loja do contexto.
+
+---
+
 ## view_audit_report
 
 | Coluna     | Tipo                     |

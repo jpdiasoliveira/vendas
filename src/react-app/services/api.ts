@@ -4,6 +4,7 @@
  * Usado por hooks e componentes para chamadas à API do Worker.
  */
 
+import type { NewsletterSubscribersPage } from "@/contracts/schema";
 import { getAccessToken } from "@/react-app/services/authSession";
 import { queryClient } from "@/react-app/query/queryClient";
 import { adminMeQueryKey, storeSettingsQueryKey } from "@/react-app/query/queryKeys";
@@ -63,6 +64,7 @@ export function setStoreSlugOverride(slug: string): void {
   void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
   void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
   void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "newsletter-subscribers"] });
 }
 
 export function clearStoreSlugOverride(): void {
@@ -73,6 +75,7 @@ export function clearStoreSlugOverride(): void {
   void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
   void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
   void queryClient.invalidateQueries({ queryKey: ["admin", "store-settings-form"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "newsletter-subscribers"] });
 }
 
 export function getStoreSlugOverride(): string | null {
@@ -120,7 +123,7 @@ export function syncStaffStoreSlugAfterLogin(stores: StaffStoreMembershipClient[
 }
 
 /** Monta a URL absoluta do endpoint (respeitando proxy em dev). */
-function buildApiUrl(path: string): string {
+export function buildApiUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const p = path.startsWith("/") ? path : `/${path}`;
   return API_BASE ? `${API_BASE}${p}` : p;
@@ -205,6 +208,68 @@ export async function apiFetch<T = unknown>(
     return b.data as T;
   }
   return body as T;
+}
+
+/** Inscrição na newsletter da vitrine (POST /api/store/newsletter/subscribe). */
+export async function subscribeStoreNewsletter(email: string): Promise<void> {
+  await apiFetch<{ ok: true }>("/api/store/newsletter/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Lista paginada de inscritos na newsletter (GET /api/admin/newsletter-subscribers). */
+export async function fetchAdminNewsletterSubscribersPage(opts: {
+  limit?: number;
+  offset?: number;
+}): Promise<NewsletterSubscribersPage> {
+  const sp = new URLSearchParams();
+  if (opts.limit != null) sp.set("limit", String(opts.limit));
+  if (opts.offset != null) sp.set("offset", String(opts.offset));
+  const qs = sp.toString();
+  return adminApiFetch<NewsletterSubscribersPage>(
+    `/api/admin/newsletter-subscribers${qs ? `?${qs}` : ""}`
+  );
+}
+
+/** Descarrega CSV dos inscritos da loja atual (GET …/export.csv). */
+export async function downloadAdminNewsletterSubscribersCsv(): Promise<void> {
+  const url = buildApiUrl("/api/admin/newsletter-subscribers/export.csv");
+  const headers = new Headers();
+  const storeSlug = getEffectiveStoreSlug();
+  if (storeSlug) headers.set("x-store-slug", storeSlug);
+  const token = await getAccessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetchOrNetworkError(url, { method: "GET", headers, cache: "no-store" });
+  if (!response.ok) {
+    const text = await response.text();
+    let msg = `Erro ${response.status}`;
+    try {
+      const j = JSON.parse(text) as { error?: string };
+      if (j?.error) msg = j.error;
+    } catch {
+      if (text) msg = text.slice(0, 200);
+    }
+    console.error("[api.downloadAdminNewsletterSubscribersCsv]", response.status, msg);
+    throw new Error(msg);
+  }
+
+  const blob = await response.blob();
+  const cd = response.headers.get("Content-Disposition");
+  let filename = "newsletter-inscritos.csv";
+  const m = cd?.match(/filename="([^"]+)"/);
+  if (m?.[1]) filename = m[1];
+
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 /**

@@ -89,6 +89,22 @@ export interface Category {
   updatedAt?: string;
 }
 
+/** Linha de inscrito na newsletter (admin). */
+export interface NewsletterSubscriberListItem {
+  email: string;
+  status: string;
+  /** ISO 8601 (`created_at`). */
+  subscribedAt: string;
+}
+
+/** Resposta paginada de GET /api/admin/newsletter-subscribers. */
+export interface NewsletterSubscribersPage {
+  items: NewsletterSubscriberListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface Order {
   /** ID do pedido (UUID no Supabase). */
   id: string;

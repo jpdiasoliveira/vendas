@@ -1,35 +1,39 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { storefrontShellClass } from "@/react-app/utils/storefrontLayout";
-import { getEffectiveStoreSlug } from "@/react-app/services/api";
+import { subscribeStoreNewsletter } from "@/react-app/services/api";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { resolveStorefrontHome } from "@/react-app/utils/resolvedStorefrontHome";
 
-const getNewsletterStorageKey = (): string => {
-  const slug = getEffectiveStoreSlug() || "default";
-  return `@saas:newsletter:${slug}`;
-};
-
 export const Newsletter = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const { settings } = useStoreSettings();
   const displayName = settings?.displayName?.trim() || "Sua Loja";
   const H = resolveStorefrontHome(displayName, settings?.publicProfile);
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+    setLoading(true);
+    setFeedback(null);
     try {
-      const storageKey = getNewsletterStorageKey();
-      const existingSubscribers = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      if (!existingSubscribers.includes(email)) {
-        existingSubscribers.push(email);
-        localStorage.setItem(storageKey, JSON.stringify(existingSubscribers));
-      }
-      alert("Obrigado por se inscrever! (Modo Teste: Salvo Localmente)");
-    } catch (error) {
-      console.error("Erro ao salvar e-mail localmente", error);
+      await subscribeStoreNewsletter(email.trim());
+      setFeedback({
+        type: "success",
+        text: "Obrigado! Guardámos o seu e-mail para novidades e ofertas desta loja.",
+      });
+      setEmail("");
+    } catch (err: unknown) {
+      console.error("[Newsletter.handleNewsletterSubmit]", err);
+      setFeedback({
+        type: "error",
+        text: err instanceof Error ? err.message : "Não foi possível concluir a inscrição. Tente de novo.",
+      });
+    } finally {
+      setLoading(false);
     }
-    setEmail("");
   };
 
   return (
@@ -49,18 +53,34 @@ export const Newsletter = () => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (feedback) setFeedback(null);
+                }}
                 placeholder={H.newsletterPlaceholder}
-                className="flex-1 px-6 py-4 rounded-full border-2 border-white/50 bg-white/50 backdrop-blur-sm focus:border-[#1B4332]/30 focus:bg-white/70 focus:outline-none font-inter transition-all duration-300 shadow-lg"
+                disabled={loading}
+                className="flex-1 px-6 py-4 rounded-full border-2 border-white/50 bg-white/50 backdrop-blur-sm focus:border-[#1B4332]/30 focus:bg-white/70 focus:outline-none font-inter transition-all duration-300 shadow-lg disabled:opacity-60"
                 required
               />
               <button
                 type="submit"
-                className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-10 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-300 hover:scale-105 font-inter whitespace-nowrap"
+                disabled={loading}
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-10 py-4 rounded-full font-bold hover:shadow-2xl hover:shadow-[#FFD166]/50 transition-all duration-300 hover:scale-105 font-inter whitespace-nowrap disabled:pointer-events-none disabled:opacity-60"
               >
+                {loading ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden /> : null}
                 {H.newsletterCtaLabel}
               </button>
             </form>
+            {feedback ? (
+              <p
+                role="status"
+                className={`mt-5 text-sm font-inter ${
+                  feedback.type === "success" ? "text-[#1B4332]" : "text-red-600"
+                }`}
+              >
+                {feedback.text}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

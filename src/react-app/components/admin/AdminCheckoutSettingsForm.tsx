@@ -41,13 +41,13 @@ export const AdminCheckoutSettingsForm = ({ m }: { m: AdminSettingsViewModel }) 
               </h1>
               <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
                 Valor mínimo do carrinho e se o cliente precisa de conta para comprar — independente da aparência da
-                loja em{" "}
+                loja na secção{" "}
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/configuracoes")}
+                  onClick={() => navigate("/admin/loja/vitrine")}
                   className="font-medium text-[#1B4332] underline decoration-[#1B4332]/30 underline-offset-2 hover:decoration-[#1B4332]"
                 >
-                  Configurações da loja
+                  Vitrine
                 </button>
                 .
               </p>

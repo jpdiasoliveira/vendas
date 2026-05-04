@@ -228,7 +228,7 @@ export const Footer = ({
                   </p>
                 ) : null}
                 {hoursShown ? (
-                  <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p.businessHours}</p>
+                  <p className="text-white/70 text-sm font-inter mb-4 whitespace-pre-line">{p?.businessHours}</p>
                 ) : null}
               </div>
               <p className="sr-only">Atalhos para WhatsApp, redes e e-mail</p>
@@ -433,7 +433,7 @@ export const Footer = ({
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Política de entrega</h3>
                   {deliveryVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p.deliveryPolicy}</p>
+                    <p className="whitespace-pre-line leading-relaxed">{p?.deliveryPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
                       {p?.deliveryPolicy?.trim() && p?.deliveryPolicyHidden === true
@@ -454,7 +454,7 @@ export const Footer = ({
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Trocas e devoluções</h3>
                   {returnsVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p.returnsPolicy}</p>
+                    <p className="whitespace-pre-line leading-relaxed">{p?.returnsPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
                       {p?.returnsPolicy?.trim() && p?.returnsPolicyHidden === true
@@ -475,7 +475,7 @@ export const Footer = ({
                 >
                   <h3 className="font-playfair font-bold text-lg text-white mb-2">Privacidade</h3>
                   {privacyVis ? (
-                    <p className="whitespace-pre-line leading-relaxed">{p.privacyPolicy}</p>
+                    <p className="whitespace-pre-line leading-relaxed">{p?.privacyPolicy}</p>
                   ) : assignAdminPreviewDomIds ? (
                     <p className="text-white/45 text-sm leading-relaxed">
                       {p?.privacyPolicy?.trim() && p?.privacyPolicyHidden === true

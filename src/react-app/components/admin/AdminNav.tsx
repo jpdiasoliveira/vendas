@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Package, ShoppingBag, Activity, LogOut, Settings, Building2, FolderTree, CreditCard } from "lucide-react";
+import { Package, ShoppingBag, Activity, LogOut, Palette, Building2 } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
@@ -38,12 +38,10 @@ export const AdminNav = ({ children }: AdminNavProps) => {
 
   const links = [
     { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
-    { to: "/admin/produtos", label: "Produtos", icon: Package },
-    { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
+    { to: "/admin/produtos/catalogo", label: "Produtos", icon: Package },
     ...(isAdminOrOwner
       ? [
-          { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
-          { to: "/admin/checkout", label: "Checkout", icon: CreditCard },
+          { to: "/admin/loja/vitrine", label: "Marca e vitrine", icon: Palette },
           { to: "/admin/historico", label: "Histórico", icon: Activity },
         ]
       : []),
@@ -62,22 +60,32 @@ export const AdminNav = ({ children }: AdminNavProps) => {
         : "text-[#6D4C41]/90 hover:bg-black/5 hover:text-[var(--brand-primary)]"
     }`;
 
-  const pathActive = (to: string) =>
-    to.startsWith("/admin/platform") ? location.pathname.startsWith("/admin/platform") : location.pathname === to;
+  const pathActive = (to: string) => {
+    if (to.startsWith("/admin/platform")) return location.pathname.startsWith("/admin/platform");
+    if (to === "/admin/loja/vitrine") return location.pathname.startsWith("/admin/loja");
+    if (to === "/admin/produtos/catalogo") return location.pathname.startsWith("/admin/produtos");
+    return location.pathname === to;
+  };
 
   return (
     <nav className="flex w-full min-w-0 items-center gap-2 font-inter sm:gap-3" aria-label="Painel administrativo">
       {/* Identidade da loja */}
       <div className="flex min-w-0 max-w-[38%] shrink-0 items-center gap-2 sm:max-w-[min(16rem,42%)]">
         {logoUrl ? (
-          <img
-            src={logoUrl}
-            alt=""
-            style={{ height: `${adminLogoPx}px`, width: "auto" }}
-            className={`max-h-11 w-auto shrink-0 rounded-full object-cover ring-1 ring-[color:var(--brand-primary)]/15 ${
-              adminLogoKnockout ? "mix-blend-multiply" : ""
+          <span
+            className={`inline-flex shrink-0 items-center justify-center ${
+              adminLogoKnockout ? "bg-[var(--brand-primary-soft)] p-0.5" : ""
             }`}
-          />
+          >
+            <img
+              src={logoUrl}
+              alt=""
+              style={{ height: `${adminLogoPx}px`, width: "auto" }}
+              className={`max-h-11 w-auto shrink-0 object-contain ${
+                adminLogoKnockout ? "mix-blend-multiply" : "rounded-md ring-1 ring-[color:var(--brand-primary)]/15"
+              }`}
+            />
+          </span>
         ) : (
           <span
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand-primary)]/12 text-[0.7rem] font-bold tabular-nums text-[var(--brand-primary)] ring-1 ring-[color:var(--brand-primary)]/18"

@@ -75,14 +75,19 @@ export function ProductGrid({ products, loading, error, trendingProductIds = [] 
                 </p>
             </div>
 
-            <div className="relative z-10 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+            {/* flex + justify-center: poucos produtos em destaque ficam ao centro (1/2/3/4 colunas por breakpoint). */}
+            <div className="relative z-10 flex flex-wrap justify-center gap-5 sm:gap-6">
                 {displayProducts.map((product) => (
-                    <ProductCard
+                    <div
                         key={product.id}
-                        product={product}
-                        isTrending={trendingProductIds.includes(product.id)}
-                        isHomeFeatured={isProductFeaturedOnHome(product)}
-                    />
+                        className="w-full min-w-0 shrink-0 sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)] xl:w-[calc((100%-4.5rem)/4)]"
+                    >
+                        <ProductCard
+                            product={product}
+                            isTrending={trendingProductIds.includes(product.id)}
+                            isHomeFeatured={isProductFeaturedOnHome(product)}
+                        />
+                    </div>
                 ))}
             </div>
         </section>

@@ -107,7 +107,7 @@ const AdminProductsPage = () => {
           isOpen={!!m.qrProduct}
           productName={m.qrProduct.name}
           productId={m.qrProduct.id}
-          editUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/admin/products?edit=${m.qrProduct.id}`}
+          editUrl={`${typeof window !== "undefined" ? window.location.origin : ""}/admin/produtos/catalogo?edit=${m.qrProduct.id}`}
           onClose={() => m.setQrProduct(null)}
         />
       )}

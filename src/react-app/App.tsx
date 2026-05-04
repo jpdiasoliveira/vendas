@@ -12,6 +12,9 @@ import AdminOrdersPage from "@/react-app/pages/AdminOrders";
 import AdminProductsPage from "@/react-app/pages/AdminProducts";
 import AdminSettingsPage from "@/react-app/pages/AdminSettings";
 import AdminCheckoutSettingsPage from "@/react-app/pages/AdminCheckoutSettings";
+import AdminNewsletterPage from "@/react-app/pages/AdminNewsletterPage";
+import { AdminCatalogHubLayout } from "@/react-app/components/admin/AdminCatalogHubLayout";
+import { AdminStoreHubLayout } from "@/react-app/components/admin/AdminStoreHubLayout";
 import AuditLogsPage from "@/react-app/pages/admin/AuditLogs";
 import { PlatformLayout } from "@/react-app/components/admin/PlatformLayout";
 import PlatformDashboardPage from "@/react-app/pages/admin/platform/PlatformDashboardPage";
@@ -114,10 +117,21 @@ export default function App() {
                     <Route path="/admin" element={<AdminGuard />}>
                       <Route element={<AdminLayout />}>
                         <Route path="pedidos" element={<AdminOrdersPage />} />
-                        <Route path="produtos" element={<AdminProductsPage />} />
-                        <Route path="categorias" element={<AdminCategoriesPage />} />
-                        <Route path="configuracoes" element={<AdminSettingsPage />} />
-                        <Route path="checkout" element={<AdminCheckoutSettingsPage />} />
+                        <Route path="produtos" element={<AdminCatalogHubLayout />}>
+                          <Route index element={<Navigate to="/admin/produtos/catalogo" replace />} />
+                          <Route path="catalogo" element={<AdminProductsPage />} />
+                          <Route path="categorias" element={<AdminCategoriesPage />} />
+                        </Route>
+                        <Route path="categorias" element={<Navigate to="/admin/produtos/categorias" replace />} />
+                        <Route path="loja" element={<AdminStoreHubLayout />}>
+                          <Route index element={<Navigate to="/admin/loja/vitrine" replace />} />
+                          <Route path="vitrine" element={<AdminSettingsPage />} />
+                          <Route path="checkout" element={<AdminCheckoutSettingsPage />} />
+                          <Route path="newsletter" element={<AdminNewsletterPage />} />
+                        </Route>
+                        <Route path="configuracoes" element={<Navigate to="/admin/loja/vitrine" replace />} />
+                        <Route path="checkout" element={<Navigate to="/admin/loja/checkout" replace />} />
+                        <Route path="newsletter" element={<Navigate to="/admin/loja/newsletter" replace />} />
                         <Route path="historico" element={<AuditLogsPage />} />
                       </Route>
                       <Route path="platform" element={<PlatformLayout />}>

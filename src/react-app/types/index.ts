@@ -13,6 +13,8 @@ export type {
   OrderItem,
   OrderDetail,
   Category,
+  NewsletterSubscriberListItem,
+  NewsletterSubscribersPage,
   CartItemPayload,
   ApiSuccess,
   ApiError,

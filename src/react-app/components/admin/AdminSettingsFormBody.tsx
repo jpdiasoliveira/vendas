@@ -151,7 +151,7 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
               <LayoutDashboard className="h-9 w-9 shrink-0 text-[#1B4332] sm:h-10 sm:w-10" />
               <div>
                 <h1 className="font-playfair text-3xl font-bold tracking-tight text-[#1B4332] sm:text-4xl">
-                  Configurações da Loja
+                  Vitrine
                 </h1>
                 <p className="mt-0.5 font-inter text-sm text-[#6D4C41]">
                   Aparência, contato, textos institucionais e regras de checkout
@@ -294,7 +294,13 @@ export const AdminSettingsFormBody = ({ m }: { m: AdminSettingsViewModel }) => {
                         className="pointer-events-none absolute inset-x-0 top-0 h-9 rounded-t-[0.9rem] bg-gradient-to-b from-[#1B4332]/[0.08] to-transparent"
                         aria-hidden
                       />
-                      <div className="relative flex h-[7.25rem] w-full max-w-[240px] items-center justify-center rounded-xl bg-[#FAF8F3]/85 px-3 py-2.5 shadow-inner ring-1 ring-[#1B4332]/12">
+                      <div
+                        className={`relative flex h-[7.25rem] w-full max-w-[240px] items-center justify-center rounded-xl px-3 py-2.5 shadow-inner ring-1 ring-[#1B4332]/12 ${
+                          previewLogoKnockout
+                            ? "bg-[var(--brand-primary-soft)]"
+                            : "bg-[#FAF8F3]/85"
+                        }`}
+                      >
                         {imagePreview || logoUrl.trim() ? (
                           logoPreviewFailed ? (
                             <div className="flex flex-col items-center gap-1 px-2 text-center text-[#6D4C41]/70">

@@ -49,12 +49,15 @@ export const Navbar = ({
   const logoH = storeLogoHeightPx(settings);
   const navRowMinPx = storeNavbarRowMinHeightPx(logoH);
   const logoKnockout = isStoreLogoKnockoutWhite(settings);
-  /** `backdrop-filter` cria contexto de composição: `mix-blend-multiply` no logo deixa de fundir com a página. Sem blur quando knockout está ativo. */
+  /**
+   * Com knockout, a barra usa `--brand-primary-soft` opaco (igual em scroll ou não): multiply precisa de fundo
+   * colorido e o mesmo tom em toda a nav evita “caixa” atrás da logo. Sem `backdrop-filter` para o blend compor certo.
+   */
   const navBackdropClasses =
     logoUrl && logoKnockout
       ? scrolled
-        ? "bg-white/75 shadow-lg shadow-[#1B4332]/5"
-        : "bg-white/55"
+        ? "bg-[var(--brand-primary-soft)] shadow-lg shadow-[#1B4332]/5"
+        : "bg-[var(--brand-primary-soft)]"
       : scrolled
         ? "bg-white/70 backdrop-blur-xl shadow-lg shadow-[#1B4332]/5"
         : "bg-white/40 backdrop-blur-md";

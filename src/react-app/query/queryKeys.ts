@@ -11,3 +11,7 @@ export const adminCategoriesQueryKey = (storeSlug: string) => ["admin", "categor
 /** Formulário de configurações (GET /api/admin/settings), distinto do settings público da vitrine. */
 export const adminStoreSettingsFormQueryKey = (storeSlug: string) =>
   ["admin", "store-settings-form", storeSlug] as const;
+
+/** Inscritos na newsletter (admin), por loja e página. */
+export const adminNewsletterSubscribersQueryKey = (storeSlug: string, limit: number, offset: number) =>
+  ["admin", "newsletter-subscribers", storeSlug, limit, offset] as const;
