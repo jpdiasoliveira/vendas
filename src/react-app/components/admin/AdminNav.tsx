@@ -74,7 +74,8 @@ export const AdminNav = ({ children }: AdminNavProps) => {
         {logoUrl ? (
           <span
             className={`inline-flex shrink-0 items-center justify-center ${
-              adminLogoKnockout ? "bg-[var(--brand-primary-soft)] p-0.5" : ""
+              /* Mesmo tom do header (AdminLayout) para o multiply não parecer um “bloco” à parte. */
+              adminLogoKnockout ? "bg-[#FAF8F3]" : ""
             }`}
           >
             <img

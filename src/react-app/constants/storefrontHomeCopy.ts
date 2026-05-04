@@ -50,4 +50,8 @@ export const DEFAULT_NEWSLETTER_SUBTITLE = "Receba novidades, receitas e ofertas
 export const DEFAULT_NEWSLETTER_PLACEHOLDER = "Seu melhor e-mail";
 export const DEFAULT_NEWSLETTER_CTA = "Inscrever-se";
 
+/** Rodapé: quando `shipping_info` está vazio, texto neutro (evita cópia de outra vertical, ex. snacks). */
+export const DEFAULT_FOOTER_SHIPPING_BLURB =
+  "Conheça o catálogo e fale conosco — estamos disponíveis para esclarecer dúvidas sobre produtos e entregas.";
+
 export const lifestyleTitleFromStore = (displayName: string) => `Momentos ${displayName}`;

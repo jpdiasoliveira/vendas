@@ -12,6 +12,7 @@ import {
   PREVIEW_POLITICA_TROCAS_ID,
   type StorefrontPreviewSectionId,
 } from "@/react-app/components/admin/storefrontPreviewLink";
+import { DEFAULT_FOOTER_SHIPPING_BLURB } from "@/react-app/constants/storefrontHomeCopy";
 
 function whatsappHref(raw: string | null | undefined): string | null {
   const t = (raw ?? "").trim();
@@ -197,14 +198,22 @@ export const Footer = ({
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4 group">
                 {logoSrc ? (
-                  <img
-                    src={logoSrc}
-                    alt=""
-                    style={{ height: `${Math.min(96, logoH + 16)}px`, width: "auto" }}
-                    className={`rounded-xl border border-white/25 object-contain ${
-                      logoKnockout ? "mix-blend-multiply" : ""
+                  <span
+                    className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl ${
+                      logoKnockout
+                        ? "bg-[color:var(--brand-primary)] p-0.5 ring-1 ring-white/20"
+                        : ""
                     }`}
-                  />
+                  >
+                    <img
+                      src={logoSrc}
+                      alt=""
+                      style={{ height: `${Math.min(96, logoH + 16)}px`, width: "auto" }}
+                      className={`max-h-[5.5rem] w-auto object-contain ${
+                        logoKnockout ? "mix-blend-multiply" : "rounded-xl border border-white/25"
+                      }`}
+                    />
+                  </span>
                 ) : (
                   <div className="relative">
                     <Leaf className="h-12 w-12 text-[#FFD166] group-hover:rotate-12 transition-transform duration-300" />
@@ -223,8 +232,7 @@ export const Footer = ({
               >
                 {shippingBlurbShown ? (
                   <p className="mb-4 max-w-md whitespace-pre-line font-inter text-sm leading-relaxed text-white/80">
-                    {p?.shippingInfo?.trim() ||
-                      "Banana chips orgânicos premium, direto das plantações da Amazônia para sua mesa. Sabor autêntico e sustentável."}
+                    {p?.shippingInfo?.trim() || DEFAULT_FOOTER_SHIPPING_BLURB}
                   </p>
                 ) : null}
                 {hoursShown ? (
@@ -407,8 +415,8 @@ export const Footer = ({
                 {showPoliciesSetupHint ? (
                   <li className="text-white/60 text-sm">
                     {hasContactChannel
-                      ? "Políticas (entrega, trocas, privacidade): preencha em Admin → Configurações."
-                      : "Configure textos e contato em Admin → Configurações."}
+                      ? "Políticas (entrega, trocas, privacidade): preencha em Admin → Marca e vitrine → Vitrine."
+                      : "Configure textos e contato em Admin → Marca e vitrine → Vitrine."}
                   </li>
                 ) : null}
               </ul>
