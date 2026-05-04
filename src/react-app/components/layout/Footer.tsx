@@ -198,18 +198,12 @@ export const Footer = ({
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4 group">
                 {logoSrc ? (
-                  <span
-                    className={
-                      logoKnockout
-                        ? "inline-flex shrink-0 items-center justify-center bg-[color:var(--brand-primary)] isolate"
-                        : "inline-flex shrink-0 items-center justify-center"
-                    }
-                  >
+                  <span className="inline-flex shrink-0 items-center justify-center">
                     <img
                       src={logoSrc}
                       alt=""
                       style={{ height: `${Math.min(96, logoH + 16)}px`, width: "auto" }}
-                      className={`max-h-[5.5rem] w-auto object-contain outline-none ${
+                      className={`max-h-[5.5rem] w-auto object-contain outline-none ring-0 border-0 ${
                         logoKnockout ? "mix-blend-multiply" : "rounded-xl"
                       }`}
                     />
