@@ -83,7 +83,7 @@ export const AdminNav = ({ children }: AdminNavProps) => {
               alt=""
               style={{ height: `${adminLogoPx}px`, width: "auto" }}
               className={`max-h-11 w-auto shrink-0 object-contain ${
-                adminLogoKnockout ? "mix-blend-multiply" : "rounded-md ring-1 ring-[color:var(--brand-primary)]/15"
+                adminLogoKnockout ? "mix-blend-multiply" : "rounded-md"
               }`}
             />
           </span>
