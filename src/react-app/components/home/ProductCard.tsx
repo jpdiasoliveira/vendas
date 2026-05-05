@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/react-app/contexts/CartContext";
 import type { Product } from "@/react-app/types";
 import { ProductDetailModal } from "@/react-app/components/home/ProductDetailModal";
@@ -35,11 +35,17 @@ const formatBRL = (n: number) =>
 export const ProductCard = ({ product, isTrending = false, isHomeFeatured = false }: ProductCardProps) => {
   const { addItem } = useCart();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const isSpotlight = isTrending || isHomeFeatured;
   const rawImageUrl =
     (product.imageUrl ?? (product as { image_url?: string }).image_url ?? "").trim() || PLACEHOLDER_IMAGE;
-  const imageSrc = getCatalogProductImageSrc(rawImageUrl);
-  const imageSrcSet = getCatalogProductImageSrcSet(rawImageUrl);
+  const imageSrcResolved = getCatalogProductImageSrc(rawImageUrl);
+  const imageSrc = imageLoadFailed ? PLACEHOLDER_IMAGE : imageSrcResolved;
+  const imageSrcSet = imageLoadFailed ? undefined : getCatalogProductImageSrcSet(rawImageUrl);
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [product.id, rawImageUrl]);
   const description = product.description?.trim();
 
   const handleAdd = () => {
@@ -96,6 +102,12 @@ export const ProductCard = ({ product, isTrending = false, isHomeFeatured = fals
                 decoding="async"
                 fetchPriority="low"
                 className={catalogCardImageImgClass}
+                onError={() => {
+                  if (!imageLoadFailed && rawImageUrl !== PLACEHOLDER_IMAGE) {
+                    console.error("[ProductCard] Falha ao carregar imagem do produto", product.id, rawImageUrl);
+                    setImageLoadFailed(true);
+                  }
+                }}
               />
             </div>
           </div>

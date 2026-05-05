@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { X, Loader2, Save, ImagePlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Loader2, Save, ImagePlus, Move } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import { useCurrencyMask } from "@/react-app/hooks/useCurrencyMask";
 import { useCapabilities } from "@/react-app/hooks/useCapabilities";
 import { useAdminCategoriesQuery } from "@/react-app/hooks/useAdminCategoriesQuery";
+import { ImageCoverFramingModal } from "@/react-app/components/admin/ImageCoverFramingModal";
+
+type ProductFramingSession = { objectUrl: string; originalFileName: string };
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -40,6 +43,18 @@ export const AddProductModal = ({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; price?: string }>({});
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [productFramingSession, setProductFramingSession] = useState<ProductFramingSession | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      setProductFramingSession((prev) => {
+        if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+        return null;
+      });
+    }
+  }, [isOpen]);
 
   const isDirty =
     name.trim() !== "" ||
@@ -48,6 +63,7 @@ export const AddProductModal = ({
     categoryId.trim() !== "" ||
     imageUrl.trim() !== "" ||
     imageFile !== null ||
+    productFramingSession !== null ||
     wholesaleEnabled ||
     minWholesaleQty.trim() !== "";
 
@@ -73,8 +89,14 @@ export const AddProductModal = ({
     setCategoryId("");
     setImageUrl("");
     setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+    setImagePreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
     setStatus("active");
     setWholesaleEnabled(false);
     wholesaleMask.setValue(0);
@@ -88,11 +110,58 @@ export const AddProductModal = ({
     onClose();
   };
 
+  const cancelProductFraming = () => {
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+  };
+
+  const completeProductFraming = async (file: File) => {
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+    setImagePreview((old) => {
+      if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
+      return URL.createObjectURL(file);
+    });
+    setImageFile(file);
+    setImageUrl("");
+  };
+
+  const openReframingFromCurrent = () => {
+    if (productFramingSession) return;
+    const fromFile = imageFile && imageFile.size > 0 ? imageFile : null;
+    if (fromFile) {
+      const u = URL.createObjectURL(fromFile);
+      setProductFramingSession((prev) => {
+        if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+        return { objectUrl: u, originalFileName: fromFile.name || "produto.jpg" };
+      });
+      return;
+    }
+    const url = imageUrl.trim();
+    if (!/^https?:\/\//i.test(url)) return;
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      const base = name.trim() || "produto";
+      return { objectUrl: url, originalFileName: `${base}.jpg` };
+    });
+  };
+
+  const canOpenProductFraming =
+    !!imageFile || /^https?:\/\//i.test(imageUrl.trim());
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImageFile(file ?? null);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
+    e.target.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return { objectUrl, originalFileName: file.name || "produto.jpg" };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -275,6 +344,10 @@ export const AddProductModal = ({
                 <ImagePlus className="h-5 w-5 text-slate-500" />
                 <span className="text-sm text-slate-600">Escolher arquivo</span>
               </label>
+              <p className="text-xs text-slate-600">
+                Após escolher um arquivo, abrimos o ajuste 4:5 (arrastar e zoom). Com URL, use o
+                botão abaixo.
+              </p>
               {imagePreview && (
                 <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                   <img
@@ -286,6 +359,16 @@ export const AddProductModal = ({
                     Pré-visualização. Ao salvar, a imagem será enviada e a URL será usada no produto.
                   </p>
                 </div>
+              )}
+              {canOpenProductFraming && !productFramingSession && (
+                <button
+                  type="button"
+                  onClick={openReframingFromCurrent}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 transition-colors"
+                >
+                  <Move className="h-4 w-4 shrink-0" aria-hidden />
+                  Ajustar posição e zoom
+                </button>
               )}
               <input
                 type="url"
@@ -390,6 +473,17 @@ export const AddProductModal = ({
           </div>
         </form>
       </div>
+
+      {productFramingSession && (
+        <ImageCoverFramingModal
+          open
+          kind="product"
+          imageSrc={productFramingSession.objectUrl}
+          originalFileName={productFramingSession.originalFileName}
+          onClose={cancelProductFraming}
+          onConfirm={completeProductFraming}
+        />
+      )}
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

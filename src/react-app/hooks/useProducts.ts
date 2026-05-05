@@ -39,7 +39,7 @@ const MOCK_PRODUCTS: Product[] = [
   }
 ];
 
-/** Garante `metadata` como objeto (JSONB às vezes chega como string no parse). */
+/** Garante `metadata` como objeto (JSONB às vezes chega como string no parse) e `imageUrl` estável (camelCase + trim). */
 const normalizeCatalogProduct = (raw: unknown): Product => {
   const o = raw as Record<string, unknown>;
   let metadata = o.metadata;
@@ -51,7 +51,10 @@ const normalizeCatalogProduct = (raw: unknown): Product => {
       metadata = undefined;
     }
   }
-  return { ...o, metadata } as Product;
+  const rawImg = o.imageUrl ?? o.image_url;
+  const imageTrim = typeof rawImg === "string" ? rawImg.trim() : "";
+  const imageUrl = imageTrim === "" ? undefined : imageTrim;
+  return { ...o, metadata, imageUrl } as Product;
 };
 
 export function useProducts() {

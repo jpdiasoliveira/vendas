@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Save, ImagePlus } from "lucide-react";
+import { X, Loader2, Save, ImagePlus, Move } from "lucide-react";
 import { adminApiFetch, adminUploadImage } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
+import { ImageCoverFramingModal } from "@/react-app/components/admin/ImageCoverFramingModal";
+
+type ProductFramingSession = { objectUrl: string; originalFileName: string };
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -31,9 +34,27 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
   const [initialStock, setInitialStock] = useState("");
   const [initialDescription, setInitialDescription] = useState("");
   const [initialImageUrl, setInitialImageUrl] = useState("");
+  const [productFramingSession, setProductFramingSession] = useState<ProductFramingSession | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!product) return;
+    if (!isOpen) {
+      setProductFramingSession((prev) => {
+        if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+        return null;
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!product) {
+      setProductFramingSession((prev) => {
+        if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+        return null;
+      });
+      return;
+    }
     const p = String(product.price ?? "");
     const pw = product.priceWholesale != null ? String(product.priceWholesale) : "";
     const mq =
@@ -50,6 +71,10 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
     setDescription(desc);
     setImageUrl(img);
     setImageFile(null);
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
     setImagePreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return null;
@@ -73,7 +98,8 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
     stock !== initialStock ||
     description !== initialDescription ||
     imageUrl !== initialImageUrl ||
-    imageFile !== null;
+    imageFile !== null ||
+    productFramingSession !== null;
 
   const requestClose = () => {
     if (isDirty) setShowExitConfirm(true);
@@ -87,20 +113,70 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setImagePreview((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
+    e.target.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return { objectUrl, originalFileName: file.name || "produto.jpg" };
     });
-    setImageFile(file ?? null);
+  };
+
+  const cancelProductFraming = () => {
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+  };
+
+  const completeProductFraming = async (file: File) => {
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      return null;
+    });
+    setImagePreview((old) => {
+      if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
+      return URL.createObjectURL(file);
+    });
+    setImageFile(file);
+    setImageUrl("");
+  };
+
+  const openReframingFromCurrent = () => {
+    if (productFramingSession) return;
+    const fromFile = imageFile && imageFile.size > 0 ? imageFile : null;
+    if (fromFile) {
+      const u = URL.createObjectURL(fromFile);
+      setProductFramingSession((prev) => {
+        if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+        return { objectUrl: u, originalFileName: fromFile.name || "produto.jpg" };
+      });
+      return;
+    }
+    const url =
+      imageUrl.trim() ||
+      (typeof product?.imageUrl === "string" ? product.imageUrl.trim() : "");
+    if (!/^https?:\/\//i.test(url)) return;
+    setProductFramingSession((prev) => {
+      if (prev?.objectUrl.startsWith("blob:")) URL.revokeObjectURL(prev.objectUrl);
+      const base = name.trim() || "produto";
+      return { objectUrl: url, originalFileName: `${base}.jpg` };
+    });
   };
 
   const clearNewImageFile = () => {
+    cancelProductFraming();
     setImagePreview((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return null;
     });
     setImageFile(null);
   };
+
+  const canOpenProductFraming =
+    !!imageFile ||
+    /^https?:\/\//i.test(imageUrl.trim()) ||
+    /^https?:\/\//i.test((product?.imageUrl ?? "").trim());
 
   const previewSrc =
     imageFile && imagePreview
@@ -235,6 +311,10 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
                   <ImagePlus className="h-5 w-5 text-[#6D4C41]" />
                   <span className="text-sm text-[#6D4C41]">Escolher novo arquivo</span>
                 </label>
+                <p className="text-xs text-[#6D4C41]/80">
+                  Após escolher um arquivo, abrimos o ajuste 4:5 (arrastar e zoom com o mouse). Com
+                  URL, use &quot;Ajustar posição e zoom&quot; abaixo.
+                </p>
                 {imageFile && (
                   <button
                     type="button"
@@ -254,6 +334,16 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
                     </p>
                   </div>
                 ) : null}
+                {canOpenProductFraming && !productFramingSession && (
+                  <button
+                    type="button"
+                    onClick={openReframingFromCurrent}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1B4332]/25 bg-white px-3 py-2 text-sm font-medium text-[#1B4332] hover:bg-[#1B4332]/5 transition-colors shrink-0"
+                  >
+                    <Move className="h-4 w-4 shrink-0" aria-hidden />
+                    Ajustar posição e zoom
+                  </button>
+                )}
                 <input
                   type="url"
                   value={imageUrl}
@@ -355,6 +445,17 @@ export const EditProductModal = ({ isOpen, product, onClose, onSaved }: EditProd
           </div>
         </form>
       </div>
+
+      {productFramingSession && (
+        <ImageCoverFramingModal
+          open
+          kind="product"
+          imageSrc={productFramingSession.objectUrl}
+          originalFileName={productFramingSession.originalFileName}
+          onClose={cancelProductFraming}
+          onConfirm={completeProductFraming}
+        />
+      )}
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

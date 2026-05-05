@@ -1,10 +1,11 @@
-/** Alinhado aos blocos da vitrine: hero 16:9, logo quadrado, história/lifestyle 4:3. */
+/** Alinhado aos blocos da vitrine: hero 16:9, logo quadrado, história/lifestyle 4:3, produto 4:5 (cartão). */
 export type ImageCoverFramingKind =
   | "banner"
   | "logo"
   | "story"
   | "lifestyleLeft"
-  | "lifestyleRight";
+  | "lifestyleRight"
+  | "product";
 
 const clamp = (min: number, max: number, v: number) => Math.min(max, Math.max(min, v));
 

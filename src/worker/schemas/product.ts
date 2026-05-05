@@ -12,12 +12,18 @@ const msg = {
   url: "URL da imagem inválida",
 } as const;
 
+/** Aceita URL após trim; vazio limpa a imagem no produto. */
+const optionalImageUrl = z.preprocess(
+  (v) => (typeof v === "string" ? v.trim() : v),
+  z.union([z.literal(""), z.string().url(msg.url)]).optional()
+);
+
 export const productSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1, "Título é obrigatório"),
   price: z.number({ required_error: "Preço é obrigatório" }).positive(msg.pricePositive),
   description: z.string().optional(),
-  image_url: z.string().url(msg.url).optional().or(z.literal("")),
+  image_url: optionalImageUrl,
 });
 
 /** Body para criar produto (POST): title e price obrigatórios; atacado e estoque opcionais. */
@@ -30,7 +36,7 @@ export const productCreateSchema = productSchema
     ),
     stock: z.number().int().nonnegative().optional().nullable(),
     status: z.enum(["active", "inactive"]).optional(),
-    image_url: z.string().url(msg.url).optional().or(z.literal("")).optional(),
+    image_url: optionalImageUrl,
     priceWholesale: z.number().positive().nullable().optional(),
     minQuantityWholesale: z.number().int().nonnegative().nullable().optional(),
   });
@@ -40,7 +46,7 @@ export const productUpdateSchema = productSchema
   .partial()
   .extend({
     price: z.number().positive(msg.pricePositive).optional(),
-    image_url: z.string().url(msg.url).optional().or(z.literal("")).optional(),
+    image_url: optionalImageUrl,
     priceWholesale: z.number().positive().nullable().optional(),
     minQuantityWholesale: z.number().int().nonnegative().nullable().optional(),
     stock: z.number().int().nonnegative().nullable().optional(),

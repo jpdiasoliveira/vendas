@@ -29,7 +29,12 @@ export function rowToProduct(row: Record<string, unknown>): Product {
     price,
     priceWholesale: priceWholesale ?? undefined,
     minQuantityWholesale: minQty ?? undefined,
-    imageUrl: (row.image_url as string | null) ?? undefined,
+    imageUrl: (() => {
+      const raw = row.image_url;
+      if (raw == null) return undefined;
+      const s = String(raw).trim();
+      return s === "" ? undefined : s;
+    })(),
     categoryId: row.category_id != null ? String(row.category_id) : undefined,
     category: joinedName ?? (row.category as string | null) ?? undefined,
     stock: row.stock != null ? Number(row.stock) : undefined,

@@ -20,15 +20,24 @@ const PREVIEW_W = 720;
 const BANNER_RATIO = 16 / 9;
 const LOGO_RATIO = 1;
 const BLOCK_RATIO = 4 / 3;
+/** Mesma proporção que `productCatalogImageLayout` (cartão na vitrine). */
+const PRODUCT_CARD_RATIO = 4 / 5;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 3;
 
 const framingRatio = (kind: ImageCoverFramingKind): number =>
-  kind === "banner" ? BANNER_RATIO : kind === "logo" ? LOGO_RATIO : BLOCK_RATIO;
+  kind === "banner"
+    ? BANNER_RATIO
+    : kind === "logo"
+      ? LOGO_RATIO
+      : kind === "product"
+        ? PRODUCT_CARD_RATIO
+        : BLOCK_RATIO;
 
 const exportSize = (kind: ImageCoverFramingKind): { w: number; h: number } => {
   if (kind === "logo") return { w: 1024, h: 1024 };
   if (kind === "banner") return { w: 1920, h: 1080 };
+  if (kind === "product") return { w: 1600, h: 2000 };
   return { w: 1600, h: 1200 };
 };
 
@@ -44,6 +53,8 @@ const framingTitle = (kind: ImageCoverFramingKind): string => {
       return "Ajustar imagem — Lifestyle (esquerda)";
     case "lifestyleRight":
       return "Ajustar imagem — Lifestyle (direita)";
+    case "product":
+      return "Ajustar foto do produto";
   }
 };
 
@@ -53,6 +64,8 @@ const framingHint = (kind: ImageCoverFramingKind): string => {
       return "Área fixa 16:9 como no hero (sem animação extra na loja).";
     case "logo":
       return "Área fixa quadrada como no menu.";
+    case "product":
+      return "Área 4:5 como no cartão da vitrine (foto acima do nome).";
     default:
       return "Área fixa 4:3 como nos cartões da home.";
   }
@@ -112,12 +125,21 @@ export const ImageCoverFramingModal = ({
     pinchRef.current = null;
     panDragRef.current = null;
     const img = new Image();
+    // Sem isto, imagens de outro domínio (ex.: Supabase Storage) carregam mas «mancham» o canvas
+    // e `toBlob()` falha com "Tainted canvases may not be exported."
+    if (/^https?:\/\//i.test(imageSrc)) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => {
       imgRef.current = img;
       setImgReady(true);
     };
     img.onerror = () => {
-      setLoadError("Não foi possível carregar a imagem.");
+      setLoadError(
+        /^https?:\/\//i.test(imageSrc)
+          ? "Não foi possível carregar a imagem com permissões CORS. Tente enviar o ficheiro em vez da URL, ou confira o bucket no Supabase (origem do admin permitida em CORS)."
+          : "Não foi possível carregar a imagem.",
+      );
     };
     img.src = imageSrc;
     return () => {

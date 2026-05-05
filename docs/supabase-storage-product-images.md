@@ -8,7 +8,7 @@ A rota **POST /api/admin/upload** envia imagens para o bucket **product-images**
 2. Vá em **Storage** no menu lateral.
 3. Clique em **New bucket**.
 4. Nome: **product-images**.
-5. Marque **Public bucket** para que as URLs retornadas por `getPublicUrl()` funcionem sem autenticação (leitura pública para exibir fotos dos produtos).
+5. Marque **Public bucket** para que as URLs retornadas por `getPublicUrl()` funcionem sem autenticação (leitura pública para exibir fotos dos produtos). **Se o bucket for privado, a vitrine e o cartão do produto mostram área vazia ou placeholder** — o navegador não consegue carregar a imagem sem URL assinada.
 6. (Opcional) Defina políticas RLS se quiser restringir quem pode fazer upload; o Worker usa a Service Role Key, então o upload é autorizado pelo backend.
 
 ## Estrutura dos arquivos
