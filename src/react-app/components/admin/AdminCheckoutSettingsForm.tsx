@@ -1,5 +1,6 @@
 import { CheckCircle2, CreditCard, Loader2, Save } from "lucide-react";
 import type { AdminSettingsViewModel } from "@/react-app/hooks/useAdminSettings";
+import { AdminMercadoPagoCredentialsForm } from "@/react-app/components/admin/AdminMercadoPagoCredentialsForm";
 
 /**
  * Regras de carrinho e fecho do pedido (valor mínimo, login).
@@ -145,6 +146,8 @@ export const AdminCheckoutSettingsForm = ({ m }: { m: AdminSettingsViewModel }) 
           </button>
         </div>
       </form>
+
+      <AdminMercadoPagoCredentialsForm />
     </div>
   );
 };

@@ -4,6 +4,11 @@ interface Env {
   MOCHA_USERS_SERVICE_API_URL: string;
   MOCHA_USERS_SERVICE_API_KEY: string;
   MERCADO_PAGO_ACCESS_TOKEN: string;
+  /**
+   * Segredo da plataforma (≥16 chars) para AES-GCM das colunas mp_*_ciphertext em store_settings.
+   * Não é o token do MP — é chave interna do Worker (Cloudflare Secret).
+   */
+  MP_STORE_CREDENTIALS_SECRET?: string;
   /** Secret da assinatura de webhooks (Suas integrações > Webhooks). Recomendado em produção. */
   MERCADO_PAGO_WEBHOOK_SECRET?: string;
   /**

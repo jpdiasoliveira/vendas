@@ -10,6 +10,7 @@ import {
   updateOrderTracking,
 } from "../../core/database.js";
 import { getPayment } from "../../services/mercadopago.js";
+import { resolveMercadoPagoAccessTokenForStore } from "../../services/mercadopagoStoreToken.js";
 import {
   applyMercadoPagoPaymentSnapshotToOrder,
   formatMercadoPagoFetchError,
@@ -181,12 +182,15 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
     const orderId = String(c.req.param("id")).trim();
-    const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!token) {
+    let token: string;
+    try {
+      token = await resolveMercadoPagoAccessTokenForStore(c.env, store.id);
+    } catch {
       return c.json(
         {
           success: false,
-          error: "Pagamentos não configurados: falta MERCADO_PAGO_ACCESS_TOKEN no servidor.",
+          error:
+            "Pagamentos não configurados: configure o Mercado Pago no painel (dono) ou MERCADO_PAGO_ACCESS_TOKEN no servidor.",
         },
         500
       );

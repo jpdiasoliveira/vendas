@@ -16,6 +16,7 @@ import type { CartItemPayload } from "../../contracts/schema.js";
 import { OrderBusinessError } from "../core/orderErrors.js";
 import type { AuthUser, Variables } from "../types.js";
 import { createPaymentPIX, createPreference } from "../services/mercadopago.js";
+import { resolveMercadoPagoAccessTokenForStore } from "../services/mercadopagoStoreToken.js";
 import { notifyOrderCreated } from "../services/notificationHooks.js";
 import { logAuditEvent } from "../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../utils/safeApiError.js";
@@ -234,15 +235,23 @@ orders.post(
       }
     }
 
-    const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
+    let token: string;
+    try {
+      token = await resolveMercadoPagoAccessTokenForStore(c.env, store.id);
+    } catch {
+      return c.json(
+        {
+          success: false,
+          error:
+            "Pagamentos não estão configurados: configure o Mercado Pago no painel (dono da loja) ou o token global do servidor.",
+        },
+        500
+      );
+    }
     const payerEmail =
       order.guestCheckoutEmail?.trim() ||
       user?.email?.trim() ||
       "comprador@email.com";
-
-    if (!token) {
-      return c.json({ success: false, error: "Servidor não configurado (MP Token)" }, 500);
-    }
 
     const baseUrl = (c.env as { NOTIFICATION_BASE_URL?: string }).NOTIFICATION_BASE_URL;
     const notificationUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/webhooks/mercadopago` : undefined;

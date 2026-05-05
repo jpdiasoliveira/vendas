@@ -12,6 +12,14 @@ export const requireAdminOrOwner = (c: { get: (k: string) => unknown }): AuthUse
   return null;
 };
 
+/** Apenas o dono da loja (ex.: credenciais de pagamento por tenant). */
+export const requireOwner = (c: { get: (k: string) => unknown }): AuthUser | null => {
+  const user = c.get("user") as AuthUser | undefined;
+  if (!user) return null;
+  if ((user.role ?? "").trim().toLowerCase() === "owner") return user;
+  return null;
+};
+
 export const BUCKET_PRODUCT_IMAGES = "product-images";
 
 /** Gera nome único para arquivo: timestamp-nome-sanitizado.ext */

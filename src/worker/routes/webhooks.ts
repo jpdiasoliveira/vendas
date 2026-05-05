@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { getPayment } from "../services/mercadopago.js";
+import { resolveMercadoPagoAccessTokenForPaymentId } from "../services/mercadopagoStoreToken.js";
 import { applyMercadoPagoPaymentSnapshotToOrder } from "../services/mercadopagoOrderPaymentReconcile.js";
 import { getOrderById } from "../core/database.js";
 import { isRequireMpWebhookSecret } from "../core/config.js";
@@ -45,9 +46,11 @@ webhooks.post("/mercadopago", async (c) => {
       return c.json({ success: true, data: { received: true } }, 200);
     }
 
-    const token = c.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!token) {
-      console.error("[Webhook MP] MERCADO_PAGO_ACCESS_TOKEN not set");
+    let token: string;
+    try {
+      token = await resolveMercadoPagoAccessTokenForPaymentId(c.env, paymentId);
+    } catch (err: unknown) {
+      console.error("[Webhook MP] Token MP indisponível para payment_id", paymentId, err);
       return c.json({ success: false, error: "Server config error" }, 500);
     }
 
