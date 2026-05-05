@@ -18,6 +18,7 @@ import type { AuthUser } from "../../middlewares/verifyAuth.js";
 import { logAction, logAuditEvent } from "../../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
+import { requireAdminOrOwner } from "./helpers.js";
 import type { AdminHono } from "./types.js";
 
 export const registerAdminOrderRoutes = (admin: AdminHono): void => {
@@ -73,6 +74,16 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
 
       const isCancel = newStatus === "cancelled";
       const needsRefundWorkflow = isCancel && orderRequiresManualRefundWorkflow(existing);
+      if (needsRefundWorkflow && !requireAdminOrOwner(c)) {
+        return c.json(
+          {
+            success: false,
+            error:
+              "Apenas administradores ou o dono da loja podem cancelar pedidos já pagos, em separação ou entregues.",
+          },
+          403
+        );
+      }
       if (needsRefundWorkflow && !cancellationReason) {
         return c.json(
           {
@@ -158,6 +169,15 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
    * Sincronização proativa: consulta o Mercado Pago pelo payment_id do pedido e aplica o mesmo fluxo do webhook (tranca + idempotência).
    */
   admin.post("/orders/:id/sync-payment", async (c) => {
+    if (!requireAdminOrOwner(c)) {
+      return c.json(
+        {
+          success: false,
+          error: "Apenas administradores ou o dono da loja podem sincronizar pagamentos com o Mercado Pago.",
+        },
+        403
+      );
+    }
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
     const orderId = String(c.req.param("id")).trim();

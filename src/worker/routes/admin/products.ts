@@ -12,7 +12,7 @@ import { productCreateSchema, productUpdateSchema } from "../../schemas/product.
 import { logAction } from "../../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
-import { zodErrorToMessage } from "./helpers.js";
+import { requireAdminOrOwner, zodErrorToMessage } from "./helpers.js";
 import type { AdminHono } from "./types.js";
 
 export const registerAdminProductRoutes = (admin: AdminHono): void => {
@@ -150,6 +150,12 @@ export const registerAdminProductRoutes = (admin: AdminHono): void => {
   );
 
   admin.delete("/products/:id", async (c) => {
+    if (!requireAdminOrOwner(c)) {
+      return c.json(
+        { success: false, error: "Apenas administradores ou o dono da loja podem excluir produtos." },
+        403
+      );
+    }
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
     const productId = c.req.param("id");

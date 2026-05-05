@@ -10,7 +10,17 @@ import { queryClient } from "@/react-app/query/queryClient";
 import { adminMeQueryKey, storeSettingsQueryKey } from "@/react-app/query/queryKeys";
 
 const PLATFORM_CREATE_SECRET = import.meta.env.VITE_PLATFORM_CREATE_STORE_SECRET ?? "";
-const STORE_OVERRIDE_KEY = "saas_store_slug_override";
+/** Chave do `localStorage` do override de vitrina (dev / impersonação). Exportada para o carrinho reagir entre abas. */
+export const STORE_SLUG_OVERRIDE_STORAGE_KEY = "saas_store_slug_override";
+const STORE_OVERRIDE_KEY = STORE_SLUG_OVERRIDE_STORAGE_KEY;
+
+/** Disparado após alterar ou limpar o override de slug, para o carrinho trocar de chave no mesmo separador. */
+export const STORE_SLUG_CHANGED_EVENT = "store-slug-changed";
+
+const dispatchStoreSlugChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(STORE_SLUG_CHANGED_EVENT));
+};
 const API_BASE = import.meta.env.DEV
   ? ""
   : (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
@@ -59,6 +69,7 @@ export function setStoreSlugOverride(slug: string): void {
   const normalized = normalizeSlug(slug);
   if (!normalized) return;
   localStorage.setItem(STORE_OVERRIDE_KEY, normalized);
+  dispatchStoreSlugChanged();
   void queryClient.invalidateQueries({ queryKey: storeSettingsQueryKey });
   void queryClient.invalidateQueries({ queryKey: adminMeQueryKey });
   void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
@@ -70,6 +81,7 @@ export function setStoreSlugOverride(slug: string): void {
 export function clearStoreSlugOverride(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORE_OVERRIDE_KEY);
+  dispatchStoreSlugChanged();
   void queryClient.invalidateQueries({ queryKey: storeSettingsQueryKey });
   void queryClient.invalidateQueries({ queryKey: adminMeQueryKey });
   void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });

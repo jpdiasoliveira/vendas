@@ -19,10 +19,23 @@ export function envBooleanFlag(
   return defaultValue;
 }
 
+type WebhookSecretEnv = {
+  REQUIRE_MP_WEBHOOK_SECRET?: string | boolean;
+  /** `production` ou `prod` força validação HMAC do webhook MP (como `REQUIRE_MP_WEBHOOK_SECRET=true`). */
+  ENVIRONMENT?: string;
+};
+
+const isProductionDeployment = (env: WebhookSecretEnv): boolean => {
+  const s = String(env.ENVIRONMENT ?? "").trim().toLowerCase();
+  return s === "production" || s === "prod";
+};
+
 /**
- * Produção SaaS: defina `REQUIRE_MP_WEBHOOK_SECRET=true` + `MERCADO_PAGO_WEBHOOK_SECRET`.
- * Em desenvolvimento, omita ou use `false` para permitir webhook sem assinatura.
+ * Webhook Mercado Pago: assinatura + secret obrigatórios quando `ENVIRONMENT` é produção
+ * ou `REQUIRE_MP_WEBHOOK_SECRET=true`. Em desenvolvimento (omitido), permite IPN sem secret
+ * apenas se `REQUIRE_MP_WEBHOOK_SECRET` não for true.
  */
-export function isRequireMpWebhookSecret(env: { REQUIRE_MP_WEBHOOK_SECRET?: string | boolean }): boolean {
+export function isRequireMpWebhookSecret(env: WebhookSecretEnv): boolean {
+  if (isProductionDeployment(env)) return true;
   return envBooleanFlag(env.REQUIRE_MP_WEBHOOK_SECRET, false);
 }
