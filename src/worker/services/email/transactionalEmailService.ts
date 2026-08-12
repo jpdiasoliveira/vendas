@@ -1,6 +1,6 @@
 import type { TransactionalEmailPayload, TransactionalTemplateId } from "./types.js";
 
-const DEFAULT_PRIMARY = "#1B4332";
+import { DEFAULT_BRAND_PRIMARY } from "../../../constants/brandDefaults.js";
 
 const isLikelyEmail = (to: string | null | undefined): boolean => {
   if (!to || typeof to !== "string") return false;
@@ -16,7 +16,7 @@ const buildHtml = (templateId: TransactionalTemplateId, ctx: Record<string, unkn
     const mp = ctx.mp_payment_id != null ? `<p>Referência do pagamento: <strong>${esc(String(ctx.mp_payment_id))}</strong></p>` : "";
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/></head>
 <body style="font-family:system-ui,sans-serif;line-height:1.5;color:#333;max-width:32rem">
-  <h1 style="color:${DEFAULT_PRIMARY}">Pagamento confirmado</h1>
+  <h1 style="color:${DEFAULT_BRAND_PRIMARY}">Pagamento confirmado</h1>
   <p>Seu pedido <strong>#${esc(orderId)}</strong> foi marcado como <strong>pago</strong>.</p>
   ${mp}
   <p>Obrigado pela preferência.</p>
@@ -25,7 +25,7 @@ const buildHtml = (templateId: TransactionalTemplateId, ctx: Record<string, unkn
   if (templateId === "order_created") {
     return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/></head>
 <body style="font-family:system-ui,sans-serif;line-height:1.5;color:#333">
-  <h1 style="color:${DEFAULT_PRIMARY}">Pedido recebido</h1>
+  <h1 style="color:${DEFAULT_BRAND_PRIMARY}">Pedido recebido</h1>
   <p>Recebemos o pedido <strong>#${esc(orderId)}</strong>.</p>
 </body></html>`;
   }

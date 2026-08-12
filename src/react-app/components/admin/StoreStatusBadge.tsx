@@ -1,12 +1,12 @@
 /** Estados de loja voltados ao negócio (evitar rótulos crus da base de dados na UI). */
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-900 ring-emerald-600/30",
-  trialing: "bg-cyan-100 text-cyan-950 ring-cyan-500/35",
-  past_due: "bg-orange-100 text-orange-950 ring-orange-500/35",
-  suspended: "bg-red-100 text-red-900 ring-red-600/30",
-  archived: "bg-slate-200 text-slate-800 ring-slate-500/25",
-  cancelled: "bg-slate-200 text-slate-700 ring-slate-500/25",
-  draft: "bg-zinc-100 text-zinc-800 ring-zinc-500/25",
+  active: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
+  trialing: "bg-cyan-500/15 text-cyan-200 ring-cyan-500/30",
+  past_due: "bg-orange-500/15 text-orange-200 ring-orange-500/30",
+  suspended: "bg-red-500/15 text-red-300 ring-red-500/30",
+  archived: "bg-surface-muted text-content-muted ring-brand-primary/20",
+  cancelled: "bg-surface-muted text-content-muted ring-brand-primary/15",
+  draft: "bg-surface-elevated text-content-muted ring-brand-primary/15",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -32,7 +32,7 @@ export const StoreStatusBadge = ({ status }: StoreStatusBadgeProps) => {
   const raw = String(status ?? "").trim();
   const key = raw.toLowerCase();
   const label = STATUS_LABELS[key] ?? (raw ? formatUnknown(raw) : "Sem estado");
-  const ring = STATUS_STYLES[key] ?? "bg-slate-100 text-slate-800 ring-slate-400/25";
+  const ring = STATUS_STYLES[key] ?? "bg-surface-muted text-content ring-brand-primary/20";
 
   return (
     <span

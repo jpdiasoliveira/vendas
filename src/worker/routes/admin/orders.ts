@@ -1,3 +1,4 @@
+import { zValidator } from "@hono/zod-validator";
 import {
   appendOrderNoteLine,
   getAllOrdersByStore,
@@ -15,11 +16,15 @@ import {
   applyMercadoPagoPaymentSnapshotToOrder,
   formatMercadoPagoFetchError,
 } from "../../services/mercadopagoOrderPaymentReconcile.js";
+import {
+  adminOrderStatusPatchSchema,
+  adminOrderTrackingPatchSchema,
+} from "../../../schemas/adminOrder.js";
 import type { AuthUser } from "../../middlewares/verifyAuth.js";
 import { logAction, logAuditEvent } from "../../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
-import { requireAdminOrOwner } from "./helpers.js";
+import { requireAdminOrOwner, zodErrorToMessage } from "./helpers.js";
 import type { AdminHono } from "./types.js";
 
 export const registerAdminOrderRoutes = (admin: AdminHono): void => {
@@ -50,11 +55,18 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
     }
   });
 
-  admin.patch("/orders/:id/status", async (c) => {
+  admin.patch(
+    "/orders/:id/status",
+    zValidator("json", adminOrderStatusPatchSchema, (result, c) => {
+      if (!result.success) {
+        return c.json({ success: false, error: zodErrorToMessage(result.error) }, 400);
+      }
+    }),
+    async (c) => {
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
     const orderId = String(c.req.param("id"));
-    const body = (await c.req.json()) as { status?: string; cancellationReason?: string | null };
+    const body = c.req.valid("json");
     const newStatus = normalizeOrderStatus(body.status);
     const cancellationReason =
       typeof body.cancellationReason === "string" ? body.cancellationReason.trim() : "";
@@ -143,13 +155,21 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
       logServerError(`admin.patch /orders/:id/status order=${orderId} newStatus=${newStatus}`, err);
       return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
-  });
+  }
+  );
 
-  admin.patch("/orders/:id/tracking", async (c) => {
+  admin.patch(
+    "/orders/:id/tracking",
+    zValidator("json", adminOrderTrackingPatchSchema, (result, c) => {
+      if (!result.success) {
+        return c.json({ success: false, error: zodErrorToMessage(result.error) }, 400);
+      }
+    }),
+    async (c) => {
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
     const orderId = c.req.param("id");
-    const body = (await c.req.json()) as { trackingCode?: string | null; shippingMethod?: string | null };
+    const body = c.req.valid("json");
     try {
       await updateOrderTracking(c.env, orderId, store.id, {
         trackingCode: body.trackingCode,
@@ -164,7 +184,8 @@ export const registerAdminOrderRoutes = (admin: AdminHono): void => {
       logServerError("admin.patch /orders/:id/tracking", err);
       return c.json({ success: false, error: genericServerErrorMessage() }, 500);
     }
-  });
+  }
+  );
 
   /**
    * Sincronização proativa: consulta o Mercado Pago pelo payment_id do pedido e aplica o mesmo fluxo do webhook (tranca + idempotência).

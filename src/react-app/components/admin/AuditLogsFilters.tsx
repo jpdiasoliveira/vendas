@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { storefrontInputClass } from "@/react-app/design-system/inputStyles";
 import {
   AUDIT_FILTER_QUICK_CREATE,
   AUDIT_FILTER_QUICK_DELETE,
@@ -18,8 +19,8 @@ const isMoreFilterValue = (v: string) =>
 const chipClass = (active: boolean) =>
   `inline-flex items-center rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
     active
-      ? "bg-[#1B4332] text-white shadow-sm"
-      : "border border-[#1B4332]/15 bg-white/80 text-[#6D4C41] hover:border-[#1B4332]/25 hover:bg-white"
+      ? "bg-brand-primary text-white shadow-sm"
+      : "border border-brand-primary/15 bg-surface-elevated text-content-muted hover:border-brand-primary/25 hover:bg-surface-muted hover:text-content"
   }`;
 
 export const AuditLogsFilters = ({
@@ -31,11 +32,11 @@ export const AuditLogsFilters = ({
   const selectValue = isMoreFilterValue(actionFilter) ? actionFilter : "";
 
   return (
-    <div className="mb-6 rounded-2xl border border-[#1B4332]/15 bg-[#FAF8F3]/90 p-4 font-inter shadow-sm">
+    <div className="mb-6 rounded-2xl border border-brand-primary/10 bg-surface-elevated p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6D4C41]/60 sm:left-4 sm:h-5 sm:w-5"
+            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-content-muted sm:left-4"
             aria-hidden
           />
           <input
@@ -43,7 +44,7 @@ export const AuditLogsFilters = ({
             placeholder="Buscar por nome do produto ou pedido…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full min-w-0 rounded-xl border border-[#1B4332]/20 bg-white py-3 pl-11 pr-4 text-base text-[#1B4332] transition-colors placeholder:text-[#6D4C41]/55 focus:border-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/25 sm:py-3.5 sm:pl-12 sm:text-[1.05rem]"
+            className={`${storefrontInputClass} min-w-0 py-3 pl-11 sm:pl-12`}
             aria-label="Busca por recurso"
           />
         </div>
@@ -54,11 +55,8 @@ export const AuditLogsFilters = ({
           <select
             id="audit-more-filters"
             value={selectValue}
-            onChange={(e) => {
-              const v = e.target.value;
-              setActionFilter(v);
-            }}
-            className="w-full cursor-pointer rounded-xl border border-[#1B4332]/20 bg-white px-3 py-3 text-sm font-medium text-[#1B4332] shadow-sm focus:border-[#1B4332] focus:outline-none focus:ring-2 focus:ring-[#1B4332]/20 sm:min-w-[12.5rem] sm:py-3.5"
+            onChange={(e) => setActionFilter(e.target.value)}
+            className={`${storefrontInputClass} cursor-pointer py-3 text-sm font-medium sm:min-w-[12.5rem]`}
           >
             <option value="">Mais filtros…</option>
             {AUDIT_MORE_FILTER_OPTIONS.map((opt) => (
@@ -71,12 +69,7 @@ export const AuditLogsFilters = ({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtros rápidos">
-        <button
-          type="button"
-          onClick={() => setActionFilter("")}
-          className={chipClass(actionFilter === "")}
-          aria-pressed={actionFilter === ""}
-        >
+        <button type="button" onClick={() => setActionFilter("")} className={chipClass(actionFilter === "")} aria-pressed={actionFilter === ""}>
           Todas as ações
         </button>
         <button

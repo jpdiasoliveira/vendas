@@ -1,14 +1,15 @@
 import { useRef } from "react";
-import { X, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
+import { AdminModalShell } from "@/react-app/components/admin/AdminModalShell";
 
-interface ProductQRModalProps {
+type ProductQRModalProps = {
   isOpen: boolean;
   productName: string;
   productId: string;
   editUrl: string;
   onClose: () => void;
-}
+};
 
 export function ProductQRModal({
   isOpen,
@@ -25,11 +26,12 @@ export function ProductQRModal({
     const dataUrl = canvas.toDataURL("image/png");
     const w = window.open("", "_blank");
     if (!w) return;
+    const safeName = productName.replace(/</g, "&lt;");
     w.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Etiqueta - ${productName.replace(/</g, "&lt;")}</title>
+          <title>Etiqueta - ${safeName}</title>
           <style>
             body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 1rem; }
             .label { text-align: center; }
@@ -40,7 +42,7 @@ export function ProductQRModal({
         <body>
           <div class="label">
             <img src="${dataUrl}" alt="QR Code" width="160" height="160" />
-            <span class="name">${productName.replace(/</g, "&lt;")}</span>
+            <span class="name">${safeName}</span>
           </div>
         </body>
       </html>
@@ -53,32 +55,16 @@ export function ProductQRModal({
     }, 250);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6"
-        data-product-id={productId}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">QR Code para prateleira</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <p className="text-sm text-slate-600 mb-4 break-all">{productName}</p>
-        <div className="flex justify-center bg-slate-50 rounded-xl p-4 mb-4">
+    <AdminModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title="QR Code para prateleira"
+      description={productName}
+      maxWidthClass="max-w-md"
+    >
+      <div data-product-id={productId} className="flex flex-col items-center">
+        <div className="mb-4 flex justify-center rounded-xl border border-brand-primary/10 bg-surface-muted p-4">
           <QRCodeCanvas
             ref={qrRef}
             value={editUrl}
@@ -88,18 +74,18 @@ export function ProductQRModal({
             aria-label={`QR Code para editar ${productName}`}
           />
         </div>
-        <p className="text-xs text-slate-500 mb-4 text-center">
+        <p className="mb-4 text-center text-xs text-content-muted">
           Ao escanear, abre a edição deste produto na página de produtos.
         </p>
         <button
           type="button"
           onClick={handlePrint}
-          className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl font-medium transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary py-2.5 text-sm font-medium text-white hover:opacity-90"
         >
           <Printer className="h-4 w-4" />
-          Imprimir Etiqueta
+          Imprimir etiqueta
         </button>
       </div>
-    </div>
+    </AdminModalShell>
   );
 }

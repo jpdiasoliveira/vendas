@@ -10,8 +10,6 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # Outras variáveis usadas pelo Worker (ajuste conforme seu projeto):
 # SUPABASE_SERVICE_ROLE_KEY=
 # SUPABASE_JWT_SECRET=
-# MOCHA_USERS_SERVICE_API_URL=
-# MOCHA_USERS_SERVICE_API_KEY=
 # MERCADO_PAGO_ACCESS_TOKEN=
 # Secret de assinatura dos webhooks (Suas integrações > Webhooks) — recomendado em produção
 # MERCADO_PAGO_WEBHOOK_SECRET=

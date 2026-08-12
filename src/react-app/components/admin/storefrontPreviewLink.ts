@@ -57,7 +57,7 @@ export type StorefrontPreviewSectionId =
 export const formFieldIdForPreviewSection = (section: StorefrontPreviewSectionId): string => {
   const m: Record<StorefrontPreviewSectionId, string> = {
     navbar: "displayName",
-    hero: "primaryColor",
+    hero: "heroBadge",
     products: "productsGridEyebrow",
     story: "storyEyebrow",
     lifestyle: "lifestyleEyebrow",

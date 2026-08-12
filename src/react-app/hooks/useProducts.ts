@@ -1,45 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/react-app/providers/ToastProvider";
 import { apiFetch } from "@/react-app/services/api";
 import type { Product } from "@/react-app/types";
 
-// [MOCK LOCAL]: Produtos de teste para exibição quando o banco estiver vazio
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: "mock-1",
-    storeId: "local-store",
-    name: "Chips de Banana Salgada 50g",
-    description: "Clássicos, crocantes e salgadinhos na medida certa.",
-    price: 8.90,
-    imageUrl:
-      "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=600&q=80&auto=format&fit=crop",
-    stock: 100,
-    status: "active"
-  },
-  {
-    id: "mock-2",
-    storeId: "local-store",
-    name: "Chips de Banana Doce 50g",
-    description: "Com um toque de canela, ideal para o lanche da tarde.",
-    price: 8.90,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&q=80&auto=format&fit=crop",
-    stock: 50,
-    status: "active"
-  },
-  {
-    id: "mock-3",
-    storeId: "local-store",
-    name: "Chips de Banana Picante 50g",
-    description: "Para quem gosta de uma leve picância.",
-    price: 9.90,
-    imageUrl:
-      "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80&auto=format&fit=crop",
-    stock: 30,
-    status: "active"
-  }
-];
-
-/** Garante `metadata` como objeto (JSONB às vezes chega como string no parse) e `imageUrl` estável (camelCase + trim). */
+/** Garante `metadata` como objeto e `imageUrl` estável (camelCase + trim). */
 const normalizeCatalogProduct = (raw: unknown): Product => {
   const o = raw as Record<string, unknown>;
   let metadata = o.metadata;
@@ -58,6 +22,7 @@ const normalizeCatalogProduct = (raw: unknown): Product => {
 };
 
 export function useProducts() {
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,29 +31,23 @@ export function useProducts() {
     try {
       setLoading(true);
       const data = await apiFetch<Product[]>("/api/products");
-
-      if (Array.isArray(data) && data.length > 0) {
-        setProducts(data.map(normalizeCatalogProduct));
-      } else {
-        console.warn("📦 [LocalDB] Nenhum produto no banco. Usando dados Mock para teste visual.");
-        setProducts(MOCK_PRODUCTS);
-      }
-
+      setProducts(Array.isArray(data) ? data.map(normalizeCatalogProduct) : []);
       setError(null);
     } catch (err: unknown) {
-      console.error("[useProducts.fetchProducts] Falha ao carregar produtos:", err);
-      setProducts(MOCK_PRODUCTS);
-      setError(null);
+      const message =
+        err instanceof Error ? err.message : "Não foi possível carregar os produtos da loja.";
+      setProducts([]);
+      setError(message);
+      showToast({ type: "error", message });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     void fetchProducts();
   }, [fetchProducts]);
 
-  /** Página restaurada do bfcache do navegador: estado antigo seria exibido sem novo GET. */
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) void fetchProducts();

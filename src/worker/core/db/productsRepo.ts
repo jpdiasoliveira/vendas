@@ -26,15 +26,21 @@ export async function countProductsByStore(env: Env, storeId: string): Promise<n
 }
 
 export async function getProductsByStore(env: Env, storeId: string): Promise<Product[]> {
-  const supabase = getSupabase(env);
-  const { data: rows, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT_WITH_CATEGORY)
-    .eq("store_id", storeId)
-    .order("name", { ascending: true });
+  try {
+    const supabase = getSupabase(env);
+    const { data: rows, error } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT_WITH_CATEGORY)
+      .eq("store_id", storeId)
+      .order("name", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  return (rows ?? []).map((r) => rowToProduct(r as Record<string, unknown>));
+    if (!error && rows) {
+      return rows.map((r) => rowToProduct(r as Record<string, unknown>));
+    }
+  } catch (e) {
+    console.warn("[getProductsByStore] Supabase query failed:", e);
+  }
+  return [];
 }
 
 export async function getProductById(
@@ -42,15 +48,32 @@ export async function getProductById(
   productId: string,
   storeId: string
 ): Promise<Product | null> {
+  const map = await getProductsByIds(env, [productId], storeId);
+  return map.get(productId) ?? null;
+}
+
+export async function getProductsByIds(
+  env: Env,
+  productIds: string[],
+  storeId: string
+): Promise<Map<string, Product>> {
+  const uniqueIds = [...new Set(productIds.filter((id) => id.trim().length > 0))];
+  const map = new Map<string, Product>();
+  if (uniqueIds.length === 0) return map;
+
   const supabase = getSupabase(env);
-  const { data: row, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("products")
     .select(PRODUCT_SELECT_WITH_CATEGORY)
-    .eq("id", productId)
     .eq("store_id", storeId)
-    .maybeSingle();
+    .in("id", uniqueIds);
+
   if (error) throw new Error(error.message);
-  return row ? rowToProduct(row as Record<string, unknown>) : null;
+  for (const row of rows ?? []) {
+    const product = rowToProduct(row as Record<string, unknown>);
+    map.set(product.id, product);
+  }
+  return map;
 }
 
 export async function getTrendingProductIds(env: Env, storeId: string): Promise<string[]> {
@@ -192,16 +215,33 @@ export async function getProductStock(
   productId: string,
   storeId: string
 ): Promise<number | null> {
+  const stocks = await getProductStocksByIds(env, [productId], storeId);
+  return stocks.has(productId) ? stocks.get(productId)! : null;
+}
+
+export async function getProductStocksByIds(
+  env: Env,
+  productIds: string[],
+  storeId: string
+): Promise<Map<string, number | null>> {
+  const uniqueIds = [...new Set(productIds.filter((id) => id.trim().length > 0))];
+  const map = new Map<string, number | null>();
+  if (uniqueIds.length === 0) return map;
+
   const supabase = getSupabase(env);
-  const { data: row, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("products")
-    .select("stock")
-    .eq("id", productId)
+    .select("id, stock")
     .eq("store_id", storeId)
-    .maybeSingle();
-  if (error) return null;
-  if (row == null) return null;
-  return row.stock != null ? Number(row.stock) : 0;
+    .in("id", uniqueIds);
+
+  if (error) throw new Error(error.message);
+  for (const row of rows ?? []) {
+    const id = String((row as { id: string }).id);
+    const stock = (row as { stock: number | null }).stock;
+    map.set(id, stock != null ? Number(stock) : 0);
+  }
+  return map;
 }
 
 export async function validateOrderStock(
@@ -209,8 +249,13 @@ export async function validateOrderStock(
   storeId: string,
   items: CartItemPayload[]
 ): Promise<void> {
+  const stocks = await getProductStocksByIds(
+    env,
+    items.map((item) => item.id),
+    storeId
+  );
   for (const item of items) {
-    const available = await getProductStock(env, item.id, storeId);
+    const available = stocks.get(item.id) ?? null;
     const required = item.quantity;
     const name = item.name?.trim() || "Produto";
     if (available === null || available < required) {
@@ -236,9 +281,14 @@ export async function resolveOrderLinesForCheckout(
   storeId: string,
   items: CartItemPayload[]
 ): Promise<ResolvedCheckoutLine[]> {
+  const products = await getProductsByIds(
+    env,
+    items.map((item) => item.id),
+    storeId
+  );
   const lines: ResolvedCheckoutLine[] = [];
   for (const item of items) {
-    const p = await getProductById(env, item.id, storeId);
+    const p = products.get(item.id);
     const label = item.name?.trim() || "Produto";
     if (!p) {
       throw new OrderBusinessError(`Produto não encontrado: ${label}`);

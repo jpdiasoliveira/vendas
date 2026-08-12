@@ -1,8 +1,6 @@
 interface Env {
   /** `production` | `prod` ativa endurecimento (ex.: webhook MP exige secret). */
   ENVIRONMENT?: string;
-  MOCHA_USERS_SERVICE_API_URL: string;
-  MOCHA_USERS_SERVICE_API_KEY: string;
   MERCADO_PAGO_ACCESS_TOKEN: string;
   /**
    * Segredo da plataforma (≥16 chars) para AES-GCM das colunas mp_*_ciphertext em store_settings.
@@ -41,7 +39,7 @@ interface Env {
   PLATFORM_CREATE_STORE_SECRET?: string;
   /** API key Resend (https://resend.com). Sem ela, e-mails transacionais são ignorados silenciosamente. */
   RESEND_API_KEY?: string;
-  /** Remetente verificado no Resend, ex.: `Natfoods <pedidos@seudominio.com>`. */
+  /** Remetente verificado no Resend, ex.: `Minha Loja <pedidos@seudominio.com>`. */
   RESEND_FROM_EMAIL?: string;
   /**
    * Idade mínima (minutos) de pedidos `pending` para expirar no cron (`expire_old_orders`). Padrão 60.

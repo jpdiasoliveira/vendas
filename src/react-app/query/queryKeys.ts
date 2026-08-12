@@ -19,3 +19,30 @@ export const adminStorePaymentsQueryKey = (storeSlug: string) =>
 /** Inscritos na newsletter (admin), por loja e página. */
 export const adminNewsletterSubscribersQueryKey = (storeSlug: string, limit: number, offset: number) =>
   ["admin", "newsletter-subscribers", storeSlug, limit, offset] as const;
+
+/** Lista de pedidos (admin), por loja. */
+export const adminOrdersQueryKey = (storeSlug: string) => ["admin", "orders", storeSlug] as const;
+
+/** Detalhe de um pedido (admin), por loja e id. */
+export const adminOrderDetailQueryKey = (storeSlug: string, orderId: string) =>
+  ["admin", "orders", storeSlug, orderId] as const;
+
+/** Resumo do dashboard de pedidos (admin). */
+export const adminOrdersDashboardQueryKey = (storeSlug: string) =>
+  ["admin", "orders-dashboard", storeSlug] as const;
+
+/** Histórico de atividades (admin), por loja e filtros. */
+export const adminAuditLogsQueryKey = (storeSlug: string, search: string, actionFilter: string) =>
+  ["admin", "audit-logs", storeSlug, search, actionFilter] as const;
+
+/** Dashboard da plataforma (analytics + ranking + novas lojas/semana). */
+export const platformDashboardQueryKey = ["platform", "dashboard"] as const;
+
+/** Catálogo de planos + entitlements (operador plataforma). */
+export const platformPlansCatalogQueryKey = ["platform", "plans-catalog"] as const;
+
+/** Configurações globais da plataforma (carência de assinatura). */
+export const platformRuntimeSettingsQueryKey = ["platform", "runtime-settings"] as const;
+
+/** Lista de lojas da plataforma (gestor). */
+export const platformStoresQueryKey = ["platform", "stores"] as const;

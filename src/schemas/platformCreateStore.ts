@@ -94,3 +94,71 @@ export const platformCreateStoreBodySchema = z
   });
 
 export type PlatformCreateStoreBody = z.infer<typeof platformCreateStoreBodySchema>;
+
+/** Corpo JSON de `POST /api/platform/stores` com suporte a camelCase e snake_case. */
+export const platformCreateStoreRequestSchema = z
+  .object({
+    slug: z.string().optional(),
+    displayName: z.string().optional(),
+    display_name: z.string().optional(),
+    customDomains: z.array(z.string()).optional(),
+    custom_domains: z.array(z.string()).optional(),
+    ownerAdminName: z.string().optional(),
+    ownerAdminEmail: z.string().optional(),
+    sendPasswordSetupLink: z.boolean().optional(),
+    initialPassword: z.string().optional(),
+    planSlug: z.string().optional(),
+    plan_definition_slug: z.string().optional(),
+  })
+  .transform((body) => ({
+    slug: body.slug ?? "",
+    displayName: body.displayName ?? body.display_name ?? "",
+    customDomains: body.customDomains ?? body.custom_domains ?? [],
+    ownerAdminName: body.ownerAdminName ?? "",
+    ownerAdminEmail: body.ownerAdminEmail ?? "",
+    sendPasswordSetupLink: body.sendPasswordSetupLink ?? false,
+    initialPassword: body.initialPassword ?? "",
+    planSlug: body.planSlug ?? body.plan_definition_slug ?? "tier_base",
+  }))
+  .pipe(platformCreateStoreBodySchema);
+
+/** Campos do formulário (RHF) antes da transformação para o corpo da API. */
+export const platformCreateStoreFormBaseSchema = z.object({
+  displayName: z.string(),
+  slug: z.string(),
+  customDomainInput: z.string(),
+  ownerAdminName: z.string(),
+  ownerAdminEmail: z.string(),
+  sendPasswordSetupLink: z.boolean(),
+  initialPassword: z.string(),
+  planSlug: z.enum(PLATFORM_PLAN_SLUGS),
+});
+
+export const platformCreateStoreFormSchema = platformCreateStoreFormBaseSchema
+  .transform((val) => ({
+    slug: val.slug || normalizeStoreSlugInput(val.displayName),
+    displayName: val.displayName.trim(),
+    customDomains: val.customDomainInput
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean),
+    ownerAdminName: val.ownerAdminName.trim(),
+    ownerAdminEmail: val.ownerAdminEmail.trim(),
+    sendPasswordSetupLink: val.sendPasswordSetupLink,
+    initialPassword: val.sendPasswordSetupLink ? "" : val.initialPassword,
+    planSlug: val.planSlug,
+  }))
+  .pipe(platformCreateStoreBodySchema);
+
+export type PlatformCreateStoreFormValues = z.infer<typeof platformCreateStoreFormBaseSchema>;
+
+export const defaultPlatformCreateStoreFormValues: PlatformCreateStoreFormValues = {
+  displayName: "",
+  slug: "",
+  customDomainInput: "",
+  ownerAdminName: "",
+  ownerAdminEmail: "",
+  sendPasswordSetupLink: false,
+  initialPassword: "",
+  planSlug: "tier_base",
+};

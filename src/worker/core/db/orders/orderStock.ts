@@ -3,7 +3,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
-import { getProductById, getProductStock, updateProduct } from "../productsRepo.js";
+import { getProductStocksByIds, getProductsByIds, updateProduct } from "../productsRepo.js";
 import { getOrderItemsByOrderAndStore } from "./orderReads.js";
 import { logServerError } from "../../../utils/safeApiError.js";
 import { orderHasStockReservedAtCreate } from "./orderStatusHelpers.js";
@@ -44,11 +44,13 @@ export async function assertStockOkForPaymentIntent(
 ): Promise<void> {
   const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
   const reserved = orderHasStockReservedAtCreate(orderMetadata);
+  const productIds = items.map((item) => item.productId).filter((id): id is string => !!id);
+  const products = await getProductsByIds(env, productIds, storeId);
 
   for (const item of items) {
     if (!item.productId) continue;
     const label = item.productName?.trim() || "Produto";
-    const p = await getProductById(env, item.productId, storeId);
+    const p = products.get(item.productId);
     if (!p) {
       throw new OrderBusinessError(
         `O produto «${label}» já não está disponível nesta loja. Contacte o suporte ou refaça o pedido.`
@@ -117,10 +119,13 @@ export async function cancelOrderForInsufficientStockAfterPayment(
 /** Fallback não-atómico se a RPC `restore_stock_for_order` ainda não estiver aplicada no projeto. */
 async function increaseStockForOrderLegacyLoop(env: Env, orderId: string, storeId: string): Promise<void> {
   const items = await getOrderItemsByOrderAndStore(env, orderId, storeId);
+  const productIds = items.map((item) => item.productId).filter((id): id is string => !!id);
+  const stocks = await getProductStocksByIds(env, productIds, storeId);
+
   for (const item of items) {
     if (!item.productId) continue;
     try {
-      const current = await getProductStock(env, item.productId, storeId);
+      const current = stocks.get(item.productId) ?? null;
       if (current === null) {
         logServerError(
           "increaseStockForOrderLegacyLoop.product_missing",

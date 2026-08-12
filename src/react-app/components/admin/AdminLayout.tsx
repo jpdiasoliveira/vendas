@@ -1,23 +1,10 @@
 import { Outlet } from "react-router";
 import { AdminNav } from "@/react-app/components/admin/AdminNav";
-import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
-import { isStoreLogoKnockoutWhite } from "@/react-app/utils/storeLogoDisplay";
 
-/**
- * Painel da loja: nav fixa no topo (uma montagem) e conteúdo nas sub-rotas via Outlet.
- */
-export const AdminLayout = () => {
-  const { settings } = useStoreSettings();
-  const logoKnockoutBlend =
-    Boolean(settings?.logoUrl?.trim()) && isStoreLogoKnockoutWhite(settings);
-  const headerSurface = logoKnockoutBlend
-    ? "border-b border-[color:var(--brand-primary)]/10 bg-[#FAF8F3] px-2.5 py-2 sm:px-3 sm:py-2 lg:px-4"
-    : "border-b border-[color:var(--brand-primary)]/10 bg-[#FAF8F3]/95 px-2.5 py-2 backdrop-blur-md sm:px-3 sm:py-2 lg:px-4";
-
-  return (
-  <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]">
-    {/* Mesmo padding horizontal e largura máxima do conteúdo abaixo — borda esquerda/direita alinhada ao menu. */}
-    <header className={`sticky top-0 z-40 ${headerSurface}`}>
+/** Painel da loja — shell dark mode; conteúdo nas sub-rotas via Outlet. */
+export const AdminLayout = () => (
+  <div className="flex min-h-screen flex-col bg-surface">
+    <header className="sticky top-0 z-40 border-b border-brand-primary/10 bg-surface-elevated/95 px-2.5 py-2 backdrop-blur-md sm:px-3 lg:px-4">
       <div className="mx-auto w-full max-w-[min(100%,1920px)]">
         <AdminNav />
       </div>
@@ -28,5 +15,4 @@ export const AdminLayout = () => {
       </div>
     </main>
   </div>
-  );
-};
+);

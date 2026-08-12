@@ -41,14 +41,11 @@ Referência rápida: **método**, **path**, **headers obrigatórios**, **body** 
 | GET | `/api/admin/orders/:id` | — | `OrderDetail` | Pedido com itens. |
 | PATCH | `/api/admin/orders/:id/status` | `{ status: string }` | `{ status: string }` | Atualiza status do pedido. Valores aceitos (sempre em inglês): `pending`, `paid`, `shipped`, `cancelled` (com dois L). |
 
-### Auth (Mocha) — Sem store
+### Auth — Sem store
 
-| Método | Path | Resposta | Observação |
-|--------|------|----------|------------|
-| GET | `/api/oauth/google/redirect_url` | `{ success: true, data: { redirectUrl: string } }` | Padrão envelope. |
-| POST | `/api/sessions` | `{ success: true, data: { ok: true } }` | Body: `{ code: string }`. |
-| GET | `/api/users/me` | **Body direto:** `User \| null` (não usa envelope `{ success, data }`). | Exceção ao padrão. |
-| GET | `/api/logout` | `{ success: true, data: { ok: true } }` | — |
+| Método | Path | Body | Resposta `data` | Observação |
+|--------|------|------|------------------|------------|
+| POST | `/api/login` | `{ email: string, password: string }` | `{ access_token, refresh_token, user? }` | Proxy Supabase Auth com rate limit por IP. |
 
 ### Outros
 

@@ -15,6 +15,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import {
   login as serviceLogin,
+  loginWithGoogle as serviceLoginWithGoogle,
   logout as serviceLogout,
   type UserContext,
 } from "@/react-app/services/auth.service";
@@ -32,6 +33,7 @@ export type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
 };
@@ -92,6 +94,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await serviceLogin(email, password);
   }, []);
 
+  // signInWithGoogle: delega ao serviço de auth (Supabase OAuth).
+  const signInWithGoogle = useCallback(async () => {
+    await serviceLoginWithGoogle();
+  }, []);
+
   // signOut: encerra sessão no cliente. useCallback: não recriar função a cada render do Provider.
   const signOut = useCallback(async () => {
     await serviceLogout();
@@ -113,10 +120,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session,
       loading,
       signIn,
+      signInWithGoogle,
       signOut,
       getAccessToken,
     }),
-    [user, session, loading, signIn, signOut, getAccessToken]
+    [user, session, loading, signIn, signInWithGoogle, signOut, getAccessToken]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

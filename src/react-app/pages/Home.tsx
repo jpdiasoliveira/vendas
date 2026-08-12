@@ -1,69 +1,33 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router";
-import CartModal from "@/react-app/components/checkout/CartModal";
-import GuestOrderLookupModal from "@/react-app/components/checkout/GuestOrderLookupModal";
+import CartModal from "@/react-app/components/storefront/cart/CartModal";
+import GuestOrderLookupModal from "@/react-app/components/account/lookup/GuestOrderLookupModal";
 import LoginModal from "@/react-app/components/LoginModal";
-import { Navbar } from "@/react-app/components/layout/Navbar";
-import { Footer } from "@/react-app/components/layout/Footer";
-import { Hero } from "@/react-app/components/home/Hero";
-import { ProductGrid } from "@/react-app/components/home/ProductGrid";
-import { Story } from "@/react-app/components/home/Story";
-import { Lifestyle } from "@/react-app/components/home/Lifestyle";
-import { Benefits } from "@/react-app/components/home/Benefits";
-import { Newsletter } from "@/react-app/components/home/Newsletter";
-import { useProducts } from "@/react-app/hooks/useProducts";
-import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
+import { StorefrontShell } from "@/react-app/components/storefront/layout/StorefrontShell";
+import { StorefrontHomeContent } from "@/react-app/components/storefront/StorefrontHomeContent";
+import { useHomePage } from "@/react-app/hooks/storefront/useHomePage";
 
 export default function HomePage() {
-  const location = useLocation();
-  const prevPathRef = useRef<string | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [guestOrderLookupOpen, setGuestOrderLookupOpen] = useState(false);
-  const { products, loading, error, refetch } = useProducts();
-  const trendingProductIds = useTrendingProductIds();
-
-  /** Ao voltar do admin (ou outra rota), recarrega catálogo — evita lista antiga em memória. */
-  useEffect(() => {
-    const prev = prevPathRef.current;
-    prevPathRef.current = location.pathname;
-    if (location.pathname !== "/") return;
-    if (prev !== null && prev !== "/") void refetch();
-  }, [location.pathname, refetch]);
-
-  const scrollToProducts = () => {
-    const el = document.getElementById("produtos");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const home = useHomePage();
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3]">
-      <Navbar
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenLogin={() => setShowLoginModal(true)}
-        onOpenGuestOrderLookup={() => setGuestOrderLookupOpen(true)}
-        scrollToProducts={scrollToProducts}
-        scrollToTop={scrollToTop}
+    <StorefrontShell>
+      <StorefrontHomeContent
+        products={home.products}
+        loading={home.loading}
+        error={home.error}
+        trendingProductIds={home.trendingProductIds}
+        onOpenCart={() => home.setIsCartOpen(true)}
+        onOpenLogin={() => home.setShowLoginModal(true)}
+        onOpenGuestOrderLookup={() => home.setGuestOrderLookupOpen(true)}
+        scrollToProducts={home.scrollToProducts}
+        scrollToTop={home.scrollToTop}
       />
 
-      <Hero onShopClick={scrollToProducts} />
-      <ProductGrid
-        products={products}
-        loading={loading}
-        error={error}
-        trendingProductIds={trendingProductIds}
+      <CartModal isOpen={home.isCartOpen} onClose={() => home.setIsCartOpen(false)} />
+      <LoginModal isOpen={home.showLoginModal} onClose={() => home.setShowLoginModal(false)} />
+      <GuestOrderLookupModal
+        isOpen={home.guestOrderLookupOpen}
+        onClose={() => home.setGuestOrderLookupOpen(false)}
       />
-      <Story />
-      <Lifestyle />
-      <Benefits />
-      <Newsletter />
-      <Footer onConsultOrder={() => setGuestOrderLookupOpen(true)} />
-
-      <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
-      <GuestOrderLookupModal isOpen={guestOrderLookupOpen} onClose={() => setGuestOrderLookupOpen(false)} />
-    </div>
+    </StorefrontShell>
   );
 }

@@ -15,10 +15,10 @@ export const AdminStoreHubLayout = () => {
   return (
     <div className="w-full min-w-0">
       <div className="mb-5 border-b border-[color:var(--brand-primary)]/12 pb-3">
-        <p className="mb-0.5 font-inter text-[11px] font-semibold uppercase tracking-wide text-[#6D4C41]/75">
+        <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wide text-content-muted">
           Marca e vitrine
         </p>
-        <p className="mb-3 text-xs text-[#6D4C41]/80">
+        <p className="mb-3 text-xs text-content-muted/80">
           Aparência, textos da home, checkout público e lista de inscritos na newsletter.
         </p>
         <nav className="flex flex-wrap gap-1.5" aria-label="Secções marca e vitrine">

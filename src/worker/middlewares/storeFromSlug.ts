@@ -8,10 +8,6 @@ import type { Variables } from "../types.js";
  */
 const SKIP_STORE_PATHS = [
   "/api/webhooks",
-  "/api/oauth",
-  "/api/sessions",
-  "/api/users",
-  "/api/logout",
   "/api/login",
   "/api/health",
   "/api/platform",

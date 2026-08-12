@@ -1,37 +1,95 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
-import { useAuth } from '@getmocha/users-service/react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/react-app/services/supabase";
+import { safeInternalPath } from "@/react-app/constants/auth";
+import {
+  fetchMyStaffStores,
+  syncStaffStoreSlugAfterLogin,
+} from "@/react-app/services/api";
+
+const hashParams = () => new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+const readCallbackType = (search: URLSearchParams, hash: URLSearchParams) =>
+  hash.get("type") ?? search.get("type");
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
-  const { exchangeCodeForSessionToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
+    let cancelled = false;
+
+    const finish = (path: string) => {
+      if (!cancelled) navigate(path, { replace: true });
+    };
+
+    const run = async () => {
       try {
-        await exchangeCodeForSessionToken();
-        navigate('/');
+        const search = new URLSearchParams(window.location.search);
+        const hash = hashParams();
+        const code = search.get("code");
+
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+        } else {
+          const accessToken = hash.get("access_token");
+          const refreshToken = hash.get("refresh_token");
+          if (accessToken && refreshToken) {
+            const { error: setError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (setError) throw setError;
+          }
+        }
+
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!data.session) {
+          throw new Error("Link inválido ou expirado. Solicite um novo convite ou tente entrar novamente.");
+        }
+
+        const callbackType = readCallbackType(search, hash);
+        const next = safeInternalPath(search.get("next"));
+
+        if (callbackType === "invite" || callbackType === "recovery" || callbackType === "signup") {
+          try {
+            const staffStores = await fetchMyStaffStores();
+            syncStaffStoreSlugAfterLogin(staffStores);
+          } catch {
+            /* convite pode ainda não ter membership propagado */
+          }
+          finish(next ?? "/admin/pedidos");
+          return;
+        }
+
+        finish(next ?? "/");
       } catch (err) {
-        console.error('Authentication failed:', err);
-        setError('Falha na autenticação. Por favor, tente novamente.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Falha na autenticação. Por favor, tente novamente.");
+        }
       }
     };
 
-    handleCallback();
-  }, [exchangeCodeForSessionToken, navigate]);
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] flex items-center justify-center px-4">
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-2xl max-w-md w-full text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface px-4">
+        <div className="w-full max-w-md rounded-3xl border border-brand-primary/15 bg-surface-elevated p-8 text-center shadow-2xl">
+          <p className="mb-4 text-sm text-red-300">{error}</p>
           <button
-            onClick={() => navigate('/')}
-            className="bg-gradient-to-r from-[#FFD166] to-[#FFE084] text-[#1B4332] px-6 py-3 rounded-full font-bold hover:shadow-xl transition-all duration-300"
+            type="button"
+            onClick={() => navigate("/login", { replace: true })}
+            className="rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
           >
-            Voltar para Home
+            Ir para o login
           </button>
         </div>
       </div>
@@ -39,10 +97,10 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F3] via-[#F5F1E8] to-[#FAF8F3] flex items-center justify-center">
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 border border-white/50 shadow-2xl text-center">
-        <Loader2 className="h-12 w-12 text-[#1B4332] animate-spin mx-auto mb-4" />
-        <p className="text-[#1B4332] font-inter text-lg">Autenticando...</p>
+    <div className="flex min-h-screen items-center justify-center bg-surface">
+      <div className="rounded-3xl border border-brand-primary/15 bg-surface-elevated p-12 text-center shadow-2xl">
+        <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-brand-primary" aria-hidden />
+        <p className="font-body text-lg text-content">Autenticando…</p>
       </div>
     </div>
   );

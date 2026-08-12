@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/react-app/providers/ToastProvider";
 import { apiFetch } from "@/react-app/services/api";
 import type { Order } from "@/react-app/types";
 
 export function useOrders(userAuthLoaded: boolean) {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /** Busca a lista de pedidos do usuário na loja atual. */
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -17,16 +18,16 @@ export function useOrders(userAuthLoaded: boolean) {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Erro ao carregar os pedidos. Tente novamente.";
-      console.error("[useOrders.fetchOrders] Falha ao carregar pedidos:", err);
       setError(message);
+      showToast({ type: "error", message });
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
-    if (userAuthLoaded) fetchOrders();
-  }, [userAuthLoaded]);
+    if (userAuthLoaded) void fetchOrders();
+  }, [userAuthLoaded, fetchOrders]);
 
   return { orders, loading, error, refreshOrders: fetchOrders };
 }

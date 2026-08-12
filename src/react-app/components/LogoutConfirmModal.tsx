@@ -16,40 +16,41 @@ export default function LogoutConfirmModal({ isOpen, onClose, onConfirm }: Logou
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-[#1B4332]/60 backdrop-blur-sm"
+      <button
+        type="button"
+        aria-label="Fechar confirmação"
+        className="absolute inset-0 bg-surface/75 backdrop-blur-sm"
         onClick={onClose}
-        aria-hidden
       />
       <div
-        className="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-white/50 font-inter"
+        className="relative w-full max-w-sm rounded-3xl border border-brand-primary/15 bg-surface-elevated p-8 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="logout-title"
       >
-        <div className="flex justify-center mb-4">
-          <div className="rounded-full bg-red-50 p-3">
-            <LogOut className="h-8 w-8 text-red-600" />
+        <div className="mb-4 flex justify-center">
+          <div className="rounded-full bg-red-500/15 p-3">
+            <LogOut className="h-8 w-8 text-red-400" aria-hidden />
           </div>
         </div>
-        <h2 id="logout-title" className="text-xl font-bold text-[#1B4332] text-center mb-2">
+        <h2 id="logout-title" className="mb-2 text-center font-display text-xl font-bold text-content">
           Sair da conta?
         </h2>
-        <p className="text-[#6D4C41] text-center text-sm mb-6">
+        <p className="mb-6 text-center text-sm text-content-muted">
           Tem certeza que deseja sair? Você precisará fazer login novamente.
         </p>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#6D4C41] bg-white border border-[#1B4332]/20 hover:bg-[#FAF8F3] transition-colors"
+            className="flex-1 rounded-xl border border-brand-primary/20 bg-surface-elevated py-2.5 text-sm font-medium text-content-muted transition hover:bg-surface-muted hover:text-content"
           >
             Cancelar
           </button>
           <button
             type="button"
-            onClick={handleConfirm}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+            onClick={() => void handleConfirm()}
+            className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-medium text-white transition hover:bg-red-700"
           >
             Sair
           </button>

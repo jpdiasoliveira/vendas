@@ -22,16 +22,22 @@ function slugFromName(name: string): string {
 }
 
 export async function getCategoriesByStore(env: Env, storeId: string): Promise<Category[]> {
-  const supabase = getSupabase(env);
-  const { data: rows, error } = await supabase
-    .from("categories")
-    .select(CATEGORY_SELECT)
-    .eq("store_id", storeId)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
+  try {
+    const supabase = getSupabase(env);
+    const { data: rows, error } = await supabase
+      .from("categories")
+      .select(CATEGORY_SELECT)
+      .eq("store_id", storeId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  return (rows ?? []).map((r) => rowToCategory(r as Record<string, unknown>));
+    if (!error && rows) {
+      return rows.map((r) => rowToCategory(r as Record<string, unknown>));
+    }
+  } catch (e) {
+    console.warn("[getCategoriesByStore] Supabase query failed:", e);
+  }
+  return [];
 }
 
 export async function getCategoryByIdAndStore(

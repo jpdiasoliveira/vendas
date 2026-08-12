@@ -56,6 +56,19 @@ export async function login(email: string, password: string): Promise<{ user: Us
 }
 
 /**
+ * Login com Google via OAuth.
+ */
+export async function loginWithGoogle(): Promise<void> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+  if (error) throw error;
+}
+
+/**
  * Encerra a sessão atual (limpa localStorage do Supabase).
  */
 export async function logout(): Promise<void> {

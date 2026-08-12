@@ -53,7 +53,7 @@ app.route('/api/products', products);
 app.route('/api/orders', orders);
 app.route("/api/shipping", shipping);
 app.route("/api/coupons", coupons);
-app.route('/api', auth); // Utiliza '/api' base para suportar urls nativas curtas ex: '/api/users/me'
+app.route("/api", auth);
 app.route("/api/me", me);
 app.route("/api/webhooks", webhooks);
 app.route("/api/admin", admin);

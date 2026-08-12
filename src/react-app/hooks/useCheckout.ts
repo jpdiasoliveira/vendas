@@ -1,35 +1,29 @@
 import { useState } from "react";
 import { apiFetch } from "@/react-app/services/api";
 import type { OrderWithItems } from "@/react-app/types";
+import type { CheckoutApiLine } from "@/react-app/utils/checkoutPayload";
+import type { CreateOrderResponse, ProcessPaymentResponse } from "@/react-app/types/checkout";
 
-interface CreateOrderData {
-  orderId: string;
-  status: string;
-  total: number;
-  /** true quando o servidor reconheceu replay da mesma Idempotency-Key. */
-  idempotent?: boolean;
-}
+export type CreateOrderOptions = {
+  customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  guestEmail?: string;
+  shippingPostalCode?: string;
+  couponCode?: string;
+  idempotencyKey?: string;
+};
 
 export const useCheckout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /** Cria pedido com itens e opcionalmente nome, telefone e endereço. */
-  const createOrder = async (
-    items: { id: string; name: string; price: number; quantity: number; image?: string; imageUrl?: string }[],
-    options?: {
-      customerName?: string;
-      customerPhone?: string;
-      deliveryAddress?: string;
-      guestEmail?: string;
-      shippingPostalCode?: string;
-      couponCode?: string;
-    }
-  ) => {
+  const createOrder = async (items: CheckoutApiLine[], options?: CreateOrderOptions) => {
     setIsProcessing(true);
     setError(null);
     try {
-      const idempotencyKey = crypto.randomUUID();
+      const idempotencyKey = options?.idempotencyKey ?? crypto.randomUUID();
       const body: Record<string, unknown> = { items, idempotencyKey };
       if (options?.customerName?.trim()) body.customerName = options.customerName.trim();
       if (options?.customerPhone?.trim()) body.customerPhone = options.customerPhone.trim();
@@ -37,7 +31,7 @@ export const useCheckout = () => {
       if (options?.guestEmail?.trim()) body.guestEmail = options.guestEmail.trim();
       if (options?.shippingPostalCode?.trim()) body.shippingPostalCode = options.shippingPostalCode.trim();
       if (options?.couponCode?.trim()) body.couponCode = options.couponCode.trim();
-      const data = await apiFetch<CreateOrderData>("/api/orders", {
+      const data = await apiFetch<CreateOrderResponse>("/api/orders", {
         method: "POST",
         headers: { "Idempotency-Key": idempotencyKey },
         body: JSON.stringify(body),
@@ -56,30 +50,12 @@ export const useCheckout = () => {
   const processPayment = async (
     orderId: string,
     paymentMethod: string,
-    guestEmail?: string | null
-  ): Promise<{
-    orderId?: string;
-    pixCode?: string;
-    qrCodeBase64?: string;
-    copyPaste?: string;
-    qr_code?: string;
-    qr_code_base64?: string;
-    ticket_url?: string;
-    init_point?: string;
-  }> => {
+    guestEmail?: string | null,
+  ): Promise<ProcessPaymentResponse> => {
     setIsProcessing(true);
     setError(null);
     try {
-      const data = await apiFetch<{
-        orderId?: string;
-        pixCode?: string;
-        qrCodeBase64?: string;
-        copyPaste?: string;
-        qr_code?: string;
-        qr_code_base64?: string;
-        ticket_url?: string;
-        init_point?: string;
-      }>(`/api/orders/${orderId}/payment`, {
+      const data = await apiFetch<ProcessPaymentResponse>(`/api/orders/${orderId}/payment`, {
         method: "POST",
         body: JSON.stringify({
           payment_method: paymentMethod,

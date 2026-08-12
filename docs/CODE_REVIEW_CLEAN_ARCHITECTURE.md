@@ -46,10 +46,10 @@ Não há imports do React ou de `react-app` no Worker. **Bom:** o backend não c
 | Ponto | Situação | Sugestão |
 |-------|----------|----------|
 | **Contrato por rota** | Não existe um único lugar que diga “GET /api/products retorna `Product[]` dentro de `data`”. Quem lê o código precisa abrir as rotas e o schema. | Criar um arquivo de **contrato de API** (ex.: `api-contract.d.ts` ou doc) listando método, path, body (se houver) e tipo de `data`. |
-| **Auth /users/me** | Retorna `user` ou `null` direto, **sem** envelope `{ success, data }`. Inconsistente com o resto da API. | Documentar no contrato; idealmente padronizar para `{ success, data }` ou deixar explícito que essa rota é “legada”/Mocha. |
+| **Auth /api/login** | Resposta usa envelope `{ success, data }` com tokens Supabase. | Documentado em `docs/api-contract.md`. |
 | **Respostas de pagamento PIX** | Em `useCheckout.ts` o tipo do retorno de payment tem vários nomes possíveis (`pixCode`, `qr_code`, `copyPaste`, etc.). | Ter um tipo único no contrato (ex.: `PixPaymentResponse`) com campos canônicos e comentários (ex.: “QR Code em base64”, “Copia e Cola”). |
 | **OrderWithItems** | Definido no frontend como `Order & { items?: OrderItem[] }`, enquanto o Worker já expõe `OrderDetail` (pedido + itens). | Preferir **um único tipo** no contrato (ex.: usar `OrderDetail` como tipo de “pedido com itens”) e reutilizar no frontend. |
-| **Variáveis do Hono** | `Variables.user` está como `AuthUser | unknown`; em rotas de orders usa-se `c.get("user") as { id: string }`. | Tipar melhor por “tipo de rota” ou documentar no Worker que em `/api/orders` o `user` vem do Mocha e em `/api/admin` do verifyAuth. |
+| **Variáveis do Hono** | `Variables.user` está como `AuthUser | unknown`; em rotas de orders usa-se `c.get("user") as { id: string }`. | Tipar melhor por “tipo de rota”; em `/api/admin` e `/api/platform` o `user` vem do JWT Supabase via `verifyAuth` / `verifyPlatformOperator`. |
 
 ### 2.3 Autodocumentação para outro desenvolvedor
 

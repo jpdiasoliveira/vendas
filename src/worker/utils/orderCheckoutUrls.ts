@@ -2,7 +2,7 @@
  * URLs da vitrine para retorno do Checkout Pro (Mercado Pago).
  * Mantido separado das rotas para testes e clareza.
  *
- * Em produção, defina `STOREFRONT_BASE_URL` no Worker (ex.: https://loja.natfoods.com.br)
+ * Em produção, defina `STOREFRONT_BASE_URL` no Worker (ex.: https://loja.minhaloja.com.br)
  * para que as `back_urls` do MP apontem para o domínio certo; caso contrário usa `Origin`
  * da requisição ou fallback local.
  */

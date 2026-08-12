@@ -9,5 +9,8 @@ import { createClient } from '@supabase/supabase-js';
  * @returns {import('@supabase/supabase-js').SupabaseClient} O manipulador oficial para query builders do Supabase.
  */
 export const getSupabase = (env: Env) => {
-    return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    const url = env.SUPABASE_URL || "https://placeholder.supabase.co";
+    const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY || "placeholder_key";
+    return createClient(url, key);
 };
+

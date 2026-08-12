@@ -1,10 +1,12 @@
 ## Natfoods - Chips da Amazônia
 
-This app was created using https://getmocha.com.
-Need help or want to join the community? Join our [Discord](https://discord.gg/shDEGBSe2d).
+SaaS multi-loja com vitrine, painel do lojista e central da plataforma.
 
 To run the devserver:
+
 ```
 npm install
 npm run dev
 ```
+
+Em paralelo, inicie o Worker: `npx wrangler dev` (porta 8787) para as rotas `/api/*`.

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fallback neutro até StoreSettings aplicar tokens da loja (evita “flash” de outra marca). */
+/* Design tokens — cores dinâmicas da loja + superfícies da nova vitrine */
 :root {
   --brand-primary: #334155;
   --brand-primary-rgb: 51, 65, 85;
@@ -12,103 +12,52 @@
   --brand-secondary: #94a3b8;
   --brand-surface: #f8fafc;
   --brand-text: #334155;
-}
 
-@layer utilities {
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0) scale(1);
-    }
-    50% {
-      transform: translateY(-20px) scale(1.05);
-    }
-  }
-
-  @keyframes zoom {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-}
-
-/* Smooth scrolling + mobile: evita arrastar layout horizontal (Padrão Ktech / mobile-first).
-   Usar clip em vez de hidden: hidden+visible força overflow-y:auto e quebra position:sticky em várias árvores. */
-html {
-  scroll-behavior: smooth;
-  overflow-x: clip;
+  --ds-surface: #0b0f14;
+  --ds-surface-muted: #111820;
+  --ds-surface-elevated: #161d27;
+  --ds-content: #f4f7fb;
+  --ds-content-muted: #9aa8b8;
+  --ds-accent: var(--brand-primary);
+  --ds-accent-soft: rgba(var(--brand-primary-rgb), 0.12);
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
+
   body {
-    @apply font-inter text-base antialiased;
-    color: var(--brand-text, #6D4C41);
+    @apply font-body text-base antialiased;
+    color: var(--ds-content);
+    background-color: var(--ds-surface);
     overflow-x: clip;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
+@layer utilities {
+  .scrollbar-slim {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--brand-primary-rgb), 0.32) rgba(var(--brand-primary-rgb), 0.06);
+  }
 
-::-webkit-scrollbar-track {
-  background: #FAF8F3;
-}
+  .scrollbar-slim::-webkit-scrollbar {
+    width: 5px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--brand-primary, #1B4332), var(--brand-primary-hover, #123325));
-  border-radius: 10px;
-}
+  .scrollbar-slim::-webkit-scrollbar-track {
+    margin: 10px 0;
+    background: rgba(var(--brand-primary-rgb), 0.06);
+    border-radius: 999px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--brand-primary-hover, #123325), var(--brand-primary, #1B4332));
-}
+  .scrollbar-slim::-webkit-scrollbar-thumb {
+    background: rgba(var(--brand-primary-rgb), 0.28);
+    border-radius: 999px;
+  }
 
-/* Rolagem discreta em modais (evita o thumb grosso/verde do estilo global em painéis estreitos) */
-.scrollbar-slim {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.32)
-    rgba(var(--brand-primary-rgb, 27, 67, 50), 0.06);
-}
-
-.scrollbar-slim::-webkit-scrollbar {
-  width: 5px;
-}
-
-.scrollbar-slim::-webkit-scrollbar-track {
-  margin: 10px 0;
-  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.06);
-  border-radius: 999px;
-}
-
-.scrollbar-slim::-webkit-scrollbar-thumb {
-  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.28);
-  border-radius: 999px;
-}
-
-.scrollbar-slim::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--brand-primary-rgb, 27, 67, 50), 0.45);
-}
-
-/* Glassmorphism utility */
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--brand-primary, #1B4332), #FFD166);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  .scrollbar-slim::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--brand-primary-rgb), 0.45);
+  }
 }

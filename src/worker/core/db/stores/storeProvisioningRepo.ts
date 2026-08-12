@@ -7,6 +7,7 @@
  */
 
 import { getSupabase } from "../../supabase.js";
+import { DEFAULT_BRAND_PRIMARY } from "../../../../constants/brandDefaults.js";
 import { parsePublicProfile, toPublicProfileJson } from "../../../../contracts/storePublicProfile.js";
 import { seedDefaultCatalog } from "./storeOnboardingSeed.js";
 import { isMissingStoreDomainsTable, normalizeStoreDomainInput } from "./storeDomainHelpers.js";
@@ -172,7 +173,7 @@ export async function createStoreWithOwner(
   const { error: setErr } = await supabase.from("store_settings").insert({
     store_id: storeId,
     logo_url: null,
-    primary_color: "#1B4332",
+    primary_color: DEFAULT_BRAND_PRIMARY,
     minimum_order_value: null,
     public_profile: toPublicProfileJson(parsePublicProfile({})),
     theme: {},

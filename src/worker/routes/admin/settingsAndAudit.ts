@@ -1,3 +1,4 @@
+import { zValidator } from "@hono/zod-validator";
 import {
   getAuditLogs,
   getStoreSettingsWithDisplayName,
@@ -5,6 +6,7 @@ import {
 } from "../../core/database.js";
 import { getSupabase } from "../../core/supabase.js";
 import { parsePublicProfile } from "../../../contracts/storePublicProfile.js";
+import { adminSettingsPatchSchema } from "../../schemas/adminSettings.js";
 import type { AuthUser } from "../../middlewares/verifyAuth.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
@@ -12,6 +14,7 @@ import {
   BUCKET_PRODUCT_IMAGES,
   requireAdminOrOwner,
   uniqueFileName,
+  zodErrorToMessage,
 } from "./helpers.js";
 import type { AdminHono } from "./types.js";
 
@@ -37,46 +40,39 @@ export const registerAdminSettingsAndAuditRoutes = (admin: AdminHono): void => {
     }
   });
 
-  admin.patch("/settings", async (c) => {
-    if (!requireAdminOrOwner(c)) {
-      return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
+  admin.patch(
+    "/settings",
+    zValidator("json", adminSettingsPatchSchema, (result, c) => {
+      if (!result.success) {
+        return c.json({ success: false, error: zodErrorToMessage(result.error) }, 400);
+      }
+    }),
+    async (c) => {
+      if (!requireAdminOrOwner(c)) {
+        return c.json({ success: false, error: "Acesso restrito a administradores ou proprietários" }, 403);
+      }
+      const store = requireStoreContext(c);
+      if (store instanceof Response) return store;
+      try {
+        const body = c.req.valid("json");
+        await updateStoreSettingsAndDisplayName(c.env, store.id, {
+          displayName: body.displayName,
+          logoUrl: body.logoUrl,
+          bannerUrl: body.bannerUrl,
+          primaryColor: body.primaryColor,
+          minimumOrderValue: body.minimumOrderValue,
+          ...(body.theme !== undefined ? { theme: body.theme } : {}),
+          publicProfile:
+            body.publicProfile !== undefined ? parsePublicProfile(body.publicProfile) : undefined,
+        });
+        const data = await getStoreSettingsWithDisplayName(c.env, store.id);
+        return c.json({ success: true, data }, 200);
+      } catch (err: unknown) {
+        logServerError("admin.patch /settings", err);
+        return c.json({ success: false, error: genericServerErrorMessage() }, 500);
+      }
     }
-    const store = requireStoreContext(c);
-    if (store instanceof Response) return store;
-    try {
-      const body = (await c.req.json()) as {
-        displayName?: string | null;
-        logoUrl?: string | null;
-        bannerUrl?: string | null;
-        primaryColor?: string | null;
-        minimumOrderValue?: number | null;
-        publicProfile?: unknown;
-        theme?: unknown;
-      };
-      await updateStoreSettingsAndDisplayName(c.env, store.id, {
-        displayName: body.displayName,
-        logoUrl: body.logoUrl,
-        bannerUrl: body.bannerUrl,
-        primaryColor: body.primaryColor,
-        minimumOrderValue: body.minimumOrderValue,
-        ...(body.theme !== undefined
-          ? {
-              theme:
-                body.theme === null
-                  ? null
-                  : (body.theme as Record<string, unknown> | null | undefined),
-            }
-          : {}),
-        publicProfile:
-          body.publicProfile !== undefined ? parsePublicProfile(body.publicProfile) : undefined,
-      });
-      const data = await getStoreSettingsWithDisplayName(c.env, store.id);
-      return c.json({ success: true, data }, 200);
-    } catch (err: unknown) {
-      logServerError("admin.patch /settings", err);
-      return c.json({ success: false, error: genericServerErrorMessage() }, 500);
-    }
-  });
+  );
 
   admin.get("/audit-logs", async (c) => {
     const user = c.get("user") as AuthUser | undefined;
@@ -146,7 +142,7 @@ export const registerAdminSettingsAndAuditRoutes = (admin: AdminHono): void => {
         return c.json({ success: false, error: genericServerErrorMessage() }, 500);
       }
       const { data: urlData } = supabase.storage.from(BUCKET_PRODUCT_IMAGES).getPublicUrl(path);
-      return c.json({ success: true, publicUrl: urlData.publicUrl }, 201);
+      return c.json({ success: true, data: { publicUrl: urlData.publicUrl } }, 201);
     } catch (err: unknown) {
       logServerError("admin.post /upload", err);
       return c.json({ success: false, error: genericServerErrorMessage() }, 500);

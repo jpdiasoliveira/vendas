@@ -1,4 +1,4 @@
-import type { StoreSettingsData } from "@/react-app/contexts/StoreSettingsContext";
+import type { StoreSettings } from "@/contracts/schema";
 
 const MIN = 20;
 const MAX = 100;
@@ -11,10 +11,10 @@ export const clampStoreLogoHeightPx = (raw: number | null | undefined): number =
   return Math.min(MAX, Math.max(MIN, Math.round(n)));
 };
 
-export const isStoreLogoKnockoutWhite = (settings: StoreSettingsData | null | undefined): boolean =>
+export const isStoreLogoKnockoutWhite = (settings: StoreSettings | null | undefined): boolean =>
   settings?.publicProfile?.logoKnockoutWhite === true;
 
-export const storeLogoHeightPx = (settings: StoreSettingsData | null | undefined): number =>
+export const storeLogoHeightPx = (settings: StoreSettings | null | undefined): number =>
   clampStoreLogoHeightPx(settings?.publicProfile?.logoHeightPx ?? undefined);
 
 /** Altura mínima da faixa da navbar para acomodar o logo + texto sem cortar. */

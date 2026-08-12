@@ -320,9 +320,10 @@ export async function adminUploadImage(file: File): Promise<{ publicUrl: string 
     console.error("[api.adminUploadImage] Upload falhou:", response.status, message);
     throw new Error(message);
   }
-  const b = body as { success?: boolean; publicUrl?: string; error?: string };
-  if (b.success === true && typeof b.publicUrl === "string") {
-    return { publicUrl: b.publicUrl };
+  const b = body as { success?: boolean; data?: { publicUrl?: string }; publicUrl?: string; error?: string };
+  const publicUrl = b.data?.publicUrl ?? b.publicUrl;
+  if (b.success === true && typeof publicUrl === "string") {
+    return { publicUrl };
   }
   throw new Error((b as { error?: string })?.error || "Resposta inválida do upload.");
 }

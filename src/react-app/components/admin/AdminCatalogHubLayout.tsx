@@ -25,7 +25,7 @@ export const AdminCatalogHubLayout = () => {
   return (
     <div className="w-full min-w-0">
       <div className="mb-4">
-        <p className="mb-2 font-inter text-[11px] font-semibold uppercase tracking-wide text-[#6D4C41]/75">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-content-muted">
           Produtos
         </p>
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">

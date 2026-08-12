@@ -202,31 +202,31 @@ export const getActionStyle = (
   if (acaoDescricao.includes("Criar")) {
     return {
       Icon: PlusCircle,
-      iconBg: "bg-[#1B4332]/15",
-      iconColor: "text-[#1B4332]",
-      borderColor: "border-[#1B4332]/30",
+      iconBg: "bg-brand-primary/15",
+      iconColor: "text-brand-primary",
+      borderColor: "border-brand-primary/30",
     };
   }
   if (acaoDescricao.includes("Excluir")) {
     return {
       Icon: Trash2,
-      iconBg: "bg-[#6D4C41]/15",
-      iconColor: "text-[#6D4C41]",
-      borderColor: "border-[#6D4C41]/30",
+      iconBg: "bg-red-500/15",
+      iconColor: "text-red-300",
+      borderColor: "border-red-500/30",
     };
   }
   if (acaoDescricao.toLowerCase().includes("rastreio")) {
     return {
       Icon: Truck,
-      iconBg: "bg-sky-100",
-      iconColor: "text-sky-800",
-      borderColor: "border-sky-300",
+      iconBg: "bg-sky-500/15",
+      iconColor: "text-sky-300",
+      borderColor: "border-sky-500/30",
     };
   }
   return {
     Icon: Pencil,
-    iconBg: "bg-[#FFD166]/40",
-    iconColor: "text-[#B8860B]",
-    borderColor: "border-[#FFD166]/60",
+    iconBg: "bg-amber-500/15",
+    iconColor: "text-amber-300",
+    borderColor: "border-amber-500/30",
   };
 };

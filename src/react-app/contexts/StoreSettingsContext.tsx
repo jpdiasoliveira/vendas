@@ -85,12 +85,16 @@ export const StoreSettingsProvider = ({ children }: { children: ReactNode }) => 
     root.style.setProperty("--brand-primary-hover", hover);
     root.style.setProperty("--brand-primary-soft", soft);
     root.style.setProperty("--brand-accent", accent);
+    root.style.setProperty("--ds-accent", primary);
+    root.style.setProperty("--ds-accent-soft", `rgba(${rgb}, 0.12)`);
     return () => {
       root.style.removeProperty("--brand-primary");
       root.style.removeProperty("--brand-primary-rgb");
       root.style.removeProperty("--brand-primary-hover");
       root.style.removeProperty("--brand-primary-soft");
       root.style.removeProperty("--brand-accent");
+      root.style.removeProperty("--ds-accent");
+      root.style.removeProperty("--ds-accent-soft");
     };
   }, [settings?.primaryColor, settings?.publicProfile?.accentColor]);
 

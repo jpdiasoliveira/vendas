@@ -4,12 +4,13 @@
  */
 
 import { formatCurrency, formatDate } from "@/react-app/utils/format";
+import { DEFAULT_BRAND_PRIMARY_RGB } from "@/react-app/utils/brandColor";
 
-const GREEN = [27, 67, 50] as [number, number, number]; // #1B4332
-const DARK_GRAY = [55, 65, 81] as [number, number, number]; // slate-700
-const LIGHT_GRAY = [248, 250, 252] as [number, number, number]; // slate-50
+const BRAND_RGB = DEFAULT_BRAND_PRIMARY_RGB;
+const DARK_GRAY = [55, 65, 81] as [number, number, number];
+const LIGHT_GRAY = [248, 250, 252] as [number, number, number];
 
-const STORE_NAME = "NATFOODS";
+const STORE_NAME = "MINHA LOJA";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
@@ -58,7 +59,7 @@ export async function exportClosingPdf({
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.setTextColor(...GREEN);
+  doc.setTextColor(...BRAND_RGB);
   doc.text(storeName, margin, y);
   y += 10;
 
@@ -78,12 +79,12 @@ export async function exportClosingPdf({
 
   doc.setFillColor(...LIGHT_GRAY);
   doc.rect(margin, y - 4, contentWidth, 18, "F");
-  doc.setDrawColor(...GREEN);
+  doc.setDrawColor(...BRAND_RGB);
   doc.setLineWidth(0.3);
   doc.rect(margin, y - 4, contentWidth, 18, "S");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.setTextColor(...GREEN);
+  doc.setTextColor(...BRAND_RGB);
   doc.text(`Total Faturado: ${formatCurrency(totalFaturado)}`, margin + 4, y + 4);
   doc.text(`Total de Pedidos: ${totalPedidos}`, margin + 4, y + 10);
   y += 24;
@@ -104,7 +105,7 @@ export async function exportClosingPdf({
     margin: { left: margin, right: margin },
     theme: "plain",
     headStyles: {
-      fillColor: GREEN,
+      fillColor: BRAND_RGB,
       textColor: [255, 255, 255],
       fontStyle: "bold",
       fontSize: 10,

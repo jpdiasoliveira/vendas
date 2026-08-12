@@ -8,6 +8,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useToast } from "@/react-app/providers/ToastProvider";
 import {
   getEffectiveStoreSlug,
   STORE_SLUG_CHANGED_EVENT,
@@ -58,11 +59,11 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-/** Chave antiga (uma só por browser): misturava lojas; removida após migração visual. */
-const LEGACY_CART_STORAGE_KEY = "mocha-cart-items";
+/** Chave antiga (uma só por browser): removida após migração. */
+const LEGACY_CART_STORAGE_KEY = "store-cart-items-legacy-v1";
 
 const cartStorageKeyForSlug = (slug: string) =>
-  `mocha-cart-items-v2:${slug.trim() === "" ? "__default" : slug}`;
+  `store-cart-v2:${slug.trim() === "" ? "__default" : slug}`;
 
 const readCartItems = (slug: string): CartItem[] => {
   try {
@@ -75,6 +76,7 @@ const readCartItems = (slug: string): CartItem[] => {
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const { showToast } = useToast();
   const legacyRemoved = useRef(false);
   const [storeSlug, setStoreSlug] = useState(() =>
     typeof window !== "undefined" ? getEffectiveStoreSlug() : ""
@@ -117,9 +119,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.setItem(cartStorageKeyForSlug(storeSlug), JSON.stringify(items));
     } catch (err) {
-      console.error("[CartContext.persist]", err);
+      showToast({
+        type: "error",
+        message: "Não foi possível salvar o carrinho neste navegador. Suas alterações podem se perder ao recarregar.",
+      });
     }
-  }, [items, storeSlug]);
+  }, [items, storeSlug, showToast]);
 
   const removeItem = useCallback((id: string) => {
     setItems((current) => current.filter((i) => i.id !== id));

@@ -1,15 +1,22 @@
-/** Cor primária da loja (#RRGGBB) ou padrão da marca. */
+import {
+  DEFAULT_BRAND_ACCENT,
+  DEFAULT_BRAND_PRIMARY,
+} from "@/constants/brandDefaults";
+
+export { DEFAULT_BRAND_PRIMARY, DEFAULT_BRAND_PRIMARY_RGB } from "@/constants/brandDefaults";
+
+/** Cor primária da loja (#RRGGBB) ou padrão do design system. */
 export const normalizeStorePrimaryColor = (input: string | null | undefined): string => {
   const t = (input ?? "").trim();
   if (/^#[0-9A-Fa-f]{6}$/i.test(t)) return t.startsWith("#") ? t : `#${t}`;
-  return "#1B4332";
+  return DEFAULT_BRAND_PRIMARY;
 };
 
-/** Cor de destaque (fim do gradiente em CTAs). Padrão harmoniza com a marca histórica. */
+/** Cor de destaque (fim do gradiente em CTAs). */
 export const normalizeStoreAccentColor = (input: string | null | undefined): string => {
   const t = (input ?? "").trim();
   if (/^#[0-9A-Fa-f]{6}$/i.test(t)) return t.startsWith("#") ? t : `#${t}`;
-  return "#2D5F4A";
+  return DEFAULT_BRAND_ACCENT;
 };
 
 function clampByte(v: number): number {
