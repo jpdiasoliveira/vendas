@@ -17,12 +17,14 @@ import { logAction } from "../../utils/audit.js";
 import { genericServerErrorMessage, logServerError } from "../../utils/safeApiError.js";
 import { requireStoreContext } from "../../utils/requireStoreContext.js";
 import {
-  canRemoveMember,
   canUpdateMemberRole,
-  wouldExceedStaffLimit,
+  getDeleteMemberBlockReason,
+  getInviteMemberBlockReason,
+  getListMembersBlockReason,
+  getStaffLimitBlockReason,
 } from "../../utils/storeMemberRules.js";
 import type { StoreMemberListItem } from "../../../contracts/schema.js";
-import { requireAdminOrOwner, requireOwner, zodErrorToMessage } from "./helpers.js";
+import { requireOwner, zodErrorToMessage } from "./helpers.js";
 import type { AdminHono } from "./types.js";
 
 async function enrichMembersWithEmails(env: Env, members: Awaited<ReturnType<typeof listMembersByStore>>): Promise<StoreMemberListItem[]> {
@@ -62,8 +64,10 @@ export const registerAdminMemberRoutes = (admin: AdminHono): void => {
   admin.get("/members", async (c) => {
     const store = requireStoreContext(c);
     if (store instanceof Response) return store;
-    if (!requireAdminOrOwner(c)) {
-      return c.json({ success: false, error: "Apenas administradores podem visualizar a equipe." }, 403);
+    const user = c.get("user") as { role?: string } | undefined;
+    const listBlock = getListMembersBlockReason(user?.role);
+    if (listBlock) {
+      return c.json({ success: false, error: listBlock }, 403);
     }
     try {
       const rows = await listMembersByStore(c.env, store.id);
@@ -85,8 +89,10 @@ export const registerAdminMemberRoutes = (admin: AdminHono): void => {
     async (c) => {
       const store = requireStoreContext(c);
       if (store instanceof Response) return store;
-      if (!requireOwner(c)) {
-        return c.json({ success: false, error: "Apenas o dono da loja pode convidar membros." }, 403);
+      const actor = c.get("user") as { role?: string } | undefined;
+      const inviteBlock = getInviteMemberBlockReason(actor?.role);
+      if (inviteBlock) {
+        return c.json({ success: false, error: inviteBlock }, 403);
       }
 
       const body = c.req.valid("json");
@@ -108,15 +114,9 @@ export const registerAdminMemberRoutes = (admin: AdminHono): void => {
         }
 
         const staffAdminCount = await countStaffAndAdminMembersByStore(c.env, store.id);
-        if (wouldExceedStaffLimit(staffAdminCount, caps.staffMembersLimit)) {
-          const limit = caps.staffMembersLimit ?? 0;
-          return c.json(
-            {
-              success: false,
-              error: `Limite de membros da equipe do plano atingido (${limit}). Faça upgrade para convidar mais pessoas.`,
-            },
-            403,
-          );
+        const limitBlock = getStaffLimitBlockReason(staffAdminCount, caps.staffMembersLimit);
+        if (limitBlock) {
+          return c.json({ success: false, error: limitBlock }, 403);
         }
 
         const baseUrl = typeof c.env.STOREFRONT_BASE_URL === "string" ? c.env.STOREFRONT_BASE_URL.trim() : "";
@@ -212,14 +212,15 @@ export const registerAdminMemberRoutes = (admin: AdminHono): void => {
       if (!current) {
         return c.json({ success: false, error: "Membro não encontrado." }, 404);
       }
-      if (!canRemoveMember(current.role)) {
-        return c.json({ success: false, error: "Não é possível remover o dono da loja." }, 403);
-      }
-      if (current.userId === owner.id) {
-        const owners = await countOwnersByStore(c.env, store.id);
-        if (owners <= 1) {
-          return c.json({ success: false, error: "Não é possível remover o único dono da loja." }, 403);
-        }
+      const owners = await countOwnersByStore(c.env, store.id);
+      const deleteBlock = getDeleteMemberBlockReason({
+        targetRole: current.role,
+        targetUserId: current.userId,
+        actorUserId: owner.id,
+        ownerCount: owners,
+      });
+      if (deleteBlock) {
+        return c.json({ success: false, error: deleteBlock }, 403);
       }
 
       await deleteStoreMember(c.env, memberId, store.id);
