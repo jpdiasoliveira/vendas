@@ -1,6 +1,6 @@
 # Contrato da API (Worker)
 
-Referência alinhada ao código em `src/worker/`. Produto: [`PRD.md`](PRD.md).
+Referência alinhada ao código em `src/worker/`. Produto: [`PRD.md`](PRD.md). Autorização por papel: [`agents/roles-matrix.md`](agents/roles-matrix.md).
 
 **Envelope padrão (JSON):**
 

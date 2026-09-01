@@ -24,6 +24,8 @@ Documento de negócio **estável** do produto. O escopo do **release em curso** 
 
 **Nota:** persona ≠ role técnico. Membro da loja: `store_members.role` = `staff` | `admin` | `owner` (Supabase JWT).
 
+Matriz de permissões por rota: [`agents/roles-matrix.md`](agents/roles-matrix.md).
+
 ---
 
 ## 3. Regras críticas (backend/banco)
