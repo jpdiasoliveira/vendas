@@ -233,6 +233,12 @@ export interface StoreMember {
   role: string;
 }
 
+/** Membro listado no painel admin (inclui e-mail resolvido via Auth Admin). */
+export interface StoreMemberListItem extends StoreMember {
+  email: string;
+  createdAt: string;
+}
+
 /** Payload do carrinho enviado pelo frontend (camelCase) */
 export interface CartItemPayload {
   id: string;

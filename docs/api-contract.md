@@ -231,6 +231,17 @@ Legenda de gate: **staff** = qualquer membro; **admin/owner** = role `admin` ou 
 
 `discount_type`: `percent` \| `fixed`. Código único por loja (case-insensitive). Duplicata → `409`.
 
+### Equipe da loja
+
+| Método | Path | Gate | Body | Resposta `data` |
+|--------|------|------|------|-----------------|
+| GET | `/api/admin/members` | admin/owner | — | `StoreMemberListItem[]` |
+| POST | `/api/admin/members` | owner | `{ email, role: "staff" \| "admin", full_name? }` | `StoreMemberListItem` — `403` se limite `staff_members_limit` |
+| PATCH | `/api/admin/members/:id` | owner | `{ role: "staff" \| "admin" }` | `StoreMemberListItem` |
+| DELETE | `/api/admin/members/:id` | owner | — | `{ id }` — não remove owner |
+
+Convite via Supabase (`inviteUserByEmail`); se o e-mail já existir em Auth, apenas vincula em `store_members`. Contagem do limite: membros com role `staff` ou `admin` (owner não conta).
+
 ---
 
 ## Central plataforma

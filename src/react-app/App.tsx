@@ -15,6 +15,7 @@ import AdminCheckoutSettingsPage from "@/react-app/pages/AdminCheckoutSettings";
 import AdminShippingFareBandsPage from "@/react-app/pages/AdminShippingFareBands";
 import AdminCouponsPage from "@/react-app/pages/AdminCoupons";
 import AdminNewsletterPage from "@/react-app/pages/AdminNewsletterPage";
+import AdminStoreMembersPage from "@/react-app/pages/admin/AdminStoreMembers";
 import { AdminCatalogHubLayout } from "@/react-app/components/admin/AdminCatalogHubLayout";
 import { AdminStoreHubLayout } from "@/react-app/components/admin/AdminStoreHubLayout";
 import AuditLogsPage from "@/react-app/pages/admin/AuditLogs";
@@ -130,6 +131,14 @@ export default function App() {
                             <Route path="categorias" element={<AdminCategoriesPage />} />
                           </Route>
                           <Route path="categorias" element={<Navigate to="/admin/produtos/categorias" replace />} />
+                          <Route
+                            path="loja/equipe"
+                            element={
+                              <AdminRoleGate minRole="owner" message="Apenas o dono da loja pode gerenciar a equipe.">
+                                <AdminStoreMembersPage />
+                              </AdminRoleGate>
+                            }
+                          />
                           <Route path="loja" element={<AdminStoreHubLayout />}>
                             <Route index element={<Navigate to="/admin/loja/vitrine" replace />} />
                             <Route

@@ -25,16 +25,16 @@ Ordem de merge: **#1 → (#2 e #3 em paralelo) → #4**
 
 Hoje só o **operador plataforma** cria o owner na Central. Falta o lojista gerir a própria equipe.
 
-- [ ] Definir escopo no PRD (rotas UI, API, quem pode convidar/remover)
-- [ ] API `GET /api/admin/members` — listar membros da loja (`store_id`)
-- [ ] API `POST /api/admin/members` — convidar (e-mail + role `staff` | `admin`) — owner; admin se PRD permitir
-- [ ] API `PATCH /api/admin/members/:id` — alterar role — **só owner**
-- [ ] API `DELETE /api/admin/members/:id` — remover membro — **só owner** (não remover último owner)
-- [ ] Integrar convite Supabase (`inviteUserByEmail` ou fluxo existente em `provisionStoreOwnerUser`)
-- [ ] Enforçar `staff_members_limit` do plano (`resolve_store_entitlements`) ao adicionar membro
-- [ ] UI `/admin/loja/equipe` (ou aba em hub da loja) — lista, convite, editar role, remover
-- [ ] Atualizar `api-contract.md`, `roles-matrix.md` e `src/contracts/`
-- [ ] Testes: 403 staff tentando convidar; limite de plano; não remover único owner
+- [x] Definir escopo no PRD (rotas UI, API, quem pode convidar/remover)
+- [x] API `GET /api/admin/members` — listar membros da loja (`store_id`)
+- [x] API `POST /api/admin/members` — convidar (e-mail + role `staff` | `admin`) — owner; admin se PRD permitir
+- [x] API `PATCH /api/admin/members/:id` — alterar role — **só owner**
+- [x] API `DELETE /api/admin/members/:id` — remover membro — **só owner** (não remover último owner)
+- [x] Integrar convite Supabase (`inviteUserByEmail` ou fluxo existente em `provisionStoreOwnerUser`)
+- [x] Enforçar `staff_members_limit` do plano (`resolve_store_entitlements`) ao adicionar membro
+- [x] UI `/admin/loja/equipe` (ou aba em hub da loja) — lista, convite, editar role, remover
+- [x] Atualizar `api-contract.md`, `roles-matrix.md` e `src/contracts/`
+- [x] Testes: 403 staff tentando convidar; limite de plano; não remover único owner
 
 ### 1.2 Guards de UI admin (alinhar com API)
 
@@ -49,9 +49,9 @@ Hoje só o **operador plataforma** cria o owner na Central. Falta o lojista geri
 
 ### 1.3 Testes automatizados por papel
 
-- [ ] Spec Vitest: `requireAdminOrOwner` / `requireOwner` (helpers admin)
-- [ ] E2E (opcional): login como staff → frete/cupons acessível; settings → bloqueado
-- [ ] Documentar personas de teste (e-mails seed) em `.agents/docs/testing.md`
+- [x] Spec Vitest: `requireAdminOrOwner` / `requireOwner` (helpers admin)
+- [ ] E2E (opcional): login como staff → frete/cupons acessível; settings → bloqueado — aguarda merge PR #2 (Playwright)
+- [x] Documentar personas de teste (e-mails seed) em `.agents/docs/testing.md`
 
 ---
 

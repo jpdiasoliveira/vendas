@@ -4,6 +4,7 @@ import { registerAdminCategoryRoutes } from "./admin/categories.js";
 import { registerAdminCouponRoutes } from "./admin/coupons.js";
 import { registerAdminStorePaymentRoutes } from "./admin/storePayments.js";
 import { registerAdminNewsletterRoutes } from "./admin/newsletter.js";
+import { registerAdminMemberRoutes } from "./admin/members.js";
 import { registerAdminOrderRoutes } from "./admin/orders.js";
 import { registerAdminProductRoutes } from "./admin/products.js";
 import { registerAdminShippingFareBandRoutes } from "./admin/shippingFareBands.js";
@@ -23,6 +24,7 @@ registerAdminCategoryRoutes(admin);
 registerAdminProductRoutes(admin);
 registerAdminShippingFareBandRoutes(admin);
 registerAdminCouponRoutes(admin);
+registerAdminMemberRoutes(admin);
 registerAdminOrderRoutes(admin);
 
 export default admin;

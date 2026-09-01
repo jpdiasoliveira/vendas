@@ -151,6 +151,19 @@ JWT + `store_members` + `x-store-slug`.
 
 ---
 
+## 7.1 Admin — equipe da loja
+
+| Rota | Staff | Admin | Owner | Menu UI |
+|------|:-----:|:-----:|:-----:|---------|
+| `GET /api/admin/members` | — | ✓ | ✓ | owner (`/admin/loja/equipe`) |
+| `POST /api/admin/members` | — | — | ✓ | owner |
+| `PATCH /api/admin/members/:id` | — | — | ✓ | owner |
+| `DELETE /api/admin/members/:id` | — | — | ✓ | owner |
+
+Limite `staff_members_limit` ao convidar (conta `staff` + `admin`; owner não conta). Não remove owner nem último dono.
+
+---
+
 ## 8. Central plataforma (`/api/platform/*`)
 
 Sem `x-store-slug`. Todas exigem **Operador** (`verifyPlatformOperator`).
@@ -179,6 +192,7 @@ Sem `x-store-slug`. Todas exigem **Operador** (`verifyPlatformOperator`).
 | `/pedidos`, `/login` | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `/admin/pedidos`, `/admin/produtos/*` | — | — | ✓ | ✓ | ✓ | ✓* |
 | `/admin/loja/*`, `/admin/historico` | — | — | ◐ | ✓ | ✓ | ✓* |
+| `/admin/loja/equipe` | — | — | — | — | ✓ | ✓* |
 | `/admin/platform/*` | — | — | — | — | — | ✓ |
 
 \* Operador precisa JWT + membro da loja para admin; Central plataforma é gate separado por e-mail.

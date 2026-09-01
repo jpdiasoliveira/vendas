@@ -8,6 +8,7 @@ export type {
   StoreCapabilities,
   StoreSettings,
   StoreMember,
+  StoreMemberListItem,
   Product,
   Order,
   OrderItem,
