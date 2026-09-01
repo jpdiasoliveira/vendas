@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 import { useAdminOrderDetailsDrawer } from "@/react-app/hooks/admin/useAdminOrderDetailsDrawer";
+import { useAdminRoleGate } from "@/react-app/hooks/admin/useAdminRoleGate";
 import type { OrderDetail } from "@/react-app/types";
 import {
   AdminOrderDetailsBody,
@@ -27,6 +28,7 @@ export function AdminOrderDetailsDrawer({
   onClose,
 }: AdminOrderDetailsDrawerProps) {
   const drawer = useAdminOrderDetailsDrawer({ isOpen, orderId, order, loading });
+  const { isAdminOrOwner } = useAdminRoleGate();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -98,6 +100,7 @@ export function AdminOrderDetailsDrawer({
                   syncPaymentLoading={drawer.syncPaymentLoading}
                   onSyncPayment={() => void drawer.handleSyncPayment()}
                   onSubmitStatus={() => void drawer.handleSubmitStatus()}
+                  canSyncPayment={isAdminOrOwner}
                 />
               ) : null}
             </div>

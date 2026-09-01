@@ -68,3 +68,7 @@ Ver [`padrões/06-Fluxo-Desenvolvimento-Codigo.md`](../padrões/06-Fluxo-Desenvo
 
 - Não mergear branch de PR aberta de outro dev — esperar cair na `main`
 - 1 PR = 1 ticket (exceto tickets formalmente inseparáveis)
+
+## Backlog RBAC / usuários
+
+Checklist acionável: [`checklist-usuarios-rbac.md`](checklist-usuarios-rbac.md).

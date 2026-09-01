@@ -32,12 +32,15 @@ import { StoreSettingsProvider, useStoreSettings } from "@/react-app/contexts/St
 import { AuthProvider } from "@/react-app/contexts/AuthContext";
 import { AdminGuard } from "@/react-app/components/auth/AdminGuard";
 import { AdminLayout } from "@/react-app/components/admin/AdminLayout";
+import { AdminRoleGate } from "@/react-app/components/admin/AdminRoleGate";
 import { queryClient } from "@/react-app/query/queryClient";
 import { ToastProvider } from "@/react-app/providers/ToastProvider";
 import { PageTransition } from "@/react-app/components/storefront/layout/PageTransition";
 import { AlertCircle } from "lucide-react";
 
 const isPlatformCentralPath = (pathname: string) => pathname.startsWith("/admin/platform");
+
+const ADMIN_ONLY_MESSAGE = "Apenas administradores podem acessar esta área.";
 
 const StoreBootGate = ({ children }: { children: ReactNode }) => {
   const { pathname } = useLocation();
@@ -129,16 +132,44 @@ export default function App() {
                           <Route path="categorias" element={<Navigate to="/admin/produtos/categorias" replace />} />
                           <Route path="loja" element={<AdminStoreHubLayout />}>
                             <Route index element={<Navigate to="/admin/loja/vitrine" replace />} />
-                            <Route path="vitrine" element={<AdminSettingsPage />} />
-                            <Route path="checkout" element={<AdminCheckoutSettingsPage />} />
+                            <Route
+                              path="vitrine"
+                              element={
+                                <AdminRoleGate minRole="admin" message={ADMIN_ONLY_MESSAGE}>
+                                  <AdminSettingsPage />
+                                </AdminRoleGate>
+                              }
+                            />
+                            <Route
+                              path="checkout"
+                              element={
+                                <AdminRoleGate minRole="admin" message={ADMIN_ONLY_MESSAGE}>
+                                  <AdminCheckoutSettingsPage />
+                                </AdminRoleGate>
+                              }
+                            />
                             <Route path="frete" element={<AdminShippingFareBandsPage />} />
                             <Route path="cupons" element={<AdminCouponsPage />} />
-                            <Route path="newsletter" element={<AdminNewsletterPage />} />
+                            <Route
+                              path="newsletter"
+                              element={
+                                <AdminRoleGate minRole="admin" message={ADMIN_ONLY_MESSAGE}>
+                                  <AdminNewsletterPage />
+                                </AdminRoleGate>
+                              }
+                            />
                           </Route>
                           <Route path="configuracoes" element={<Navigate to="/admin/loja/vitrine" replace />} />
                           <Route path="checkout" element={<Navigate to="/admin/loja/checkout" replace />} />
                           <Route path="newsletter" element={<Navigate to="/admin/loja/newsletter" replace />} />
-                          <Route path="historico" element={<AuditLogsPage />} />
+                          <Route
+                            path="historico"
+                            element={
+                              <AdminRoleGate minRole="admin" message="Apenas administradores podem visualizar o histórico de atividades.">
+                                <AuditLogsPage />
+                              </AdminRoleGate>
+                            }
+                          />
                         </Route>
                         <Route path="platform" element={<PlatformLayout />}>
                           <Route index element={<Navigate to="/admin/platform/dashboard" replace />} />

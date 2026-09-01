@@ -10,6 +10,7 @@ import { AdminProductDrawer } from "@/react-app/components/admin/products/AdminP
 import { useAdminProducts } from "@/react-app/hooks/useAdminProducts";
 import { useTrendingProductIds } from "@/react-app/hooks/useTrendingProductIds";
 import { useCapabilities } from "@/react-app/hooks/useCapabilities";
+import { useAdminRoleGate } from "@/react-app/hooks/admin/useAdminRoleGate";
 
 const AdminProductsPage = () => {
   const m = useAdminProducts();
@@ -17,6 +18,7 @@ const AdminProductsPage = () => {
   const trendingProductIds = useTrendingProductIds();
   const { isAtProductLimit, capabilities } = useCapabilities();
   const productLimitReached = isAtProductLimit(m.products.length);
+  const { isAdminOrOwner } = useAdminRoleGate();
 
   useEffect(() => {
     setCatalogHubToolbar(
@@ -71,6 +73,7 @@ const AdminProductsPage = () => {
             onQr={m.setQrProduct}
             onEdit={m.openEdit}
             onDelete={m.setProductToDelete}
+            canDelete={isAdminOrOwner}
           />
         </>
       )}

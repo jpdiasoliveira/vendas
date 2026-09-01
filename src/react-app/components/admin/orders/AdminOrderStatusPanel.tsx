@@ -20,6 +20,7 @@ type AdminOrderStatusPanelProps = {
   syncPaymentLoading: boolean;
   onSyncPayment: () => void;
   onSubmitStatus: () => void;
+  canSyncPayment?: boolean;
 };
 
 export function AdminOrderStatusPanel({
@@ -35,13 +36,14 @@ export function AdminOrderStatusPanel({
   syncPaymentLoading,
   onSyncPayment,
   onSubmitStatus,
+  canSyncPayment = true,
 }: AdminOrderStatusPanelProps) {
   return (
     <section className="mt-6 border-t border-brand-primary/10 pt-6">
       <h3 className="mb-3 font-semibold text-content">Status e pagamento</h3>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <StatusBadge status={order.paymentStatus ?? order.status ?? "pending"} />
-        {order.paymentId?.trim() ? (
+        {order.paymentId?.trim() && canSyncPayment ? (
           <button
             type="button"
             onClick={onSyncPayment}
@@ -55,7 +57,7 @@ export function AdminOrderStatusPanel({
             )}
             {syncPaymentLoading ? "Sincronizando…" : "Sincronizar pagamento"}
           </button>
-        ) : (
+        ) : order.paymentId?.trim() ? null : (
           <p className="text-sm text-content-muted">
             Gere o PIX ou o checkout para obter o ID do pagamento no Mercado Pago.
           </p>
