@@ -7,8 +7,8 @@
 | Lint | Ativo | `npm run lint:check` |
 | Typecheck | Ativo | `npm run typecheck` |
 | Build | Ativo | `npm run build` |
-| Unit (`*.spec.ts`) | Ativo (local) | `npm test` |
-| E2E (`test/e2e/*.e2e-spec.ts`) | Ativo (local) | `npm run test:e2e` |
+| Unit (`*.spec.ts`) | Ativo (local + CI) | `npm test` |
+| E2E (`test/e2e/*.e2e-spec.ts`) | Ativo (local + CI) | `npm run test:e2e` |
 
 Padrão alvo: [`padrões/08-Padroes-Testes-E2E.md`](../../padrões/08-Padroes-Testes-E2E.md).
 
@@ -60,6 +60,26 @@ npm run test:e2e:install   # primeira vez — Chromium
 npm run test:e2e           # sobe servidores se não estiverem rodando
 npm run test:e2e:ui        # modo interativo
 ```
+
+### CI (GitHub Actions)
+
+Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+
+| Job | Comandos |
+|-----|----------|
+| `check` | `lint:check`, `typecheck`, `npm test`, `build` |
+| `e2e` | `playwright test` (sobe `wrangler dev` + Vite) |
+
+**Secrets opcionais** (Settings → Secrets and variables → Actions) para E2E real na CI:
+
+| Secret | Uso |
+|--------|-----|
+| `SUPABASE_URL` | Worker + Vite |
+| `SUPABASE_SERVICE_ROLE_KEY` | Worker |
+| `SUPABASE_ANON_KEY` | Worker + Vite |
+| `SUPABASE_JWT_SECRET` | Worker (auth admin) |
+
+Sem secrets ou sem `demo-store` seedada: o spec de checkout faz `test.skip` — o job permanece verde. Os steps de `.dev.vars` / `.env.local` só escrevem arquivos quando `SUPABASE_URL` está definido (sem usar `if: secrets` no workflow — restrito pelo GitHub Actions).
 
 ## E2E — regras
 

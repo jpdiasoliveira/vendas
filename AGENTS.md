@@ -78,7 +78,7 @@ npm run build
 npm test
 ```
 
-Após mudanças em API, auth ou persistência: rodar `npm test` (e `npm run test:e2e` quando existir).
+Após mudanças em API, auth ou persistência: rodar `npm test` (e `npm run test:e2e` quando existir). Na CI, ambos rodam automaticamente (E2E com skip sem secrets Supabase).
 
 Scripts operacionais (manual): `npm run fire-test:probe`, `npm run webhook-stress`.
 

@@ -174,7 +174,8 @@ Matriz completa rota × papel: [`agents/roles-matrix.md`](agents/roles-matrix.md
 | **Cupons** | Admin em `/admin/loja/cupons` — API `GET/POST/PATCH/DELETE /api/admin/coupons` |
 | **`api-contract.md`** | Atualizado — ver [`api-contract.md`](api-contract.md); manter em sync ao mudar rotas |
 | **Página de produto dedicada** | Só modal na home — sem URL `/produto/:slug` |
-| **Testes E2E** | Playwright local (`npm run test:e2e`); ainda fora da CI |
+| **Testes unitários (Vitest)** | `npm test` na CI (job `check`) |
+| **Testes E2E** | Playwright na CI (job `e2e`); executa de verdade com secrets Supabase + `demo-store` seedada; caso contrário, skip |
 | **Cobrança automática de assinatura** | Fora de escopo |
 
 ---
@@ -195,7 +196,7 @@ Matriz completa rota × papel: [`agents/roles-matrix.md`](agents/roles-matrix.md
 3. Role correto (`staff` / `admin` / `owner` / operador)  
 4. Se mudou API: atualizar `src/contracts/` e `api-contract.md`  
 5. Se mudou schema: migration/SQL em `migrations/` ou `docs/supabase-*.sql`  
-6. `npm run lint:check`, `typecheck`, `build` verdes  
+6. `npm run lint:check`, `typecheck`, `build` e `npm test` verdes  
 
 ---
 
