@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { ArrowDown } from "lucide-react";
 import { Container } from "@/react-app/design-system/components/Container";
 import { Button } from "@/react-app/design-system/components/Button";
 import { HeroScene3D } from "@/react-app/components/storefront/hero/HeroScene3D";

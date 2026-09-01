@@ -8,6 +8,13 @@ export const adminProductsQueryKey = (storeSlug: string) => ["admin", "products"
 /** Lista de categorias (admin). */
 export const adminCategoriesQueryKey = (storeSlug: string) => ["admin", "categories", storeSlug] as const;
 
+/** Faixas de frete por CEP (admin). */
+export const adminShippingFareBandsQueryKey = (storeSlug: string) =>
+  ["admin", "shipping-fare-bands", storeSlug] as const;
+
+/** Cupons (admin). */
+export const adminCouponsQueryKey = (storeSlug: string) => ["admin", "coupons", storeSlug] as const;
+
 /** Formulário de configurações (GET /api/admin/settings), distinto do settings público da vitrine. */
 export const adminStoreSettingsFormQueryKey = (storeSlug: string) =>
   ["admin", "store-settings-form", storeSlug] as const;

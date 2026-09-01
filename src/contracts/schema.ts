@@ -89,6 +89,32 @@ export interface Category {
   updatedAt?: string;
 }
 
+/** Faixa de frete por CEP (`store_shipping_fare_bands`). */
+export interface ShippingFareBand {
+  id: string;
+  storeId: string;
+  cepFrom: number;
+  cepTo: number;
+  amountBrl: number;
+  label?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Cupom de desconto da loja (`store_coupons`). */
+export interface StoreCoupon {
+  id: string;
+  storeId: string;
+  code: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  validFrom: string;
+  validUntil: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /** Linha de inscrito na newsletter (admin). */
 export interface NewsletterSubscriberListItem {
   email: string;

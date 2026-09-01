@@ -4,19 +4,19 @@ Se o login funciona no frontend mas o painel redireciona ou mostra "Token invál
 
 ---
 
-## 1. Tabela `stores` e loja Natfoods
+## 1. Tabela `stores` e loja demo
 
-O Worker usa o header `x-store-slug` (ex.: `natfoods` do `.env` **VITE_STORE_SLUG**) e busca a loja na tabela `stores`. A loja precisa existir e ter `status = 'active'`.
+O Worker usa o header `x-store-slug` (ex.: `demo-store` do `.env` **VITE_DEFAULT_STORE_SLUG**) e busca a loja na tabela `stores`. A loja precisa existir e ter `status = 'active'`.
 
 No **SQL Editor** do Supabase, execute (ajuste o `id` se quiser outro UUID):
 
 ```sql
--- Inserir loja Natfoods (se ainda não existir)
+-- Inserir loja demo (se ainda não existir)
 INSERT INTO stores (id, slug, display_name, status, created_at, updated_at)
 VALUES (
   'a0000001-0001-0001-0001-000000000001',
-  'natfoods',
-  'Natfoods - Chips da Amazônia',
+  'demo-store',
+  'Loja demo (SaaS)',
   'active',
   now(),
   now()
@@ -26,6 +26,8 @@ ON CONFLICT (slug) DO UPDATE SET
   status = 'active',
   updated_at = now();
 ```
+
+Ou use o script completo: `docs/supabase-setup-admin-demo-store.sql`.
 
 ---
 
@@ -43,7 +45,7 @@ O Worker só aceita acesso às rotas `/api/admin/*` se o usuário (do JWT) estiv
 Use o **mesmo `store_id`** que você usou na loja (no exemplo acima: `a0000001-0001-0001-0001-000000000001`). Substitua `SEU_USER_ID_AQUI` pelo UUID do passo 2.1:
 
 ```sql
--- Vincular seu usuário à loja Natfoods como admin
+-- Vincular seu usuário à loja demo como admin
 INSERT INTO store_members (user_id, store_id, role, created_at, updated_at)
 VALUES (
   'SEU_USER_ID_AQUI',
@@ -95,9 +97,9 @@ No Supabase, às vezes o valor mostrado é “gerado” e você pode precisar de
 
 ## 4. Conferir `.env` no frontend
 
-No **.env** (ou variáveis de ambiente do frontend), confira:
+No **.env.local** (ou variáveis de ambiente do frontend), confira:
 
-- **VITE_STORE_SLUG=natfoods** (ou o mesmo `slug` que você usou na tabela `stores`).
+- **VITE_DEFAULT_STORE_SLUG=demo-store** (ou o mesmo `slug` que você usou na tabela `stores`).
 - **VITE_SUPABASE_URL** e **VITE_SUPABASE_ANON_KEY** (para o cliente Supabase no frontend).
 
 ---
@@ -108,6 +110,6 @@ No **.env** (ou variáveis de ambiente do frontend), confira:
 |---------------------------------|-----------------------------------------------------------------------------|
 | "Token inválido ou expirado"    | Ajustar **SUPABASE_JWT_SECRET** no `.dev.vars` (ver item 3) e reiniciar Worker. |
 | "Você não tem acesso a esta loja" | Inserir seu usuário em **store_members** (item 2) e garantir que a loja existe (item 1). |
-| 400 "x-store-slug é obrigatória" | Definir **VITE_STORE_SLUG** no `.env` do frontend.                          |
+| 400 "x-store-slug é obrigatória" | Definir **VITE_DEFAULT_STORE_SLUG** no `.env.local` do frontend.                          |
 
 Depois de qualquer alteração no `.dev.vars` ou no banco, reinicie o Worker e, se mudar de loja/usuário, faça logout e login de novo.

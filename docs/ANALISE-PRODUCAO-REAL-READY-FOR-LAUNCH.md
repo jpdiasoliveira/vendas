@@ -64,8 +64,8 @@ Com base na arquitetura atual e no Manual de Voo, segue o **levantamento técnic
 | Gap | Severidade | O que fazer |
 |-----|------------|-------------|
 | Documentar .dev.vars e produção | Média | Ter um `.env.example` (ou doc) listando todas as variáveis (Worker + Vite) e, em produção, configurar **secrets** no Wrangler e variáveis de build (VITE_*) no pipeline. |
-| Domínio real Natfoods | Média | Configurar domínio (ex.: `natfoods.com.br`) no Cloudflare e `VITE_API_URL` apontando para `https://api.natfoods.com.br` (ou o path que servir o Worker). |
-| CORS | Baixa | CORS atual permite `http://localhost:5173`. Em produção, adicionar a origem real (ex.: `https://natfoods.com.br`). |
+| Domínio de produção | Média | Configurar domínio da loja no Cloudflare e `VITE_API_URL` apontando para a URL do Worker (ex.: `https://api.seudominio.com`). |
+| CORS | Baixa | CORS atual permite `http://localhost:5173`. Em produção, adicionar a origem real (ex.: `https://loja.seudominio.com`). |
 
 ---
 

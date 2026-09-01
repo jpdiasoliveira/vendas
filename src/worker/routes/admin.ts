@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { Variables } from "../types.js";
 import { registerAdminCategoryRoutes } from "./admin/categories.js";
+import { registerAdminCouponRoutes } from "./admin/coupons.js";
 import { registerAdminStorePaymentRoutes } from "./admin/storePayments.js";
 import { registerAdminNewsletterRoutes } from "./admin/newsletter.js";
 import { registerAdminOrderRoutes } from "./admin/orders.js";
 import { registerAdminProductRoutes } from "./admin/products.js";
+import { registerAdminShippingFareBandRoutes } from "./admin/shippingFareBands.js";
 import { registerAdminSettingsAndAuditRoutes } from "./admin/settingsAndAudit.js";
 import type { AdminHono } from "./admin/types.js";
 
@@ -19,6 +21,8 @@ registerAdminStorePaymentRoutes(admin);
 registerAdminNewsletterRoutes(admin);
 registerAdminCategoryRoutes(admin);
 registerAdminProductRoutes(admin);
+registerAdminShippingFareBandRoutes(admin);
+registerAdminCouponRoutes(admin);
 registerAdminOrderRoutes(admin);
 
 export default admin;

@@ -1,5 +1,4 @@
 import { Float } from "@react-three/drei";
-import * as THREE from "three";
 
 type HeroFallbackProductProps = {
   brandColor: string;

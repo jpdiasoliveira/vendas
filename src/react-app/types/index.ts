@@ -13,6 +13,8 @@ export type {
   OrderItem,
   OrderDetail,
   Category,
+  ShippingFareBand,
+  StoreCoupon,
   NewsletterSubscriberListItem,
   NewsletterSubscribersPage,
   CartItemPayload,

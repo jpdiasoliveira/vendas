@@ -137,7 +137,7 @@ Além disso, a rota **POST `/api/orders/:id/payment`** hoje retorna PIX/boleto/c
 - Não existe em nenhum lugar do código:
   - Endpoint ou tipo `store_settings` (ou equivalente) na API.
   - Leitura de tema/cores da loja e aplicação em `document.documentElement.style` ou em classes dinâmicas.
-- Nome da loja e identidade visual estão hardcoded (ex.: “Natfoods”, “Chips da Amazônia”, cores nos componentes da Home).
+- Nome da loja e identidade visual estão hardcoded (ex.: nome da marca, tagline, cores nos componentes da Home).
 
 Para um SaaS replicável por loja, o esperado seria:
 

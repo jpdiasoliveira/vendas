@@ -3,7 +3,7 @@
  * Usado apenas pelos repositórios em ./db/.
  */
 
-import type { Category, Order, OrderItem, Product, Store } from "../../../contracts/schema.js";
+import type { Category, Order, OrderItem, Product, ShippingFareBand, Store, StoreCoupon } from "../../../contracts/schema.js";
 
 function categoryNameFromJoinedRow(row: Record<string, unknown>): string | undefined {
   const raw = row.categories;
@@ -148,6 +148,34 @@ export function rowToCategory(row: Record<string, unknown>): Category {
     name: row.name as string,
     slug: (row.slug as string | null) ?? undefined,
     sortOrder: row.sort_order != null ? Number(row.sort_order) : undefined,
+    createdAt: row.created_at as string | undefined,
+    updatedAt: row.updated_at as string | undefined,
+  };
+}
+
+export function rowToShippingFareBand(row: Record<string, unknown>): ShippingFareBand {
+  return {
+    id: String(row.id),
+    storeId: String(row.store_id),
+    cepFrom: Number(row.cep_from),
+    cepTo: Number(row.cep_to),
+    amountBrl: Number(row.amount_brl),
+    label: (row.label as string | null) ?? null,
+    createdAt: row.created_at as string | undefined,
+    updatedAt: row.updated_at as string | undefined,
+  };
+}
+
+export function rowToStoreCoupon(row: Record<string, unknown>): StoreCoupon {
+  return {
+    id: String(row.id),
+    storeId: String(row.store_id),
+    code: String(row.code),
+    discountType: String(row.discount_type) as "percent" | "fixed",
+    discountValue: Number(row.discount_value),
+    validFrom: String(row.valid_from),
+    validUntil: String(row.valid_until),
+    active: Boolean(row.active),
     createdAt: row.created_at as string | undefined,
     updatedAt: row.updated_at as string | undefined,
   };

@@ -68,8 +68,7 @@ export default {
   fetch: app.fetch,
   async scheduled(
     _event: { cron: string; scheduledTime: number },
-    env: Env,
-    _ctx: { waitUntil(p: Promise<unknown>): void }
+    env: Env
   ): Promise<void> {
     try {
       await runExpireOldOrders(env);

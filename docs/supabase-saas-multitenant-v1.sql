@@ -242,5 +242,5 @@ ORDER BY units_sold DESC NULLS LAST;
 
 -- =============================================================================
 -- Fim do schema v1. Próximo passo: inserir loja + store_members (ver docs
--- supabase-setup-admin-natfoods.sql, atualizado para UUIDs).
+-- supabase-setup-admin-demo-store.sql, atualizado para UUIDs).
 -- =============================================================================

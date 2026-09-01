@@ -1,5 +1,5 @@
 /**
- * Gera PDF de fechamento de vendas (Relatório Ktech).
+ * Gera PDF de fechamento de vendas para exportação no painel admin.
  * jspdf + jspdf-autotable carregados sob demanda (dynamic import).
  */
 
