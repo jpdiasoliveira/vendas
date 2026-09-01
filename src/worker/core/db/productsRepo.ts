@@ -52,6 +52,31 @@ export async function getProductById(
   return map.get(productId) ?? null;
 }
 
+/** Produto público por slug (vitrine). Retorna null se inativo ou não encontrado. */
+export async function getProductBySlug(
+  env: Env,
+  storeId: string,
+  slugRaw: string,
+): Promise<Product | null> {
+  const slug = String(slugRaw ?? "").trim();
+  if (!slug) return null;
+
+  const supabase = getSupabase(env);
+  const { data: row, error } = await supabase
+    .from("products")
+    .select(PRODUCT_SELECT_WITH_CATEGORY)
+    .eq("store_id", storeId)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  const product = rowToProduct(row as Record<string, unknown>);
+  if (product.status === "inactive") return null;
+  return product;
+}
+
 export async function getProductsByIds(
   env: Env,
   productIds: string[],

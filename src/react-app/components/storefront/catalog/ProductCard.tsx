@@ -1,7 +1,9 @@
 import { motion } from "motion/react";
+import { Link } from "react-router";
 import { Package, TrendingUp } from "lucide-react";
 import { ImageReveal } from "@/react-app/components/storefront/media/ImageReveal";
 import { formatCurrency } from "@/react-app/utils/format";
+import { getProductPublicPath, productHasPublicPath } from "@/react-app/utils/productPublicPath";
 import { cn } from "@/react-app/design-system/cn";
 import type { Product } from "@/react-app/types";
 
@@ -55,6 +57,15 @@ export function ProductCard({ product, isTrending, onSelect, interactive = true 
         ) : null}
         <h3 className="font-body text-sm font-semibold text-content line-clamp-2">{product.name}</h3>
         <p className="mt-2 font-display text-lg font-bold text-brand-primary">{formatCurrency(product.price)}</p>
+        {productHasPublicPath(product) ? (
+          <Link
+            to={getProductPublicPath(product.slug)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2 inline-block font-body text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
+          >
+            Ver página do produto
+          </Link>
+        ) : null}
       </div>
     </Wrapper>
   );

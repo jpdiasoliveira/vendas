@@ -56,6 +56,8 @@ export interface Product {
   id: string;
   storeId: string;
   name: string;
+  /** Slug único por loja (URL pública `/produto/:slug`). */
+  slug?: string | null;
   description?: string | null;
   price: number;
   /** Preço por unidade quando atinge quantidade mínima de atacado */

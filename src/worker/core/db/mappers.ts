@@ -25,6 +25,7 @@ export function rowToProduct(row: Record<string, unknown>): Product {
     id: row.id as string,
     storeId: row.store_id as string,
     name: row.name as string,
+    slug: (row.slug as string | null) ?? undefined,
     description: (row.description as string | null) ?? undefined,
     price,
     priceWholesale: priceWholesale ?? undefined,

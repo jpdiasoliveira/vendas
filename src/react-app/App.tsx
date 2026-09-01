@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router";
 import HomePage from "@/react-app/pages/Home";
+import ProductPage from "@/react-app/pages/Product";
 import AuthCallbackPage from "@/react-app/pages/AuthCallback";
 import OrdersPage from "@/react-app/pages/Orders";
 import LoginPage from "@/react-app/pages/auth/Login";
@@ -113,6 +114,7 @@ export default function App() {
                   <PageTransition>
                     <Routes>
                       <Route path="/" element={<HomePage />} />
+                      <Route path="/produto/:slug" element={<ProductPage />} />
                       <Route path="/auth/callback" element={<AuthCallbackPage />} />
                       <Route path="/pedidos" element={<OrdersPage />} />
                       <Route path="/order/:orderId/confirmation" element={<OrderConfirmationPage />} />

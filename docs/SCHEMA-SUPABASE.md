@@ -30,8 +30,14 @@ Documento alinhado à auditoria. **Não invente colunas:** use apenas as listada
 | updated_at              | timestamp with time zone | now()              | YES           |
 | delivery_address        | text                     | null               | YES           |
 | items                   | jsonb                    | '[]'::jsonb        | YES           |
+| shipping_postal_code    | text                     | null               | YES           |
+| shipping_fee            | numeric                  | 0                  | NO            |
+| coupon_code             | text                     | null               | YES           |
+| coupon_discount         | numeric                  | 0                  | NO            |
 
-**Uso (Manual de Voo):** Dados do cliente em `customer_name`, `customer_phone`, `delivery_address`. Itens do pedido em `items` (JSONB). Rastreabilidade em `paid_at`, `delivered_at`, `updated_at`. Ignore a tabela `delivery_addresses` para dados principais.
+**Uso (Manual de Voo):** Dados do cliente em `customer_name`, `customer_phone`, `delivery_address`. Itens do pedido em `items` (JSONB). Frete/cupom calculados no Worker (`shipping_fee`, `coupon_discount`). Rastreabilidade em `paid_at`, `delivered_at`, `updated_at`. Ignore a tabela `delivery_addresses` para dados principais.
+
+**Scripts:** colunas de frete/cupom em `docs/supabase-store-shipping-fare-bands.sql` e `docs/supabase-store-coupons.sql`.
 
 ---
 
@@ -147,6 +153,46 @@ Documento alinhado à auditoria. **Não invente colunas:** use apenas as listada
 | mp_public_key        | text                     |
 | minimum_order_value  | numeric                  |
 | updated_at           | timestamp with time zone |
+
+---
+
+## store_shipping_fare_bands
+
+Faixas de CEP → valor de frete (calculado no Worker). Script: `docs/supabase-store-shipping-fare-bands.sql`.
+
+| Coluna      | Tipo                     | Notas |
+| ----------- | ------------------------ | ----- |
+| id          | uuid                     | PK    |
+| store_id    | uuid                     | FK → stores |
+| cep_from    | integer                  | 8 dígitos (somente números) |
+| cep_to      | integer                  | `cep_from <= cep_to` |
+| amount_brl  | numeric(14,2)            | ≥ 0   |
+| label       | text                     | opcional |
+| created_at  | timestamp with time zone | |
+| updated_at  | timestamp with time zone | |
+
+**Admin:** `GET/POST/PATCH/DELETE /api/admin/shipping-fare-bands`.
+
+---
+
+## store_coupons
+
+Cupons de desconto por loja (percent ou fixed). Script: `docs/supabase-store-coupons.sql`.
+
+| Coluna          | Tipo                     | Notas |
+| --------------- | ------------------------ | ----- |
+| id              | uuid                     | PK    |
+| store_id        | uuid                     | FK → stores |
+| code            | text                     | único por loja (case-insensitive) |
+| discount_type   | text                     | `percent` \| `fixed` |
+| discount_value  | numeric(14,4)            | > 0   |
+| valid_from      | timestamp with time zone | |
+| valid_until     | timestamp with time zone | obrigatório |
+| active          | boolean                  | default true |
+| created_at      | timestamp with time zone | |
+| updated_at      | timestamp with time zone | |
+
+**Admin:** `GET/POST/PATCH/DELETE /api/admin/coupons`.
 
 ---
 
