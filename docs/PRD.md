@@ -58,6 +58,8 @@ Operador ──► Central plataforma ──► cria/gerencia lojas e planos
 
 Persona de negócio **≠** role de login. Lojista não herda permissões de operador plataforma.
 
+Matriz completa rota × papel: [`agents/roles-matrix.md`](agents/roles-matrix.md).
+
 ---
 
 ## 4. Vitrine — funcionalidades (release)
