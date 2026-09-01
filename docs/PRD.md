@@ -53,6 +53,7 @@ Operador ──► Central plataforma ──► cria/gerencia lojas e planos
 | Produtos, categorias, pedidos (leitura/edição básica) | ✓ | ✓ | ✓ |
 | Settings vitrine/checkout, newsletter, auditoria | — | ✓ | ✓ |
 | Credenciais Mercado Pago da loja | — | — | ✓ |
+| Gerir equipe (convidar, alterar papel, remover) | — | — | ✓ |
 | Excluir produto | — | ✓ | ✓ |
 | Cancelar pedido já pago | — | ✓ | ✓ |
 
@@ -113,6 +114,7 @@ Matriz completa rota × papel: [`agents/roles-matrix.md`](agents/roles-matrix.md
 | **Cupons** | `/admin/loja/cupons` | CRUD cupons percent/fixed (`store_coupons`) |
 | **Mercado Pago** | (aba em checkout/settings) | Credenciais por loja (owner), teste de conexão |
 | **Newsletter** | `/admin/loja/newsletter` | Lista inscritos, export CSV |
+| **Equipe** | `/admin/loja/equipe` | Convidar staff/admin, alterar papel, remover (owner) |
 | **Auditoria** | `/admin/historico` | `audit_logs` por loja |
 
 **Limite de plano:** ao criar produto, API verifica `maxProducts` via `resolve_store_entitlements` → 403 se exceder.

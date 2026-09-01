@@ -80,3 +80,156 @@ export async function getStoreMember(
     role: row.role as string,
   };
 }
+
+export type StoreMemberRow = {
+  id: string;
+  userId: string;
+  storeId: string;
+  role: string;
+  createdAt: string;
+};
+
+function mapMemberRow(row: {
+  id: unknown;
+  user_id: unknown;
+  store_id: unknown;
+  role: unknown;
+  created_at?: unknown;
+}): StoreMemberRow {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    storeId: String(row.store_id),
+    role: typeof row.role === "string" && row.role.trim() ? row.role.trim() : "staff",
+    createdAt: typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
+  };
+}
+
+const memberRoleRank = (role: string) => {
+  const r = role.trim().toLowerCase();
+  if (r === "owner") return 0;
+  if (r === "admin") return 1;
+  return 2;
+};
+
+export async function listMembersByStore(env: Env, storeId: string): Promise<StoreMemberRow[]> {
+  const supabase = getSupabase(env);
+  const { data, error } = await supabase
+    .from("store_members")
+    .select("id, user_id, store_id, role, created_at")
+    .eq("store_id", storeId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []).map((row) => mapMemberRow(row as Parameters<typeof mapMemberRow>[0]));
+  return rows.sort((a, b) => {
+    const rank = memberRoleRank(a.role) - memberRoleRank(b.role);
+    if (rank !== 0) return rank;
+    return a.createdAt.localeCompare(b.createdAt);
+  });
+}
+
+export async function countStaffAndAdminMembersByStore(env: Env, storeId: string): Promise<number> {
+  const supabase = getSupabase(env);
+  const { count, error } = await supabase
+    .from("store_members")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", storeId)
+    .in("role", ["staff", "admin"]);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function countOwnersByStore(env: Env, storeId: string): Promise<number> {
+  const supabase = getSupabase(env);
+  const { count, error } = await supabase
+    .from("store_members")
+    .select("id", { count: "exact", head: true })
+    .eq("store_id", storeId)
+    .eq("role", "owner");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function getMemberByIdAndStore(
+  env: Env,
+  memberId: string,
+  storeId: string,
+): Promise<StoreMemberRow | null> {
+  const supabase = getSupabase(env);
+  const { data, error } = await supabase
+    .from("store_members")
+    .select("id, user_id, store_id, role, created_at")
+    .eq("id", memberId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapMemberRow(data as Parameters<typeof mapMemberRow>[0]);
+}
+
+export async function getMemberByUserAndStore(
+  env: Env,
+  userId: string,
+  storeId: string,
+): Promise<StoreMemberRow | null> {
+  const supabase = getSupabase(env);
+  const { data, error } = await supabase
+    .from("store_members")
+    .select("id, user_id, store_id, role, created_at")
+    .eq("user_id", userId)
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapMemberRow(data as Parameters<typeof mapMemberRow>[0]);
+}
+
+export async function insertStoreMember(
+  env: Env,
+  storeId: string,
+  userId: string,
+  role: string,
+): Promise<StoreMemberRow> {
+  const supabase = getSupabase(env);
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("store_members")
+    .insert({
+      store_id: storeId,
+      user_id: userId,
+      role,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id, user_id, store_id, role, created_at")
+    .single();
+  if (error) {
+    if (error.code === "23505") throw new Error("Este usuário já faz parte da equipe.");
+    throw new Error(error.message);
+  }
+  return mapMemberRow(data as Parameters<typeof mapMemberRow>[0]);
+}
+
+export async function updateStoreMemberRole(
+  env: Env,
+  memberId: string,
+  storeId: string,
+  role: string,
+): Promise<StoreMemberRow> {
+  const supabase = getSupabase(env);
+  const { data, error } = await supabase
+    .from("store_members")
+    .update({ role, updated_at: new Date().toISOString() })
+    .eq("id", memberId)
+    .eq("store_id", storeId)
+    .select("id, user_id, store_id, role, created_at")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapMemberRow(data as Parameters<typeof mapMemberRow>[0]);
+}
+
+export async function deleteStoreMember(env: Env, memberId: string, storeId: string): Promise<void> {
+  const supabase = getSupabase(env);
+  const { error } = await supabase.from("store_members").delete().eq("id", memberId).eq("store_id", storeId);
+  if (error) throw new Error(error.message);
+}

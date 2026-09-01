@@ -15,6 +15,9 @@ export const adminShippingFareBandsQueryKey = (storeSlug: string) =>
 /** Cupons (admin). */
 export const adminCouponsQueryKey = (storeSlug: string) => ["admin", "coupons", storeSlug] as const;
 
+/** Membros da equipe (admin). */
+export const adminStoreMembersQueryKey = (storeSlug: string) => ["admin", "members", storeSlug] as const;
+
 /** Formulário de configurações (GET /api/admin/settings), distinto do settings público da vitrine. */
 export const adminStoreSettingsFormQueryKey = (storeSlug: string) =>
   ["admin", "store-settings-form", storeSlug] as const;

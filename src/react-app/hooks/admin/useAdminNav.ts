@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router";
 import type { LucideIcon } from "lucide-react";
-import { Activity, Building2, Package, Palette, ShoppingBag, TicketPercent, Truck } from "lucide-react";
+import { Activity, Building2, Package, Palette, ShoppingBag, TicketPercent, Truck, Users } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAdminMeQuery } from "@/react-app/hooks/useAdminMeQuery";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
-import { isAdminOrOwnerRole } from "@/react-app/utils/adminRole";
+import { isAdminOrOwnerRole, isOwnerRole } from "@/react-app/utils/adminRole";
 import { storeLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 
 export type AdminNavLink = {
@@ -28,6 +28,7 @@ export function useAdminNav() {
   const { data: me } = useAdminMeQuery();
   const role = me?.role ?? null;
   const isAdminOrOwner = isAdminOrOwnerRole(role);
+  const isOwner = isOwnerRole(role);
   const isStaff = role === "staff";
   const showPlatform = isPlatformOperatorEmail(user?.email);
   const storeName = settings?.displayName?.trim() || "Loja";
@@ -49,14 +50,18 @@ export function useAdminNav() {
               { to: "/admin/loja/cupons", label: "Cupons", icon: TicketPercent },
             ]
           : []),
+      ...(isOwner ? [{ to: "/admin/loja/equipe", label: "Equipe", icon: Users }] : []),
       ...(showPlatform ? [{ to: "/admin/platform/dashboard", label: "Central", icon: Building2 }] : []),
     ],
-    [isAdminOrOwner, isStaff, showPlatform],
+    [isAdminOrOwner, isOwner, isStaff, showPlatform],
   );
 
   const pathActive = (to: string) => {
     if (to.startsWith("/admin/platform")) return location.pathname.startsWith("/admin/platform");
-    if (to === "/admin/loja/vitrine") return location.pathname.startsWith("/admin/loja");
+    if (to === "/admin/loja/equipe") return location.pathname.startsWith("/admin/loja/equipe");
+    if (to === "/admin/loja/vitrine") {
+      return location.pathname.startsWith("/admin/loja") && !location.pathname.startsWith("/admin/loja/equipe");
+    }
     if (to === "/admin/loja/frete") return location.pathname.startsWith("/admin/loja/frete");
     if (to === "/admin/loja/cupons") return location.pathname.startsWith("/admin/loja/cupons");
     if (to === "/admin/produtos/catalogo") return location.pathname.startsWith("/admin/produtos");
