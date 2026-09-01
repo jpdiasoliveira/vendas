@@ -172,7 +172,7 @@ Persona de negócio **≠** role de login. Lojista não herda permissões de ope
 | **Cupons** | Admin em `/admin/loja/cupons` — API `GET/POST/PATCH/DELETE /api/admin/coupons` |
 | **`api-contract.md`** | Atualizado — ver [`api-contract.md`](api-contract.md); manter em sync ao mudar rotas |
 | **Página de produto dedicada** | Só modal na home — sem URL `/produto/:slug` |
-| **Testes E2E na CI** | Não implementados; testes unitários (`npm test`) disponíveis localmente |
+| **Testes E2E** | Playwright local (`npm run test:e2e`); ainda fora da CI |
 | **Cobrança automática de assinatura** | Fora de escopo |
 
 ---
