@@ -1,4 +1,4 @@
-# Fotos do catálogo Natfoods
+# Fotos do catálogo demo
 
 Coloque aqui as imagens dos sachês (PNG ou WebP) com estes nomes para referência manual no admin ou em SQL:
 
@@ -13,8 +13,8 @@ Coloque aqui as imagens dos sachês (PNG ou WebP) com estes nomes para referênc
 
 Depois do deploy, a URL pública será:
 
-`https://<seu-dominio>/catalog/natfoods/<arquivo>`
+`https://<seu-dominio>/catalog/demo-store/<arquivo>`
 
 Atualize `image_url` no Supabase (tabela `products`) ou pela tela de edição do admin.
 
-O script `docs/seed-natfoods-catalog-and-history.sql` usa URLs temporárias (picsum) só para você testar fluxo; substitua pelas URLs reais quando as fotos estiverem hospedadas.
+O script `docs/seed-demo-catalog-and-history.sql` usa URLs temporárias (picsum) só para você testar fluxo; substitua pelas URLs reais quando as fotos estiverem hospedadas.

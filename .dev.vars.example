@@ -22,17 +22,17 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 # STOREFRONT_BASE_URL=http://localhost:5173
 #
 # Plataforma SaaS — POST /api/platform/stores (criar loja sem SQL):
-# PLATFORM_OPERATOR_EMAILS=suporte@ktech.mobi
+# PLATFORM_OPERATOR_EMAILS=admin@example.com
 # Opcional: exige header x-platform-create-store-secret (defina o mesmo no front: VITE_PLATFORM_CREATE_STORE_SECRET)
 # PLATFORM_CREATE_STORE_SECRET=seu-segredo-demo
 #
 # Vitrine (Vite): mesmo e-mail da lista acima para exibir o menu «Plataforma» no admin (.env.local na raiz)
-# VITE_PLATFORM_OPERATOR_EMAILS=suporte@ktech.mobi
+# VITE_PLATFORM_OPERATOR_EMAILS=admin@example.com
 # VITE_PLATFORM_CREATE_STORE_SECRET=seu-segredo-demo
 #
 # Vite (.env ou .env.local na raiz do repo — não é .dev.vars): em http://localhost:5173 sem subdomínio,
 # define a loja usada em x-store-slug (evita 404 em /api/store/settings):
-# VITE_DEFAULT_STORE_SLUG=natfoods
+# VITE_DEFAULT_STORE_SLUG=demo-store
 #
 # Cron (Worker): expira pedidos pending antigos via RPC `expire_old_orders` (a cada 15 min no wrangler.json).
 # ORDER_EXPIRE_PENDING_MINUTES=60

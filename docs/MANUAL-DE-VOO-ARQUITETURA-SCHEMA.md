@@ -1,4 +1,4 @@
-# Manual de Voo — Alinhamento de Arquitetura e Schema (Padrão Ktech)
+# Manual de Voo — Alinhamento de Arquitetura e Schema
 
 Este documento é a **fonte única de verdade** para o Cursor e para qualquer agente/desenvolvedor. Seguir estas diretrizes evita colunas fantasmas e inconsistências após a auditoria e refatoração do projeto.
 

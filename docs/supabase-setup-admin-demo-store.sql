@@ -4,7 +4,7 @@
 -- PASSO OBRIGATÓRIO antes de rodar no Supabase (SQL Editor):
 -- No bloco DO abaixo, na linha "v_admin_email text := ...", coloque entre aspas simples
 -- o MESMO e-mail de um usuário que já exista em: Authentication > Users.
--- Ex.: v_admin_email text := 'gabriel@seudominio.com';
+-- Ex.: v_admin_email text := 'admin@example.com';
 --
 -- (Se quiser criar só a loja + settings sem vincular admin, comente o bloco inteiro
 -- do passo 3 com /* ... */ e execute; depois descomente, preencha o e-mail e rode de novo.)
@@ -13,11 +13,9 @@
 INSERT INTO stores (id, slug, display_name, status, created_at, updated_at)
 VALUES (
   'a0000001-0001-0001-0001-000000000001',
-  'natfoods',
+  'demo-store',
   'Loja demo (SaaS)',
   'active',
-  'free',
-  '{}'::jsonb,
   now(),
   now()
 )
@@ -83,7 +81,7 @@ $$;
 
 SELECT id, slug, display_name, status
 FROM public.stores
-WHERE slug = 'natfoods';
+WHERE slug = 'demo-store';
 
 SELECT store_id, updated_at
 FROM public.store_settings

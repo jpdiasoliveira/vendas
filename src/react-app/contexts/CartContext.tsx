@@ -118,7 +118,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     try {
       localStorage.setItem(cartStorageKeyForSlug(storeSlug), JSON.stringify(items));
-    } catch (err) {
+    } catch {
       showToast({
         type: "error",
         message: "Não foi possível salvar o carrinho neste navegador. Suas alterações podem se perder ao recarregar.",

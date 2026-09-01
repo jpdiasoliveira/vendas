@@ -18,4 +18,4 @@ Ordem sugerida para novos ambientes (ajustar se o teu projeto já tiver históri
 
 **Aplicar no Supabase:** SQL Editor → colar `6.sql` → executar; ou `apply_migration` via Supabase Dashboard / CLI ligado ao projeto.
 
-**Projeto Natfoods (produção):** a migração remota `rls_newsletter_subscribers_member_policies` foi aplicada com sucesso (políticas RLS ativas). O ficheiro local `6.sql` mantém o mesmo SQL para novos ambientes e revisão em git.
+**Produção:** a migração remota `rls_newsletter_subscribers_member_policies` foi aplicada com sucesso (políticas RLS ativas). O ficheiro local `6.sql` mantém o mesmo SQL para novos ambientes e revisão em git.

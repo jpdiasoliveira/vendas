@@ -12,6 +12,8 @@ import AdminOrdersPage from "@/react-app/pages/AdminOrders";
 import AdminProductsPage from "@/react-app/pages/AdminProducts";
 import AdminSettingsPage from "@/react-app/pages/AdminSettings";
 import AdminCheckoutSettingsPage from "@/react-app/pages/AdminCheckoutSettings";
+import AdminShippingFareBandsPage from "@/react-app/pages/AdminShippingFareBands";
+import AdminCouponsPage from "@/react-app/pages/AdminCoupons";
 import AdminNewsletterPage from "@/react-app/pages/AdminNewsletterPage";
 import { AdminCatalogHubLayout } from "@/react-app/components/admin/AdminCatalogHubLayout";
 import { AdminStoreHubLayout } from "@/react-app/components/admin/AdminStoreHubLayout";
@@ -129,6 +131,8 @@ export default function App() {
                             <Route index element={<Navigate to="/admin/loja/vitrine" replace />} />
                             <Route path="vitrine" element={<AdminSettingsPage />} />
                             <Route path="checkout" element={<AdminCheckoutSettingsPage />} />
+                            <Route path="frete" element={<AdminShippingFareBandsPage />} />
+                            <Route path="cupons" element={<AdminCouponsPage />} />
                             <Route path="newsletter" element={<AdminNewsletterPage />} />
                           </Route>
                           <Route path="configuracoes" element={<Navigate to="/admin/loja/vitrine" replace />} />

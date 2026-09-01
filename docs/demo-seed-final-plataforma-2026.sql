@@ -51,7 +51,7 @@ BEGIN
   INSERT INTO public.stores (id, slug, display_name, status, created_at, updated_at)
   VALUES (
     v_store_id,
-    'natfoods',
+    'demo-store',
     'Amazônia Select — Mercado piloto',
     'active',
     'free',
@@ -248,7 +248,7 @@ END;
 $$;
 
 -- Conferência rápida
-SELECT id, slug, display_name, status FROM public.stores WHERE slug = 'natfoods';
+SELECT id, slug, display_name, status FROM public.stores WHERE slug = 'demo-store';
 SELECT sm.role, u.email FROM public.store_members sm JOIN auth.users u ON u.id = sm.user_id
 WHERE sm.store_id = 'a0000001-0001-0001-0001-000000000001';
 SELECT minimum_order_value, primary_color, public_profile->>'requireLoginToCheckout' AS guest_checkout
