@@ -20,7 +20,7 @@ Abra **somente** o guia relacionado à tarefa:
 | Produto / regra de negócio | [`docs/PRD.md`](docs/PRD.md), [`docs/escopo-negocio.md`](docs/escopo-negocio.md) |
 | Arquitetura e módulos | [`.agents/docs/architecture.md`](.agents/docs/architecture.md) |
 | Padrões de código (API, validação, erros) | [`.agents/docs/patterns.md`](.agents/docs/patterns.md) |
-| Segurança e auth | [`.agents/docs/security.md`](.agents/docs/security.md) |
+| Segurança e auth | [`.agents/docs/security.md`](.agents/docs/security.md), [`docs/agents/roles-matrix.md`](docs/agents/roles-matrix.md) |
 | Persistência / Supabase | [`.agents/docs/data.md`](.agents/docs/data.md) |
 | Testes | [`.agents/docs/testing.md`](.agents/docs/testing.md) |
 | UI / design system | [`docs/padroes-ui.md`](docs/padroes-ui.md) |

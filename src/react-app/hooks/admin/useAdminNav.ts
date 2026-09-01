@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router";
 import type { LucideIcon } from "lucide-react";
-import { Activity, Building2, Package, Palette, ShoppingBag } from "lucide-react";
+import { Activity, Building2, Package, Palette, ShoppingBag, TicketPercent, Truck } from "lucide-react";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAdminMeQuery } from "@/react-app/hooks/useAdminMeQuery";
@@ -27,6 +27,7 @@ export function useAdminNav() {
   const { data: me } = useAdminMeQuery();
   const role = me?.role ?? null;
   const isAdminOrOwner = role === "admin" || role === "owner";
+  const isStaff = role === "staff";
   const showPlatform = isPlatformOperatorEmail(user?.email);
   const storeName = settings?.displayName?.trim() || "Loja";
   const logoUrl = settings?.logoUrl?.trim() ?? "";
@@ -41,15 +42,22 @@ export function useAdminNav() {
             { to: "/admin/loja/vitrine", label: "Marca e vitrine", icon: Palette },
             { to: "/admin/historico", label: "Histórico", icon: Activity },
           ]
-        : []),
+        : isStaff
+          ? [
+              { to: "/admin/loja/frete", label: "Frete", icon: Truck },
+              { to: "/admin/loja/cupons", label: "Cupons", icon: TicketPercent },
+            ]
+          : []),
       ...(showPlatform ? [{ to: "/admin/platform/dashboard", label: "Central", icon: Building2 }] : []),
     ],
-    [isAdminOrOwner, showPlatform],
+    [isAdminOrOwner, isStaff, showPlatform],
   );
 
   const pathActive = (to: string) => {
     if (to.startsWith("/admin/platform")) return location.pathname.startsWith("/admin/platform");
     if (to === "/admin/loja/vitrine") return location.pathname.startsWith("/admin/loja");
+    if (to === "/admin/loja/frete") return location.pathname.startsWith("/admin/loja/frete");
+    if (to === "/admin/loja/cupons") return location.pathname.startsWith("/admin/loja/cupons");
     if (to === "/admin/produtos/catalogo") return location.pathname.startsWith("/admin/produtos");
     return location.pathname === to;
   };
