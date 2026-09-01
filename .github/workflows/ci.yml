@@ -21,4 +21,53 @@ jobs:
 
       - run: npm run lint:check
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Configure Worker (.dev.vars)
+        if: ${{ secrets.SUPABASE_URL != '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+        run: |
+          cat > .dev.vars <<EOF
+          SUPABASE_URL=${SUPABASE_URL}
+          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+          SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+          SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+          EOF
+
+      - name: Configure Vite (.env.local)
+        if: ${{ secrets.SUPABASE_URL != '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          cat > .env.local <<EOF
+          VITE_DEFAULT_STORE_SLUG=demo-store
+          VITE_SUPABASE_URL=${SUPABASE_URL}
+          VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+          EOF
+
+      - name: E2E (Playwright)
+        run: npm run test:e2e
+        env:
+          CI: true
+          E2E_STORE_SLUG: demo-store
