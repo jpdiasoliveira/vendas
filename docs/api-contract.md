@@ -61,6 +61,7 @@ Usado após login para listar lojas do usuário (painel admin). Não exige `x-st
 |--------|------|-----------------|
 | GET | `/api/products` | `Product[]` |
 | GET | `/api/products/trending` | `string[]` (IDs dos produtos mais vendidos) |
+| GET | `/api/products/by-slug/:slug` | `Product` (detalhe público; 404 se inativo ou ausente) |
 
 ---
 

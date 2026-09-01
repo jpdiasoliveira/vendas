@@ -20,7 +20,7 @@ Contrato HTTP: [`api-contract.md`](api-contract.md) *(parcial — ver §9)*.
 
 | Superfície | Rotas React (principais) | API Worker |
 |------------|--------------------------|------------|
-| **Vitrine** | `/`, `/pedidos`, `/order/:id/confirmation`, `/pedido/acompanhar`, `/login` | `/api/products`, `/api/orders`, `/api/shipping`, `/api/coupons`, `/api/store/*` |
+| **Vitrine** | `/`, `/produto/:slug`, `/pedidos`, `/order/:id/confirmation`, `/pedido/acompanhar`, `/login` | `/api/products`, `/api/orders`, `/api/shipping`, `/api/coupons`, `/api/store/*` |
 | **Admin da loja** | `/admin/pedidos`, `/admin/produtos/*`, `/admin/loja/*`, `/admin/historico` | `/api/admin/*` |
 | **Central plataforma** | `/admin/platform/dashboard`, `lojas`, `planos`, `configuracoes` | `/api/platform/*` |
 
@@ -65,7 +65,7 @@ Persona de negócio **≠** role de login. Lojista não herda permissões de ope
 ### Catálogo e experiência
 - Listagem de produtos (`GET /api/products`)
 - Produtos em destaque / trending (`GET /api/products/trending`, view `view_top_sellers`)
-- Filtro por categoria, modal de produto (home single-page)
+- Filtro por categoria; modal na home + página dedicada `/produto/:slug`
 - Hero 3D (GLTF) + fundo animado
 - Tema da loja: cores, logo, banner, textos (`GET /api/store/settings` → `StoreSettingsContext`)
 
@@ -171,7 +171,7 @@ Persona de negócio **≠** role de login. Lojista não herda permissões de ope
 | **Frete (faixas CEP)** | Admin em `/admin/loja/frete` — API `GET/POST/PATCH/DELETE /api/admin/shipping-fare-bands` |
 | **Cupons** | Admin em `/admin/loja/cupons` — API `GET/POST/PATCH/DELETE /api/admin/coupons` |
 | **`api-contract.md`** | Atualizado — ver [`api-contract.md`](api-contract.md); manter em sync ao mudar rotas |
-| **Página de produto dedicada** | Só modal na home — sem URL `/produto/:slug` |
+| **Página de produto dedicada** | `/produto/:slug` + `GET /api/products/by-slug/:slug` |
 | **Testes E2E na CI** | Não implementados; testes unitários (`npm test`) disponíveis localmente |
 | **Cobrança automática de assinatura** | Fora de escopo |
 
