@@ -79,7 +79,7 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 | `SUPABASE_ANON_KEY` | Worker + Vite |
 | `SUPABASE_JWT_SECRET` | Worker (auth admin) |
 
-Sem secrets ou sem `demo-store` seedada: o spec de checkout faz `test.skip` — o job permanece verde.
+Sem secrets ou sem `demo-store` seedada: o spec de checkout faz `test.skip` — o job permanece verde. Os steps de `.dev.vars` / `.env.local` só escrevem arquivos quando `SUPABASE_URL` está definido (sem usar `if: secrets` no workflow — restrito pelo GitHub Actions).
 
 ## E2E — regras
 

@@ -40,31 +40,33 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Configure Worker (.dev.vars)
-        if: ${{ secrets.SUPABASE_URL != '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
         run: |
-          cat > .dev.vars <<EOF
+          if [ -n "${SUPABASE_URL}" ]; then
+            cat > .dev.vars <<EOF
           SUPABASE_URL=${SUPABASE_URL}
           SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
           SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
           SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
           EOF
+          fi
 
       - name: Configure Vite (.env.local)
-        if: ${{ secrets.SUPABASE_URL != '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          cat > .env.local <<EOF
+          if [ -n "${SUPABASE_URL}" ]; then
+            cat > .env.local <<EOF
           VITE_DEFAULT_STORE_SLUG=demo-store
           VITE_SUPABASE_URL=${SUPABASE_URL}
           VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
           EOF
+          fi
 
       - name: E2E (Playwright)
         run: npm run test:e2e
