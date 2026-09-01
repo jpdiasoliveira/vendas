@@ -41,7 +41,7 @@ Aplicar quando mudar `src/react-app/`:
 
 ## Segurança
 
-- [ ] Auth admin: JWT + `store_members`
+- [ ] Auth admin: JWT + `store_members` — matriz em [`docs/agents/roles-matrix.md`](../docs/agents/roles-matrix.md)
 - [ ] Plataforma: `PLATFORM_OPERATOR_EMAILS`
 - [ ] Webhook MP: assinatura quando exigida em produção
 

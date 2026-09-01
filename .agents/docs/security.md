@@ -53,3 +53,5 @@ Nunca commitar `.env`, `.dev.vars` ou tokens em logs.
 - Query sem `store_id` em dados de tenant.
 
 Personas de negócio ≠ roles de login — ver `docs/escopo-negocio.md` e PRD.
+
+Matriz rota × papel (staff / admin / owner / operador / vitrine): [`docs/agents/roles-matrix.md`](../../docs/agents/roles-matrix.md).
