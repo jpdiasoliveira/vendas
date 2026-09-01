@@ -7,6 +7,7 @@ import type { Product } from "@/react-app/types";
 import { adminUploadImage } from "@/react-app/services/api";
 import { useAdminProductForm } from "@/react-app/hooks/admin/useAdminProductForm";
 import { useAdminProductMutations } from "@/react-app/hooks/admin/useAdminProductMutations";
+import { useAdminRoleGate } from "@/react-app/hooks/admin/useAdminRoleGate";
 import { useProductMediaState } from "@/react-app/hooks/admin/useProductMediaState";
 import { formValuesToCreatePayload, formValuesToUpdatePayload, type AdminProductFormValues } from "@/schemas/adminProductForm";
 import { AdminProductDrawerTabs, type AdminProductDrawerTab } from "@/react-app/components/admin/products/AdminProductDrawerTabs";
@@ -29,6 +30,7 @@ export function AdminProductDrawer({ mode, isOpen, product, onClose, onSaved, pr
   const form = useAdminProductForm({ mode, product, isOpen });
   const media = useProductMediaState(isOpen);
   const mutations = useAdminProductMutations();
+  const { isAdminOrOwner } = useAdminRoleGate();
   const [tab, setTab] = useState<AdminProductDrawerTab>("info");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -63,6 +65,10 @@ export function AdminProductDrawer({ mode, isOpen, product, onClose, onSaved, pr
     try {
       let finalUrl = values.imageUrl?.trim() ?? "";
       if (media.imageFile) {
+        if (!isAdminOrOwner) {
+          setSubmitError("Apenas administradores podem enviar arquivos. Use a URL da imagem.");
+          return;
+        }
         const { publicUrl } = await adminUploadImage(media.imageFile);
         finalUrl = publicUrl;
       }
@@ -110,7 +116,14 @@ export function AdminProductDrawer({ mode, isOpen, product, onClose, onSaved, pr
                     {tab === "info" ? <AdminProductInfoTab /> : null}
                     {tab === "pricing" ? <AdminProductPricingTab /> : null}
                     {tab === "media" ? (
-                      <AdminProductMediaTab previewUrl={media.previewUrl} imageUrl={imageUrl} canReframe={canReframe} onPickFile={media.startFramingFromFile} onReframe={() => media.openReframing(imageUrl || product?.imageUrl || "", `${form.watch("title") || "produto"}.jpg`)} />
+                      <AdminProductMediaTab
+                        previewUrl={media.previewUrl}
+                        imageUrl={imageUrl}
+                        canReframe={canReframe}
+                        canUploadImages={isAdminOrOwner}
+                        onPickFile={media.startFramingFromFile}
+                        onReframe={() => media.openReframing(imageUrl || product?.imageUrl || "", `${form.watch("title") || "produto"}.jpg`)}
+                      />
                     ) : null}
                     {tab === "inventory" ? <AdminProductInventoryTab /> : null}
                   </div>

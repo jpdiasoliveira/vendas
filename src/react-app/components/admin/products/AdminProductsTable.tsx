@@ -11,6 +11,7 @@ type AdminProductsTableProps = {
   onQr: (p: Product) => void;
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
+  canDelete?: boolean;
 };
 
 export function AdminProductsTable(props: AdminProductsTableProps) {
@@ -42,6 +43,7 @@ export function AdminProductsTable(props: AdminProductsTableProps) {
                 onQr={props.onQr}
                 onEdit={props.onEdit}
                 onDelete={props.onDelete}
+                canDelete={props.canDelete}
               />
             ))}
           </tbody>

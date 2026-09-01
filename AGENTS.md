@@ -25,7 +25,7 @@ Abra **somente** o guia relacionado à tarefa:
 | Testes | [`.agents/docs/testing.md`](.agents/docs/testing.md) |
 | UI / design system | [`docs/padroes-ui.md`](docs/padroes-ui.md) |
 | Contrato HTTP | [`docs/api-contract.md`](docs/api-contract.md) |
-| Tracker / domínio | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) |
+| Tracker / domínio | [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md), [`docs/agents/checklist-usuarios-rbac.md`](docs/agents/checklist-usuarios-rbac.md) |
 | Práticas proibidas | [`padrões/03-Praticas-Proibidas.md`](padrões/03-Praticas-Proibidas.md) |
 
 ## Regras essenciais

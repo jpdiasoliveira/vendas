@@ -55,3 +55,5 @@ Nunca commitar `.env`, `.dev.vars` ou tokens em logs.
 Personas de negócio ≠ roles de login — ver `docs/escopo-negocio.md` e PRD.
 
 Matriz rota × papel (staff / admin / owner / operador / vitrine): [`docs/agents/roles-matrix.md`](../../docs/agents/roles-matrix.md).
+
+Checklist de tarefas por papel: [`docs/agents/checklist-usuarios-rbac.md`](../../docs/agents/checklist-usuarios-rbac.md).

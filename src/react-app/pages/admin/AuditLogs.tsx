@@ -1,28 +1,16 @@
-import { useNavigate } from "react-router";
 import { RefreshCw, History } from "lucide-react";
+import { AdminRestrictedFallback } from "@/react-app/components/admin/AdminRestrictedFallback";
 import { AuditLogsFilters } from "@/react-app/components/admin/AuditLogsFilters";
 import { AuditLogsSkeleton } from "@/react-app/components/admin/AuditLogsSkeleton";
 import { AuditLogsList } from "@/react-app/components/admin/AuditLogsList";
 import { useAuditLogs } from "@/react-app/hooks/useAuditLogs";
 
 const AuditLogsPage = () => {
-  const navigate = useNavigate();
   const m = useAuditLogs();
 
   if (m.forbidden) {
     return (
-      <div className="mx-auto max-w-md text-center">
-        <History className="mx-auto mb-4 h-16 w-16 text-content-muted/50" />
-        <h1 className="mb-2 font-display text-xl font-bold text-content">Acesso restrito</h1>
-        <p className="text-content-muted">Apenas administradores podem visualizar o histórico de atividades.</p>
-        <button
-          type="button"
-          onClick={() => navigate("/admin/pedidos")}
-          className="mt-6 rounded-xl bg-brand-primary px-4 py-2 font-medium text-white transition-colors hover:opacity-90"
-        >
-          Voltar ao painel
-        </button>
-      </div>
+      <AdminRestrictedFallback message="Apenas administradores podem visualizar o histórico de atividades." />
     );
   }
 

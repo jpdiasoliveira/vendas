@@ -6,6 +6,7 @@ import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useStoreSettings } from "@/react-app/contexts/StoreSettingsContext";
 import { useAdminMeQuery } from "@/react-app/hooks/useAdminMeQuery";
 import { isPlatformOperatorEmail } from "@/react-app/utils/platformOperator";
+import { isAdminOrOwnerRole } from "@/react-app/utils/adminRole";
 import { storeLogoHeightPx } from "@/react-app/utils/storeLogoDisplay";
 
 export type AdminNavLink = {
@@ -26,7 +27,7 @@ export function useAdminNav() {
   const { settings } = useStoreSettings();
   const { data: me } = useAdminMeQuery();
   const role = me?.role ?? null;
-  const isAdminOrOwner = role === "admin" || role === "owner";
+  const isAdminOrOwner = isAdminOrOwnerRole(role);
   const isStaff = role === "staff";
   const showPlatform = isPlatformOperatorEmail(user?.email);
   const storeName = settings?.displayName?.trim() || "Loja";

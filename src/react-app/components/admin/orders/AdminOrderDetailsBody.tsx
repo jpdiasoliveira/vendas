@@ -19,6 +19,7 @@ type AdminOrderDetailsBodyProps = {
   syncPaymentLoading: boolean;
   onSyncPayment: () => void;
   onSubmitStatus: () => void;
+  canSyncPayment?: boolean;
 };
 
 export function AdminOrderDetailsBody({
@@ -34,6 +35,7 @@ export function AdminOrderDetailsBody({
   syncPaymentLoading,
   onSyncPayment,
   onSubmitStatus,
+  canSyncPayment = true,
 }: AdminOrderDetailsBodyProps) {
   const waUrl = buildWhatsAppUrl(order.customerPhone);
   const stLower = (order.status ?? "").trim().toLowerCase();
@@ -135,6 +137,7 @@ export function AdminOrderDetailsBody({
         syncPaymentLoading={syncPaymentLoading}
         onSyncPayment={onSyncPayment}
         onSubmitStatus={onSubmitStatus}
+        canSyncPayment={canSyncPayment}
       />
     </>
   );

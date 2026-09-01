@@ -15,6 +15,7 @@ type AdminProductRowProps = {
   onQr: (p: Product) => void;
   onEdit: (p: Product) => void;
   onDelete: (p: Product) => void;
+  canDelete?: boolean;
 };
 
 export function AdminProductRow({
@@ -27,6 +28,7 @@ export function AdminProductRow({
   onQr,
   onEdit,
   onDelete,
+  canDelete = true,
 }: AdminProductRowProps) {
   const critical = isStockCritical(product.stock);
   const isActive = (product.status ?? "active") === "active";
@@ -70,9 +72,11 @@ export function AdminProductRow({
           <button type="button" onClick={() => onEdit(product)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-brand-primary hover:bg-brand-primary/10">
             <Pencil className="h-4 w-4" />Editar
           </button>
-          <button type="button" onClick={() => onDelete(product)} className="rounded-lg p-2 text-red-300 hover:bg-red-950/30" title="Excluir" aria-label={`Excluir ${product.name}`}>
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {canDelete ? (
+            <button type="button" onClick={() => onDelete(product)} className="rounded-lg p-2 text-red-300 hover:bg-red-950/30" title="Excluir" aria-label={`Excluir ${product.name}`}>
+              <Trash2 className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
       </td>
     </tr>
